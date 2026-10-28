@@ -24,7 +24,8 @@ const waitForPaintedPage = async (page: Page): Promise<void> => {
     );
   } catch (error) {
     const isPageStillEmpty = error instanceof errors.TimeoutError;
-    if (!isPageStillEmpty) throw error;
+    const isOtherFailure = !isPageStillEmpty;
+    if (isOtherFailure) throw error;
   }
   await page.evaluate(
     () =>

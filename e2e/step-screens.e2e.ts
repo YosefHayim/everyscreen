@@ -4,8 +4,9 @@ import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import { WebSocket } from "ws";
+import { LIVE_PATH } from "@/environment";
 import { type RunningHub, startHub } from "@/hub/hub-server";
 import type { LiveMessage } from "@/live/live-feed";
 
@@ -20,39 +21,45 @@ const GRID_DEVICE_IDS = [
   "galaxy-s24",
 ];
 const RENDER_DELAY_MS = 1500;
-const GREEN_CHANNELS = { red: 34, green: 170, blue: 102 };
+interface ScreenColor {
+  red: number;
+  green: number;
+  blue: number;
+}
+
+type ScreenMessage = Extract<LiveMessage, { kind: "screen" }>;
+
+const GREEN_CHANNELS: ScreenColor = { red: 34, green: 170, blue: 102 };
 const COLOR_TOLERANCE = 20;
 // The page paints a green block after the load event, like a single-page app does.
 const LATE_PAINT_HTML = `<!doctype html><meta name="viewport" content="width=device-width"><body style="margin:0"><div id="app"></div><script>setTimeout(() => { document.getElementById("app").innerHTML = '<div style="background:rgb(34,170,102);height:100vh"></div>'; }, ${RENDER_DELAY_MS});</script>`;
 
-const readCenterColor = async (
+const isScreenMessage = (
+  liveMessage: LiveMessage,
+): liveMessage is ScreenMessage => liveMessage.kind === "screen";
+
+const readCenterColor = (
+  page: Page,
   imageBase64: string,
-): Promise<{ red: number; green: number; blue: number }> => {
-  const browser = await chromium.launch();
-  try {
-    const page = await browser.newPage();
-    return await page.evaluate(async (jpegBase64) => {
-      const image = new Image();
-      image.src = `data:image/jpeg;base64,${jpegBase64}`;
-      await image.decode();
-      const canvas = document.createElement("canvas");
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const canvasContext = canvas.getContext("2d");
-      if (canvasContext === null) throw new Error("No canvas context");
-      canvasContext.drawImage(image, 0, 0);
-      const [red, green, blue] = canvasContext.getImageData(
-        Math.floor(image.width / 2),
-        Math.floor(image.height / 2),
-        1,
-        1,
-      ).data;
-      return { red, green, blue };
-    }, imageBase64);
-  } finally {
-    await browser.close();
-  }
-};
+): Promise<ScreenColor> =>
+  page.evaluate(async (jpegBase64) => {
+    const image = new Image();
+    image.src = `data:image/jpeg;base64,${jpegBase64}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const canvasContext = canvas.getContext("2d");
+    if (canvasContext === null) throw new Error("No canvas context");
+    canvasContext.drawImage(image, 0, 0);
+    const [red, green, blue] = canvasContext.getImageData(
+      Math.floor(image.width / 2),
+      Math.floor(image.height / 2),
+      1,
+      1,
+    ).data;
+    return { red, green, blue };
+  }, imageBase64);
 
 test.describe("painted screens for every device", () => {
   test.describe.configure({ mode: "serial" });
@@ -106,7 +113,7 @@ test.describe("painted screens for every device", () => {
 
     const liveMessages: LiveMessage[] = [];
     const liveSocket = new WebSocket(
-      `${runningHub.url.replace("http", "ws")}/api/live`,
+      `${runningHub.url.replace("http", "ws")}${LIVE_PATH}`,
     );
     liveSocket.on("message", (messageBytes) => {
       liveMessages.push(JSON.parse(messageBytes.toString()));
@@ -114,9 +121,9 @@ test.describe("painted screens for every device", () => {
     await once(liveSocket, "open");
     await expect
       .poll(() => {
-        const screenDeviceIds = liveMessages.flatMap((liveMessage) =>
-          liveMessage.kind === "screen" ? [liveMessage.deviceId] : [],
-        );
+        const screenDeviceIds = liveMessages
+          .filter(isScreenMessage)
+          .map(({ deviceId }) => deviceId);
         return GRID_DEVICE_IDS.every((deviceId) =>
           screenDeviceIds.includes(deviceId),
         );
@@ -124,24 +131,32 @@ test.describe("painted screens for every device", () => {
       .toBe(true);
     liveSocket.terminate();
 
-    for (const deviceId of GRID_DEVICE_IDS) {
-      const screenMessage = liveMessages.find(
-        (liveMessage) =>
-          liveMessage.kind === "screen" && liveMessage.deviceId === deviceId,
-      );
-      if (screenMessage?.kind !== "screen") {
-        throw new Error(`No screen image for ${deviceId}`);
+    const screenMessages = liveMessages.filter(isScreenMessage);
+    const browser = await chromium.launch();
+    const decoderPage = await browser.newPage();
+    try {
+      for (const deviceId of GRID_DEVICE_IDS) {
+        const screenMessage = screenMessages.find(
+          (message) => message.deviceId === deviceId,
+        );
+        const isScreenMissing = screenMessage === undefined;
+        if (isScreenMissing) throw new Error(`No screen image for ${deviceId}`);
+        const centerColor = await readCenterColor(
+          decoderPage,
+          screenMessage.imageBase64,
+        );
+        expect(Math.abs(centerColor.red - GREEN_CHANNELS.red)).toBeLessThan(
+          COLOR_TOLERANCE,
+        );
+        expect(Math.abs(centerColor.green - GREEN_CHANNELS.green)).toBeLessThan(
+          COLOR_TOLERANCE,
+        );
+        expect(Math.abs(centerColor.blue - GREEN_CHANNELS.blue)).toBeLessThan(
+          COLOR_TOLERANCE,
+        );
       }
-      const centerColor = await readCenterColor(screenMessage.imageBase64);
-      expect(Math.abs(centerColor.red - GREEN_CHANNELS.red)).toBeLessThan(
-        COLOR_TOLERANCE,
-      );
-      expect(Math.abs(centerColor.green - GREEN_CHANNELS.green)).toBeLessThan(
-        COLOR_TOLERANCE,
-      );
-      expect(Math.abs(centerColor.blue - GREEN_CHANNELS.blue)).toBeLessThan(
-        COLOR_TOLERANCE,
-      );
+    } finally {
+      await browser.close();
     }
   });
 });
