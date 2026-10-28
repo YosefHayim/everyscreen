@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wide block</title>
+<meta name="viewport" content="width=device-width">
+<style>
+  body { margin: 0; font: 16px sans-serif; }
+  .wide-block { width: var(--block-width); height: 60px; background: #0f766e; }
+</style>
+</head>
+<body>
+  <div class="wide-block"></div>
+  <script>
+    // The page URL hash carries the block width in px, so one fixture fits every screen.
+    document.documentElement.style.setProperty("--block-width", `${location.hash.slice(1)}px`);
+  </script>
+</body>
+</html>

@@ -30,6 +30,11 @@ export interface DevicePreset {
   use: BrowserContextOptions;
 }
 
+export interface DeviceViewport {
+  width: number;
+  height: number;
+}
+
 const DEVICE_ID_CLASH_STATUS = 409;
 const DEVICE_MISSING_STATUS = 404;
 const NON_ID_CHARACTERS = /[^\p{L}\p{N}]+/gu;
@@ -106,4 +111,15 @@ export const checkDeviceRemoval = (
     (customDevice) => !hasDeviceId(customDevice, deviceId),
   );
   return { devices: keptDevices };
+};
+
+export const pickDeviceViewport = (
+  devicePreset: DevicePreset,
+): DeviceViewport => {
+  const { viewport } = devicePreset.use;
+  const isViewportMissing = viewport === undefined || viewport === null;
+  if (isViewportMissing) {
+    throw new Error(`Device ${devicePreset.id} has no viewport`);
+  }
+  return { width: viewport.width, height: viewport.height };
 };

@@ -7,6 +7,7 @@ import {
   checkNewDevice,
   createPresetFromCustomDevice,
   pickDeviceId,
+  pickDeviceViewport,
   pickGridDevices,
 } from "@/devices/devices-logic";
 import { CPU_TIERS } from "@/environment";
@@ -180,5 +181,30 @@ describe("checkDeviceRemoval", () => {
 
     expect(presetStatus).toBe(404);
     expect(emptyStatus).toBe(404);
+  });
+});
+
+describe("pickDeviceViewport", () => {
+  test("returns the width and height of the preset viewport", () => {
+    const pixelPreset = DEVICE_PRESETS.find(
+      (preset) => preset.id === "pixel-8",
+    );
+    const isPixelPresetMissing = pixelPreset === undefined;
+    if (isPixelPresetMissing) throw new Error("No pixel-8 preset");
+
+    const deviceViewport = pickDeviceViewport(pixelPreset);
+
+    expect(deviceViewport).toEqual({ width: 412, height: 915 });
+  });
+
+  test("throws when the preset has no viewport", () => {
+    const [firstPreset] = DEVICE_PRESETS;
+    const isFirstPresetMissing = firstPreset === undefined;
+    if (isFirstPresetMissing) throw new Error("No presets");
+    const presetWithoutViewport = { ...firstPreset, use: {} };
+
+    const pickMissingViewport = () => pickDeviceViewport(presetWithoutViewport);
+
+    expect(pickMissingViewport).toThrow("has no viewport");
   });
 });

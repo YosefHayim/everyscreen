@@ -75,7 +75,7 @@ const openAndCheck = async (viewing: Viewing) => {
 
   await page.goto(FIXTURE_URL);
   await expect.poll(() => watchedFindings.length).toBe(PAGE_FINDING_COUNT);
-  const measurements = await measurePage(page);
+  const measurements = await measurePage(page, { width, height });
   const checkFindings = listFindings(measurements, {
     id: deviceId,
     hasTouch,
@@ -137,7 +137,10 @@ for (const { name, engine } of SAFE_AREA_ENGINES) {
     const page = await browserContext.newPage();
 
     await page.goto(SAFE_AREA_HEADER_URL);
-    const measurements = await measurePage(page);
+    const measurements = await measurePage(page, {
+      width: PHONE.width,
+      height: PHONE.height,
+    });
     const checkFindings = listFindings(measurements, {
       id: PHONE.deviceId,
       hasTouch: true,

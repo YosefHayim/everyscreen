@@ -1,4 +1,5 @@
 import type { Page } from "playwright";
+import type { DeviceViewport } from "@/devices/devices-logic";
 
 interface PinnedBox {
   selector: string;
@@ -19,13 +20,19 @@ export interface PageMeasurements {
   isViewportCover: boolean;
 }
 
+interface MeasureRequest {
+  tapTags: string;
+  deviceViewport: DeviceViewport;
+}
+
 const TAP_TAGS = "a[href], button, input, [role=button]";
 
 // Runs inside the page (page.evaluate): it can use nothing outside itself.
-const readMeasurements = (tapTags: string): PageMeasurements => {
+const readMeasurements = (measureRequest: MeasureRequest): PageMeasurements => {
   const SELECTOR_DEPTH = 3;
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
+  // Mobile emulation widens window.innerWidth to fit the content, so the device size comes from the caller.
+  const { tapTags, deviceViewport } = measureRequest;
+  const { width: viewportWidth, height: viewportHeight } = deviceViewport;
 
   const describeNode = (element: Element) => {
     const tagName = element.tagName.toLowerCase();
@@ -191,5 +198,8 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
   };
 };
 
-export const measurePage = (page: Page): Promise<PageMeasurements> =>
-  page.evaluate(readMeasurements, TAP_TAGS);
+export const measurePage = (
+  page: Page,
+  deviceViewport: DeviceViewport,
+): Promise<PageMeasurements> =>
+  page.evaluate(readMeasurements, { tapTags: TAP_TAGS, deviceViewport });
