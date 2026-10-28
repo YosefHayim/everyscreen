@@ -9,7 +9,7 @@ import {
 import type { CommandReply } from "@/commands/commands-logic";
 import { type HubCommand, hubCommandSchema } from "@/commands/commands-schema";
 import { type CustomDevice, customDeviceSchema } from "@/devices/device-schema";
-import { SKILL_AGENTS, type SkillAgent } from "@/skill/skill-install";
+import { SKILL_AGENTS, type SkillAgent } from "@/skill/skill-agents";
 
 const DEFAULT_FLOWS_GLOB = "flows/*.yaml";
 const DEFAULT_PARALLEL = 1;
@@ -109,7 +109,8 @@ export const createPrintedReply = (
 };
 
 const createHelpLines = (helpLines: FlagHelp[]): string[] => {
-  const widestName = Math.max(...helpLines.map(({ flag }) => flag.length));
+  const flagLengths = helpLines.map(({ flag }) => flag.length);
+  const widestName = Math.max(...flagLengths);
   return helpLines.map(
     ({ flag, description }) =>
       `  ${flag.padEnd(widestName)}${COLUMN_GAP}${description}`,
@@ -166,6 +167,8 @@ export const pickCommandName = (
 const readNumberFlag = (flagWord: string | undefined): number | undefined => {
   const isFlagMissing = flagWord === undefined;
   if (isFlagMissing) return undefined;
+  const isFlagEmpty = flagWord === "";
+  if (isFlagEmpty) return Number.NaN;
   return Number(flagWord);
 };
 

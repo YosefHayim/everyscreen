@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 const DEFAULT_FILE_MODE = 0o666;
@@ -37,5 +37,10 @@ export const writeStoredFile = async (
   const draftPath = `${filePath}.${randomUUID()}.draft`;
   await mkdir(folderPath, { recursive: true });
   await writeFile(draftPath, fileBytes, { mode: fileMode });
-  await rename(draftPath, filePath);
+  try {
+    await rename(draftPath, filePath);
+  } catch (error) {
+    await rm(draftPath, { force: true });
+    throw error;
+  }
 };

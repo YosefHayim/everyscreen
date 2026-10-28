@@ -385,6 +385,15 @@ describe("planCli", () => {
     });
   });
 
+  test("rejects an empty port", () => {
+    const cliPlan = planCli(["start"], { port: "" }, true);
+
+    expect(cliPlan).toMatchObject({
+      kind: "bad-usage",
+      message: expect.stringContaining("start --port"),
+    });
+  });
+
   test("plans stop, status and devices list", () => {
     const stopPlan = planCli(["stop"], {}, true);
     const statusPlan = planCli(["status"], {}, true);
@@ -536,6 +545,19 @@ describe("planCli", () => {
         kind: "install-skill",
         agent: "claude",
         isConfirmed: true,
+      },
+    });
+  });
+
+  test("does not confirm skill install without a terminal or --yes", () => {
+    const cliPlan = planCli(["skill", "install"], {}, false);
+
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: {
+        kind: "install-skill",
+        agent: "claude",
+        isConfirmed: false,
       },
     });
   });

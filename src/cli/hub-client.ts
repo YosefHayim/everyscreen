@@ -16,7 +16,7 @@ const problemSchema = z.object({ detail: z.string() });
 
 const createHubClient = (hubUrl: string) => hc<HubApp>(hubUrl);
 
-export type HubClient = ReturnType<typeof createHubClient>;
+type HubClient = ReturnType<typeof createHubClient>;
 
 export const createHubUrl = (hubFile: HubFile): string =>
   `http://${HUB_HOST}:${hubFile.port}`;
@@ -27,9 +27,8 @@ export const countDevices = (hubFile: HubFile): number =>
 export const readHubFile = async (
   rootFolder: string,
 ): Promise<HubFile | null> => {
-  const serializedHubFile = await readStoredFile(
-    join(rootFolder, HUB_FILE_PATH),
-  );
+  const hubFilePath = join(rootFolder, HUB_FILE_PATH);
+  const serializedHubFile = await readStoredFile(hubFilePath);
   const isHubFileMissing = serializedHubFile === null;
   if (isHubFileMissing) return null;
   const hubFileDocument: unknown = JSON.parse(serializedHubFile);
@@ -42,7 +41,8 @@ const isConnectionLost = (error: unknown): boolean => {
   const lostCause = error.cause;
   const hasCode = lostCause instanceof Error && "code" in lostCause;
   if (!hasCode) return false;
-  return LOST_CONNECTION_CODES.includes(String(lostCause.code));
+  const lostCode = String(lostCause.code);
+  return LOST_CONNECTION_CODES.includes(lostCode);
 };
 
 const isAnswerTimeout = (error: unknown): boolean =>
@@ -58,7 +58,8 @@ export const readProblemReply = async (
 
 // A hub file can outlive a crashed hub, so only a hub that answers counts as running.
 export const isHubAnswering = async (hubFile: HubFile): Promise<boolean> => {
-  const hubClient = createHubClient(createHubUrl(hubFile));
+  const hubUrl = createHubUrl(hubFile);
+  const hubClient = createHubClient(hubUrl);
   try {
     await hubClient.api.devices.$get(
       {},

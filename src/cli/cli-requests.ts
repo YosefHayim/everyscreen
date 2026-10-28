@@ -22,11 +22,8 @@ import type { CustomDevice } from "@/devices/device-schema";
 import { listFlowPaths, runFlows } from "@/flows/flow-runner";
 import { summarizeFlows } from "@/flows/flows-logic";
 import { readStoredFile } from "@/hub/stored-files";
-import {
-  installSkill,
-  pickSkillFile,
-  type SkillAgent,
-} from "@/skill/skill-install";
+import type { SkillAgent } from "@/skill/skill-agents";
+import { installSkill, pickSkillFile } from "@/skill/skill-install";
 
 const RESTART_HINT = "restart the hub to apply";
 
@@ -107,11 +104,12 @@ const runFlowFiles = async (
 };
 
 const installAgentSkill = async (
+  rootFolder: string,
   agent: SkillAgent,
   isConfirmed: boolean,
-  rootFolder: string,
 ): Promise<CommandReply> => {
-  const oldSkill = await readStoredFile(pickSkillFile(agent, rootFolder));
+  const skillFile = pickSkillFile(agent, rootFolder);
+  const oldSkill = await readStoredFile(skillFile);
   const isOverwrite = oldSkill !== null;
   const isRefused = isOverwrite && !isConfirmed;
   if (isRefused) return createNeedsYesReply("skill install");
@@ -122,13 +120,15 @@ const installAgentSkill = async (
 export const runCliRequest = (
   cliRequest: CliRequest,
   rootFolder: string,
+  writeStartedReply: (startedReply: CommandReply) => void,
 ): Promise<CommandReply> => {
   switch (cliRequest.kind) {
     case "send-command":
       return sendHubCommand(rootFolder, cliRequest.hubCommand);
     case "start": {
       const { port, isForeground } = cliRequest;
-      if (isForeground) return startHubInForeground(rootFolder, port);
+      if (isForeground)
+        return startHubInForeground(rootFolder, port, writeStartedReply);
       return startHubInBackground(rootFolder, port);
     }
     case "stop":
@@ -153,9 +153,9 @@ export const runCliRequest = (
       );
     case "install-skill":
       return installAgentSkill(
+        rootFolder,
         cliRequest.agent,
         cliRequest.isConfirmed,
-        rootFolder,
       );
   }
 };

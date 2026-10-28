@@ -3,6 +3,7 @@ import { readCommandLine } from "@/cli/cli-flags";
 import { type CliPlan, createReply, planCli } from "@/cli/cli-logic";
 import { writeReply } from "@/cli/cli-reply";
 import { runCliRequest } from "@/cli/cli-requests";
+import type { CommandReply } from "@/commands/commands-logic";
 
 const EXIT_CODES = {
   ok: 0,
@@ -15,16 +16,23 @@ const runPlan = async (
   isJsonWanted: boolean,
 ): Promise<number> => {
   switch (cliPlan.kind) {
-    case "show-help":
-      writeReply(createReply("ok", cliPlan.helpPage), isJsonWanted);
+    case "show-help": {
+      const helpReply = createReply("ok", cliPlan.helpPage);
+      writeReply(helpReply, isJsonWanted);
       return EXIT_CODES.ok;
-    case "bad-usage":
-      writeReply(createReply("failed", cliPlan.message), isJsonWanted);
+    }
+    case "bad-usage": {
+      const badUsageReply = createReply("failed", cliPlan.message);
+      writeReply(badUsageReply, isJsonWanted);
       return EXIT_CODES.badUsage;
+    }
     case "run": {
+      const writeStartedReply = (startedReply: CommandReply): void =>
+        writeReply(startedReply, isJsonWanted);
       const commandReply = await runCliRequest(
         cliPlan.cliRequest,
         process.cwd(),
+        writeStartedReply,
       );
       writeReply(commandReply, isJsonWanted);
       return EXIT_CODES[commandReply.status];
@@ -38,7 +46,8 @@ const runCli = async (): Promise<void> => {
   const commandLine = readCommandLine(commandLineWords);
   const isCommandLineUnreadable = commandLine.kind === "unreadable";
   if (isCommandLineUnreadable) {
-    writeReply(createReply("failed", commandLine.message), isJsonWanted);
+    const unreadableReply = createReply("failed", commandLine.message);
+    writeReply(unreadableReply, isJsonWanted);
     process.exitCode = EXIT_CODES.badUsage;
     return;
   }
@@ -54,7 +63,8 @@ const runCli = async (): Promise<void> => {
     console.error({ error });
     const isErrorKnown = error instanceof Error;
     const errorLine = isErrorKnown ? error.message : "unexpected error";
-    writeReply(createReply("failed", errorLine), isJsonWanted);
+    const errorReply = createReply("failed", errorLine);
+    writeReply(errorReply, isJsonWanted);
     process.exitCode = EXIT_CODES.failed;
   }
 };

@@ -1,10 +1,7 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readStoredFile, writeStoredFile } from "@/hub/stored-files";
-
-export const SKILL_AGENTS = ["claude", "codex", "cursor"] as const;
-
-export type SkillAgent = (typeof SKILL_AGENTS)[number];
+import type { SkillAgent } from "@/skill/skill-agents";
 
 // Claude Code: https://code.claude.com/docs/en/skills
 // Codex: https://developers.openai.com/codex/skills
@@ -23,7 +20,8 @@ const SKILL_FILE_URLS = [
 
 const readSkillMarkdown = async (): Promise<string> => {
   for (const skillFileUrl of SKILL_FILE_URLS) {
-    const skillMarkdown = await readStoredFile(fileURLToPath(skillFileUrl));
+    const skillPath = fileURLToPath(skillFileUrl);
+    const skillMarkdown = await readStoredFile(skillPath);
     const isSkillMarkdownFound = skillMarkdown !== null;
     if (isSkillMarkdownFound) return skillMarkdown;
   }

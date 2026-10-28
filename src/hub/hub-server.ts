@@ -25,7 +25,7 @@ const API_PATH = "/api/*";
 const CLIENT_ROUTE_PATH = "*";
 const INDEX_FILE = "index.html";
 
-export interface HubStart {
+interface HubStart {
   rootFolder: string;
   port: number;
   dashboardFolder: string;
@@ -157,6 +157,20 @@ const closeServer = (httpServer: ServerType): Promise<void> =>
     if (canCloseConnections) httpServer.closeAllConnections();
   });
 
+const listenOrStopDevices = async (
+  hubServerApp: Hono,
+  websocketServer: WebSocketServer,
+  port: number,
+  gridDevices: GridDevice[],
+): Promise<ListeningServer> => {
+  try {
+    return await listen(hubServerApp, websocketServer, port);
+  } catch (error) {
+    await stopGridDevices(gridDevices);
+    throw error;
+  }
+};
+
 export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
   const { rootFolder, port } = hubStart;
   const devicesFile = await readDevicesFile(rootFolder);
@@ -166,8 +180,13 @@ export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
 
   const websocketServer = new WebSocketServer({ noServer: true });
   const hubServerApp = createHubServerApp(hubStart, devicePages);
+  const listeningServer = await listenOrStopDevices(
+    hubServerApp,
+    websocketServer,
+    port,
+    gridDevices,
+  );
   try {
-    const listeningServer = await listen(hubServerApp, websocketServer, port);
     const hubFile = createHubFile(listeningServer.port, gridDevices);
     await writeHubFile(hubFilePath, hubFile);
 
@@ -179,6 +198,7 @@ export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
     };
     return { url: `http://${HUB_HOST}:${listeningServer.port}`, stop };
   } catch (error) {
+    await closeServer(listeningServer.httpServer);
     await stopGridDevices(gridDevices);
     throw error;
   }

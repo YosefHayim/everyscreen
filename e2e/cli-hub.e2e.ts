@@ -18,6 +18,8 @@ const TSCONFIG_PATH = join(import.meta.dirname, "../tsconfig.json");
 const HOLLIS_GOODS_PATH = join(import.meta.dirname, "hollis-goods.html");
 const TSX_LOADER_URL = import.meta.resolve("tsx");
 const STARTUP_TIMEOUT_MS = 240_000;
+const EXIT_TIMEOUT_MS = 15_000;
+const EXIT_POLL_MS = 100;
 const DEVICE_COUNT = 9;
 const FORM_PATH = "/form";
 const FORM_HTML =
@@ -62,6 +64,13 @@ const isExecFailure = (error: unknown): error is ExecFailure =>
   "stdout" in error &&
   typeof error.stdout === "string";
 
+const waitForExit = async (processId: number): Promise<void> => {
+  const deadline = Date.now() + EXIT_TIMEOUT_MS;
+  while (isProcessAlive(processId) && Date.now() < deadline) {
+    await new Promise((done) => setTimeout(done, EXIT_POLL_MS));
+  }
+};
+
 const createCliRun = (exitCode: number, stdout: string): CliRun => {
   const commandReply: CommandReply = JSON.parse(stdout);
   return { exitCode, stdout, commandReply };
@@ -84,7 +93,8 @@ const createRunCli =
       return createCliRun(0, stdout);
     } catch (error) {
       // A non-zero exit rejects with the exit code and what the CLI printed.
-      if (!isExecFailure(error)) throw error;
+      const isExecFailureUnknown = !isExecFailure(error);
+      if (isExecFailureUnknown) throw error;
       return createCliRun(error.code, error.stdout);
     }
   };
@@ -129,20 +139,24 @@ const test = base.extend<object, { cliWorld: CliWorld }>({
         FLOW_IPHONE.replace("FORM_URL", formUrl),
       );
       const readHubFile = createReadHubFile(workFolder);
+      const runCli = createRunCli(workFolder);
 
       await use({
         workFolder,
         shopUrl,
-        runCli: createRunCli(workFolder),
+        runCli,
         readHubFile,
       });
 
       const hasHubFile = existsSync(join(workFolder, HUB_FILE_PATH));
       if (hasHubFile) {
         const hubFile = await readHubFile();
-        process.kill(hubFile.pid, "SIGTERM");
+        await runCli(["stop"]);
+        await waitForExit(hubFile.pid);
       }
+      shopServer.closeAllConnections();
       shopServer.close();
+      await once(shopServer, "close");
       await rm(workFolder, { recursive: true, force: true });
     },
     { scope: "worker" },
