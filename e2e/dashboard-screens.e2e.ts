@@ -1,12 +1,14 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { serve } from "@hono/node-server";
 import { expect, type Page, test } from "@playwright/test";
+import { Hono } from "hono";
 import { createServer, type ViteDevServer } from "vite";
+import { WebSocketServer } from "ws";
 import { DEVICES_FILE_PATH, STORE_FOLDER } from "@/environment";
 import { createHubApp } from "@/hub/hub-app";
+import { type ListeningServer, listen } from "@/hub/hub-server";
+import { liveRoutes } from "@/live/live-routes";
 
 const HOST = "127.0.0.1";
 const DESKTOP_VIEWPORT = { width: 1440, height: 900 };
@@ -109,25 +111,24 @@ const readPageWidths = (page: Page): Promise<number[]> =>
 
 test.describe("dashboard screens", () => {
   let rootFolder = "";
-  let hubServer: ReturnType<typeof serve>;
+  let hubServer: ListeningServer;
+  let websocketServer: WebSocketServer;
   let viteServer: ViteDevServer;
   let dashboardUrl = "";
 
   test.beforeAll(async () => {
     rootFolder = await createFixtureFolder();
-    const hubApp = createHubApp(rootFolder);
-    const hubPort = await new Promise<number>((done) => {
-      hubServer = serve(
-        { fetch: hubApp.fetch, port: 0, hostname: HOST },
-        (address: AddressInfo) => done(address.port),
-      );
-    });
-    const hubUrl = `http://${HOST}:${hubPort}`;
+    const hubApp = new Hono()
+      .route("/", createHubApp(rootFolder))
+      .route("/", liveRoutes);
+    websocketServer = new WebSocketServer({ noServer: true });
+    hubServer = await listen(hubApp, websocketServer, 0);
+    const hubUrl = `http://${HOST}:${hubServer.port}`;
     viteServer = await createServer({
       server: {
         host: HOST,
         port: 0,
-        proxy: { "/api": hubUrl },
+        proxy: { "/api": { target: hubUrl, ws: true } },
       },
       logLevel: "silent",
     });
@@ -142,7 +143,8 @@ test.describe("dashboard screens", () => {
 
   test.afterAll(async () => {
     await viteServer.close();
-    hubServer.close();
+    for (const liveClient of websocketServer.clients) liveClient.terminate();
+    hubServer.httpServer.close();
     await rm(rootFolder, { recursive: true });
   });
 
@@ -157,6 +159,17 @@ test.describe("dashboard screens", () => {
     await expect(
       page.getByRole("heading", { name: "Shop kiosk" }),
     ).toBeVisible();
+  });
+
+  test("the setup steps show the hub as started once the live socket opens", async ({
+    page,
+  }) => {
+    await page.goto(dashboardUrl);
+
+    const startHubStep = page
+      .getByRole("listitem")
+      .filter({ hasText: "Start the hub" });
+    await expect(startHubStep).toContainText("Done");
   });
 
   test("the focus screen shows one device and the others", async ({ page }) => {
