@@ -4,7 +4,7 @@ import { runSchema } from "@/runs/run-schema";
 const OLD_RUN_FILE = {
   runId: "run-0001",
   origin: "cli",
-  status: "passed",
+  status: "ok",
   startedAt: 1,
   steps: [],
 };
