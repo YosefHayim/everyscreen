@@ -23,3 +23,6 @@ export const CPU_TIERS = {
   tablet: 1.5,
   desktop: 1,
 } as const;
+
+// Catalog devices off the grid that one sweep runs at the same time.
+export const SWEEP_EXTRA_DEVICE_LIMIT = 4;

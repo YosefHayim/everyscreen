@@ -7,7 +7,12 @@ import {
   type FlagHelp,
 } from "@/cli/cli-help-pages";
 import type { CommandReply } from "@/commands/commands-logic";
-import { type HubCommand, hubCommandSchema } from "@/commands/commands-schema";
+import {
+  type HubCommand,
+  hubCommandSchema,
+  type SweepCommand,
+  sweepCommandSchema,
+} from "@/commands/commands-schema";
 import { type CustomDevice, customDeviceSchema } from "@/devices/device-schema";
 import { SKILL_AGENTS, type SkillAgent } from "@/skill/skill-agents";
 
@@ -27,6 +32,11 @@ export type CliRequest =
   | { kind: "add-device"; customDevice: CustomDevice }
   | { kind: "remove-device"; deviceId: string; isConfirmed: boolean }
   | { kind: "run-flows"; flowsGlob: string; parallel: number }
+  | {
+      kind: "run-sweep";
+      sweepCommand: SweepCommand;
+      beforeFlowPath: string | null;
+    }
   | { kind: "install-skill"; agent: SkillAgent; isConfirmed: boolean };
 
 export type CliPlan =
@@ -46,6 +56,13 @@ const startFlagsSchema = z.object({
 const runFlagsSchema = z.object({
   flows: z.string().min(1).default(DEFAULT_FLOWS_GLOB),
   parallel: z.number().int().min(1).default(DEFAULT_PARALLEL),
+});
+
+const sweepFlagsSchema = z.object({
+  url: sweepCommandSchema.shape.url,
+  devices: sweepCommandSchema.shape.deviceIds,
+  "max-routes": sweepCommandSchema.shape.maxRoutes,
+  before: z.string().min(1).nullable().default(null),
 });
 
 const skillFlagsSchema = z.object({
@@ -184,11 +201,21 @@ const readNumberFlag = (flagWord: string | undefined): number | undefined => {
   return Number(flagWord);
 };
 
+const readDevicesFlag = (
+  flagWord: string | undefined,
+): "all" | string[] | undefined => {
+  const isFlagMissing = flagWord === undefined;
+  if (isFlagMissing) return undefined;
+  const isEveryDeviceWanted = flagWord === "all";
+  if (isEveryDeviceWanted) return "all";
+  return flagWord.split(",").map((deviceId) => deviceId.trim());
+};
+
 const createBadUsage = (
   commandName: CliCommandName,
   issue: z.core.$ZodIssue,
 ): CliRequestCheck => {
-  const flagName = issue.path.join(".");
+  const flagName = issue.path.slice(0, 1).join(".");
   return {
     kind: "bad-usage",
     message: `bad usage · ${commandName} --${flagName}: ${issue.message} · run everyscreen ${commandName} --help`,
@@ -292,6 +319,31 @@ const checkRunFlowsFlags = (flags: CliFlags): CliRequestCheck => {
   return createBadUsage("run", runCheck.error.issues[0]);
 };
 
+const checkSweepFlags = (flags: CliFlags): CliRequestCheck => {
+  const sweepCheck = sweepFlagsSchema.safeParse({
+    url: flags.url,
+    devices: readDevicesFlag(flags.devices),
+    "max-routes": readNumberFlag(flags["max-routes"]),
+    before: flags.before,
+  });
+  const isValidSweepCheck = sweepCheck.success;
+  if (isValidSweepCheck) {
+    const sweepFlags = sweepCheck.data;
+    return createReadyCheck({
+      kind: "run-sweep",
+      sweepCommand: {
+        commandName: "sweep",
+        url: sweepFlags.url,
+        deviceIds: sweepFlags.devices,
+        maxRoutes: sweepFlags["max-routes"],
+        beforeSteps: null,
+      },
+      beforeFlowPath: sweepFlags.before,
+    });
+  }
+  return createBadUsage("sweep", sweepCheck.error.issues[0]);
+};
+
 const checkInstallSkillFlags = (
   flags: CliFlags,
   isConfirmed: boolean,
@@ -328,6 +380,8 @@ const checkRequestFlags = (
       return checkRemoveDeviceFlags(flags, isConfirmed);
     case "run":
       return checkRunFlowsFlags(flags);
+    case "sweep":
+      return checkSweepFlags(flags);
     case "skill install":
       return checkInstallSkillFlags(flags, isConfirmed);
     case "open":

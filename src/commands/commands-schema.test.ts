@@ -12,6 +12,39 @@ describe("sweepCommandSchema", () => {
 
     expect(sweepCommand.deviceIds).toBeNull();
     expect(sweepCommand.maxRoutes).toBe(50);
+    expect(sweepCommand.beforeSteps).toBeNull();
+  });
+
+  test("accepts all as the device ids", () => {
+    const sweepCommand = sweepCommandSchema.parse({
+      commandName: "sweep",
+      url: SWEEP_URL,
+      deviceIds: "all",
+    });
+
+    expect(sweepCommand.deviceIds).toBe("all");
+  });
+
+  test("accepts flow steps to run before the routes", () => {
+    const sweepCommand = sweepCommandSchema.parse({
+      commandName: "sweep",
+      url: SWEEP_URL,
+      beforeSteps: [
+        { commandName: "open", url: `${SWEEP_URL}login`, deviceIds: null },
+      ],
+    });
+
+    expect(sweepCommand.beforeSteps).toHaveLength(1);
+  });
+
+  test("rejects a sweep step inside the before steps", () => {
+    const parsing = sweepCommandSchema.safeParse({
+      commandName: "sweep",
+      url: SWEEP_URL,
+      beforeSteps: [{ commandName: "sweep", url: SWEEP_URL, deviceIds: null }],
+    });
+
+    expect(parsing.success).toBe(false);
   });
 
   test("rejects an empty device list", () => {

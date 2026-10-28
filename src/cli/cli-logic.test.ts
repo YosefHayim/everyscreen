@@ -605,4 +605,119 @@ describe("planCli", () => {
       message: expect.stringContaining("skill install --agent"),
     });
   });
+
+  test("plans sweep with the grid, fifty routes and no before flow by default", () => {
+    const cliPlan = planCli(["sweep"], { url: "http://127.0.0.1:3000/" }, true);
+
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: {
+        kind: "run-sweep",
+        sweepCommand: {
+          commandName: "sweep",
+          url: "http://127.0.0.1:3000/",
+          deviceIds: null,
+          maxRoutes: 50,
+          beforeSteps: null,
+        },
+        beforeFlowPath: null,
+      },
+    });
+  });
+
+  test("plans sweep with a device list, a route limit and a before flow", () => {
+    const cliPlan = planCli(
+      ["sweep"],
+      {
+        url: "http://127.0.0.1:3000/",
+        devices: "pixel-10, iphone-se",
+        "max-routes": "7",
+        before: "flows/login.yaml",
+      },
+      true,
+    );
+
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: {
+        kind: "run-sweep",
+        sweepCommand: {
+          commandName: "sweep",
+          url: "http://127.0.0.1:3000/",
+          deviceIds: ["pixel-10", "iphone-se"],
+          maxRoutes: 7,
+          beforeSteps: null,
+        },
+        beforeFlowPath: "flows/login.yaml",
+      },
+    });
+  });
+
+  test("plans sweep on every catalog device for --devices all", () => {
+    const cliPlan = planCli(
+      ["sweep"],
+      { url: "http://127.0.0.1:3000/", devices: "all" },
+      true,
+    );
+
+    expect(cliPlan).toMatchObject({
+      cliRequest: { sweepCommand: { deviceIds: "all" } },
+    });
+  });
+
+  test.each([
+    ["a missing url", {}, "sweep --url"],
+    ["a url that is not a url", { url: "shop" }, "sweep --url"],
+    [
+      "an empty device name",
+      { url: "http://a.test/", devices: "pixel-10,,iphone-se" },
+      "sweep --devices",
+    ],
+    [
+      "an empty device list",
+      { url: "http://a.test/", devices: "" },
+      "sweep --devices",
+    ],
+    [
+      "zero routes",
+      { url: "http://a.test/", "max-routes": "0" },
+      "sweep --max-routes",
+    ],
+    [
+      "too many routes",
+      { url: "http://a.test/", "max-routes": "501" },
+      "sweep --max-routes",
+    ],
+    [
+      "a route limit that is not a number",
+      { url: "http://a.test/", "max-routes": "many" },
+      "sweep --max-routes",
+    ],
+    [
+      "an empty route limit",
+      { url: "http://a.test/", "max-routes": "" },
+      "sweep --max-routes",
+    ],
+    [
+      "an empty before flow path",
+      { url: "http://a.test/", before: "" },
+      "sweep --before",
+    ],
+  ])("rejects sweep with %s", (_name, flags, expectedPart) => {
+    const cliPlan = planCli(["sweep"], flags, true);
+
+    expect(cliPlan).toMatchObject({
+      kind: "bad-usage",
+      message: expect.stringContaining(expectedPart),
+    });
+  });
+
+  test("shows the sweep help page with every flag", () => {
+    const cliPlan = planCli(["sweep"], { help: true }, true);
+
+    expect(cliPlan).toMatchObject({
+      kind: "show-help",
+      helpPage: expect.stringContaining("--before <flow.yaml>"),
+    });
+  });
 });

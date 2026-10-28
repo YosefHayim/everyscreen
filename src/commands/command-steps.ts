@@ -14,6 +14,7 @@ import type { DevicePage } from "@/devices/device-browsers";
 import { pickDeviceViewport } from "@/devices/devices-logic";
 import { writeStoredFile } from "@/hub/stored-files";
 import { releaseDeviceScreen } from "@/live/live-feed";
+import { retryAfterNavigation } from "@/live/navigation-retry";
 import { sendStepScreen, waitForPaintedPage } from "@/live/screencast";
 
 export const ACTION_TIMEOUT_MS = 10_000;
@@ -112,7 +113,9 @@ export const runStepOnDevice = async (
 
   const actionErrorMessage = await tryCommand(devicePage, hubCommand);
   const deviceViewport = pickDeviceViewport(device);
-  const measurements = await measurePage(page, deviceViewport);
+  const measurements = await retryAfterNavigation(page, () =>
+    measurePage(page, deviceViewport),
+  );
   const checkDevice = pickCheckDevice(device);
   const findings = listFindings(measurements, checkDevice);
   const durationMs = Date.now() - startedAt;
@@ -126,7 +129,9 @@ export const runStepOnDevice = async (
     ? await saveShot(devicePage, stepTarget)
     : null;
   const isThereNoLiveScreen = !hasLiveScreen;
-  if (isThereNoLiveScreen) await sendStepScreen(page, device.id);
+  if (isThereNoLiveScreen) {
+    await retryAfterNavigation(page, () => sendStepScreen(page, device.id));
+  }
 
   if (isStepFailed) {
     const deviceAnswer: DeviceAnswer = {
