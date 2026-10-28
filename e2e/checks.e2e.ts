@@ -6,13 +6,20 @@ import { watchPage } from "@/checks/page-watch";
 import { subscribe } from "@/live/live-feed";
 
 const FIXTURE_URL = pathToFileURL("e2e/hollis-goods.html").href;
-const WATCH_SETTLE_MS = 500;
+const PAGE_FINDING_COUNT = 2;
+const PAGE_MESSAGES = [
+  "Cart total failed to load",
+  "/api/cart net::ERR_CONNECTION_REFUSED",
+];
+const LABEL_MESSAGE =
+  "div.products:nth-of-type(2) > div.product:nth-of-type(1) > div.label:nth-of-type(1) cuts its text off";
 
 interface Viewing {
   deviceId: string;
   width: number;
   height: number;
   hasTouch: boolean;
+  safeArea: { top: number; bottom: number };
 }
 
 const PHONE: Viewing = {
@@ -20,72 +27,83 @@ const PHONE: Viewing = {
   width: 375,
   height: 667,
   hasTouch: true,
+  safeArea: { top: 59, bottom: 34 },
 };
 const LAPTOP: Viewing = {
   deviceId: "laptop",
   width: 1280,
   height: 800,
   hasTouch: false,
+  safeArea: { top: 0, bottom: 0 },
 };
 
 let browser: Browser;
+let unsubscribe: () => void;
+const watchedFindings: Finding[] = [];
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
+  watchedFindings.length = 0;
   browser = await chromium.launch();
+  unsubscribe = subscribe((liveMessage) => {
+    const isFindingMessage = liveMessage.kind === "finding";
+    if (isFindingMessage) watchedFindings.push(liveMessage.finding);
+  });
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
+  unsubscribe();
   await browser.close();
 });
 
 const openAndCheck = async (viewing: Viewing) => {
-  const { deviceId, width, height, hasTouch } = viewing;
+  const { deviceId, width, height, hasTouch, safeArea } = viewing;
   const context = await browser.newContext({
     viewport: { width, height },
     hasTouch,
   });
   const page = await context.newPage();
-  const watchedFindings: Finding[] = [];
-  const unsubscribe = subscribe((liveMessage) => {
-    if (liveMessage.kind === "finding") {
-      watchedFindings.push(liveMessage.finding);
-    }
+  const cdpSession = await context.newCDPSession(page);
+  await cdpSession.send("Emulation.setSafeAreaInsetsOverride", {
+    insets: safeArea,
   });
-  const stopWatching = watchPage(page, deviceId);
+  await watchPage(page, deviceId);
 
   await page.goto(FIXTURE_URL);
-  await page.waitForTimeout(WATCH_SETTLE_MS);
+  await expect.poll(() => watchedFindings.length).toBe(PAGE_FINDING_COUNT);
   const measurements = await measurePage(page);
   const checkFindings = listFindings(measurements, { id: deviceId, hasTouch });
-
-  stopWatching();
-  unsubscribe();
-  await context.close();
-  return { watchedFindings, checkFindings };
+  return { page, checkFindings };
 };
 
-test("finds the four layout and page problems on a 375px touch screen", async () => {
-  const { watchedFindings, checkFindings } = await openAndCheck(PHONE);
+const listMessages = (findings: Finding[]) =>
+  findings.map((finding) => finding.message);
 
-  expect(checkFindings.map((finding) => finding.message)).toEqual([
-    ".cart-total is 121px past the edge",
-    ".label cuts its text off",
-    ".small-button is 30x30, under 44x44",
+test("a 375px touch screen with insets shows overflow, a clipped label, the home bar and a small tap target", async () => {
+  const { checkFindings } = await openAndCheck(PHONE);
+
+  expect(listMessages(checkFindings)).toEqual([
+    "div.cart-total:nth-of-type(3) is 121px past the edge",
+    LABEL_MESSAGE,
+    "button.checkout-bar:nth-of-type(2) sits under the notch or home bar",
+    "button.md\\:flex:nth-of-type(1) is 30x30, under 44x44",
   ]);
-  expect(watchedFindings.map((finding) => finding.message)).toEqual([
-    "Cart total failed to load",
-    "/api/cart net::ERR_CONNECTION_REFUSED",
-  ]);
+  expect(listMessages(watchedFindings)).toEqual(PAGE_MESSAGES);
 });
 
-test("finds only the clipped labels and the page problems on a laptop", async () => {
-  const { watchedFindings, checkFindings } = await openAndCheck(LAPTOP);
+test("a 1280px screen without touch or insets shows only the clipped label", async () => {
+  const { checkFindings } = await openAndCheck(LAPTOP);
 
-  expect(checkFindings.map((finding) => finding.message)).toEqual([
-    ".label cuts its text off",
-  ]);
-  expect(watchedFindings.map((finding) => finding.message)).toEqual([
-    "Cart total failed to load",
-    "/api/cart net::ERR_CONNECTION_REFUSED",
-  ]);
+  expect(listMessages(checkFindings)).toEqual([LABEL_MESSAGE]);
+  expect(listMessages(watchedFindings)).toEqual(PAGE_MESSAGES);
+});
+
+test("every selector, with its escaped Tailwind class, finds exactly one element", async () => {
+  const { page, checkFindings } = await openAndCheck(PHONE);
+
+  const selectors = checkFindings.flatMap((finding) => finding.selector ?? []);
+  const counts = await Promise.all(
+    selectors.map((selector) => page.locator(selector).count()),
+  );
+
+  expect(counts).toEqual([1, 1, 1, 1]);
 });

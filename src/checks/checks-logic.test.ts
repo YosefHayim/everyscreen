@@ -3,6 +3,7 @@ import type { PageMeasurements } from "@/checks/check-probes";
 import {
   createConsoleFinding,
   createRequestFinding,
+  isFaviconUrl,
   isRequestFailureEcho,
   listFindings,
 } from "@/checks/checks-logic";
@@ -229,5 +230,19 @@ describe("isRequestFailureEcho", () => {
     const isEcho = isRequestFailureEcho(consoleMessage);
 
     expect(isEcho).toBe(false);
+  });
+});
+
+describe("isFaviconUrl", () => {
+  test("is true for the favicon path", () => {
+    const isFavicon = isFaviconUrl("http://127.0.0.1:3000/favicon.ico");
+
+    expect(isFavicon).toBe(true);
+  });
+
+  test("is false for any other path", () => {
+    const isFavicon = isFaviconUrl("http://127.0.0.1:3000/api/cart");
+
+    expect(isFavicon).toBe(false);
   });
 });

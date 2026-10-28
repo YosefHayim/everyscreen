@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Page } from "playwright";
 
 interface PinnedBox {
   selector: string;
@@ -20,15 +20,51 @@ export interface PageMeasurements {
 
 const TAP_TAGS = "a[href], button, input, [role=button]";
 
+// Runs inside the page (page.evaluate): it can use nothing outside itself.
 const readMeasurements = (tapTags: string): PageMeasurements => {
+  const SELECTOR_DEPTH = 3;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const describeElement = (element: Element) => {
-    const firstClass = element.classList[0] ?? null;
+
+  const describeNode = (element: Element) => {
     const tagName = element.tagName.toLowerCase();
+    const firstClass = element.classList[0] ?? null;
     const isUnclassed = firstClass === null;
-    return isUnclassed ? tagName : `.${firstClass}`;
+    const classPart = isUnclassed ? "" : `.${CSS.escape(firstClass)}`;
+    const siblings = [...(element.parentElement?.children ?? [])];
+    const sameTagSiblings = siblings.filter(
+      (sibling) => sibling.tagName === element.tagName,
+    );
+    const position = sameTagSiblings.indexOf(element) + 1;
+    return `${tagName}${classPart}:nth-of-type(${position})`;
   };
+  const describeElement = (element: Element) => {
+    const path: string[] = [];
+    let node: Element | null = element;
+    while (node !== null && node !== document.body) {
+      const isPathFull = path.length >= SELECTOR_DEPTH;
+      if (isPathFull) break;
+      path.unshift(describeNode(node));
+      node = node.parentElement;
+    }
+    return path.join(" > ");
+  };
+  const isInsideScroller = (element: Element) => {
+    let ancestor = element.parentElement;
+    while (ancestor !== null) {
+      const { overflowX } = getComputedStyle(ancestor);
+      const isScroller = overflowX === "auto" || overflowX === "scroll";
+      if (isScroller) return true;
+      ancestor = ancestor.parentElement;
+    }
+    return false;
+  };
+  const hasOwnText = (element: Element) =>
+    [...element.childNodes].some((childNode) => {
+      const isTextNode = childNode.nodeType === Node.TEXT_NODE;
+      const hasLetters = (childNode.textContent ?? "").trim().length > 0;
+      return isTextNode && hasLetters;
+    });
 
   const insetProbe = document.createElement("div");
   insetProbe.style.cssText = `position:fixed;visibility:hidden;
@@ -50,11 +86,12 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
   }));
 
   const pastEdge = measured
+    .filter(({ element }) => !isInsideScroller(element))
     .map(({ selector, box }) => ({
       selector,
       overflowPx: Math.round(box.right - viewportWidth),
     }))
-    .filter((part) => part.overflowPx > 0)
+    .filter((pastEdgeBox) => pastEdgeBox.overflowPx > 0)
     .sort((first, second) => second.overflowPx - first.overflowPx);
 
   const clippedSelectors = measured
@@ -62,9 +99,9 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
       const hidesOverflow =
         style.overflowX === "hidden" || style.textOverflow === "ellipsis";
       const isWiderThanBox = element.scrollWidth > element.clientWidth;
-      return hidesOverflow && isWiderThanBox;
+      return hidesOverflow && isWiderThanBox && hasOwnText(element);
     })
-    .map((part) => part.selector);
+    .map((clippedBox) => clippedBox.selector);
 
   const pinnedBoxes = measured
     .filter(({ style }) => ["fixed", "sticky"].includes(style.position))
@@ -77,7 +114,19 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
     }));
 
   const tapTargets = measured
-    .filter(({ element }) => element.matches(tapTags))
+    .filter(({ element, style, box }) => {
+      const isHidden =
+        style.display === "none" || style.visibility === "hidden";
+      const hasNoSize = box.width === 0 || box.height === 0;
+      const parentLength = element.parentElement?.textContent?.length ?? 0;
+      const ownLength = element.textContent?.length ?? 0;
+      const isInlineLink =
+        element.tagName === "A" &&
+        style.display === "inline" &&
+        parentLength > ownLength;
+      const isTapTarget = element.matches(tapTags);
+      return isTapTarget && !isHidden && !hasNoSize && !isInlineLink;
+    })
     .map(({ selector, box }) => ({
       selector,
       width: box.width,

@@ -2,6 +2,7 @@ import type { PageMeasurements } from "@/checks/check-probes";
 
 export const MIN_TAP_SIZE = 44;
 const REQUEST_FAILURE_ECHO = "Failed to load resource";
+const FAVICON_PATH = "/favicon.ico";
 
 export type FindingKind =
   | "overflow"
@@ -58,7 +59,7 @@ const findClippedLabels = (
     message: `${selector} cuts its text off`,
   }));
 
-const findSafeAreaProblems = (
+const listSafeAreaFindings = (
   measurements: PageMeasurements,
   checkDevice: CheckDevice,
 ): Finding[] => {
@@ -107,13 +108,16 @@ export const listFindings = (
 ): Finding[] => [
   ...findOverflow(measurements, checkDevice),
   ...findClippedLabels(measurements, checkDevice),
-  ...findSafeAreaProblems(measurements, checkDevice),
+  ...listSafeAreaFindings(measurements, checkDevice),
   ...findSmallTapTargets(measurements, checkDevice),
 ];
 
 // The browser also logs every failed request as a console error.
 export const isRequestFailureEcho = (consoleMessage: string): boolean =>
   consoleMessage.startsWith(REQUEST_FAILURE_ECHO);
+
+export const isFaviconUrl = (requestUrl: string): boolean =>
+  new URL(requestUrl).pathname === FAVICON_PATH;
 
 export const createConsoleFinding = (
   deviceId: string,
@@ -129,7 +133,7 @@ export const createConsoleFinding = (
 export const createRequestFinding = (
   deviceId: string,
   requestUrl: string,
-  failureText: string | null,
+  failureReason: string | null,
 ): Finding => {
   const { pathname } = new URL(requestUrl);
   return {
@@ -137,6 +141,6 @@ export const createRequestFinding = (
     severity: "fail",
     deviceId,
     selector: null,
-    message: `${pathname} ${failureText ?? "failed"}`,
+    message: `${pathname} ${failureReason ?? "failed"}`,
   };
 };
