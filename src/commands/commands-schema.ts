@@ -33,18 +33,6 @@ export const openCommandSchema = z.object({
   deviceIds: deviceIdsSchema,
 });
 
-export const sweepCommandSchema = z.object({
-  commandName: z.literal("sweep"),
-  url: z.url(),
-  deviceIds: z.array(z.string()).min(1).nullable().default(null),
-  maxRoutes: z
-    .number()
-    .int()
-    .positive()
-    .max(MAX_SWEEP_ROUTES)
-    .default(DEFAULT_MAX_ROUTES),
-});
-
 export const tapCommandSchema = z.object({
   commandName: z.literal("tap"),
   role: z.enum(ARIA_ROLES),
@@ -82,6 +70,34 @@ export const expectCommandSchema = z.object({
   deviceIds: deviceIdsSchema,
 });
 
+const beforeStepSchema = z.discriminatedUnion("commandName", [
+  openCommandSchema,
+  tapCommandSchema,
+  fillCommandSchema,
+  scrollCommandSchema,
+  checkCommandSchema,
+  shotCommandSchema,
+  expectCommandSchema,
+]);
+
+export const sweepCommandSchema = z.object({
+  commandName: z.literal("sweep"),
+  url: z.url(),
+  // null means every device in the grid; "all" adds the catalog devices that are not on the grid.
+  deviceIds: z
+    .union([z.literal("all"), z.array(z.string().min(1)).min(1)])
+    .nullable()
+    .default(null),
+  maxRoutes: z
+    .number()
+    .int()
+    .positive()
+    .max(MAX_SWEEP_ROUTES)
+    .default(DEFAULT_MAX_ROUTES),
+  // Steps that run once on each device before its routes, in the same browser context.
+  beforeSteps: z.array(beforeStepSchema).nullable().default(null),
+});
+
 export const hubCommandSchema = z.discriminatedUnion("commandName", [
   openCommandSchema,
   sweepCommandSchema,
@@ -94,3 +110,5 @@ export const hubCommandSchema = z.discriminatedUnion("commandName", [
 ]);
 
 export type HubCommand = z.infer<typeof hubCommandSchema>;
+export type SweepCommand = z.infer<typeof sweepCommandSchema>;
+export type BeforeStep = z.infer<typeof beforeStepSchema>;

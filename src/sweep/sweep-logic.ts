@@ -5,8 +5,11 @@ import {
   countUnits,
   createCommandRunStep,
   type DeviceFailure,
+  pickDeviceIds,
   pickErrorMessage,
 } from "@/commands/commands-logic";
+import type { SweepCommand } from "@/commands/commands-schema";
+import { listFlowBatches } from "@/flows/flows-logic";
 import { createStepId, type RunStep } from "@/runs/runs-logic";
 
 export interface PageLink {
@@ -20,12 +23,30 @@ export interface RouteStep {
   deviceStep: DeviceStep;
 }
 
+export interface SweepDevices {
+  gridIds: string[];
+  extraIds: string[];
+}
+
+interface VisitedDevice {
+  kind: "visited";
+  routeSteps: RouteStep[];
+}
+
+export interface BeforeFailedDevice {
+  kind: "before-failed";
+  beforeFailure: DeviceFailure;
+}
+
+export type DeviceVisit = VisitedDevice | BeforeFailedDevice;
+
 export interface SweepStep {
   route: string;
   runStep: RunStep;
 }
 
 const BAD_START_URL_STATUS = 422;
+const BEFORE_FAILED_PREFIX = "before flow failed: ";
 const WEB_PROTOCOLS = ["http:", "https:"];
 const NOFOLLOW_PATTERN = /(^|\s)nofollow(\s|$)/i;
 const DOWNLOAD_EXTENSIONS = [
@@ -156,12 +177,90 @@ export const createCrashedStep = (
   findings: [],
 });
 
-// Each device lists its route steps in route order, so one route is the same index on every device.
+const splitDeviceIds = (
+  chosenIds: string[],
+  runningIds: string[],
+): SweepDevices => ({
+  gridIds: chosenIds.filter((deviceId) => runningIds.includes(deviceId)),
+  extraIds: chosenIds.filter((deviceId) => !runningIds.includes(deviceId)),
+});
+
+// Grid devices keep their running browsers; any other known device gets a short-lived context.
+export const pickSweepDevices = (
+  deviceIds: SweepCommand["deviceIds"],
+  runningIds: string[],
+  catalogIds: string[],
+): SweepDevices => {
+  const knownIds = [...new Set([...runningIds, ...catalogIds])];
+  const isEveryDeviceChosen = deviceIds === "all";
+  if (isEveryDeviceChosen) return splitDeviceIds(knownIds, runningIds);
+
+  const isGridChosen = deviceIds === null;
+  const askedIds = isGridChosen ? runningIds : knownIds;
+  const chosenIds = pickDeviceIds(askedIds, deviceIds);
+  return splitDeviceIds(chosenIds, runningIds);
+};
+
+export const listExtraDeviceBatches = (
+  extraIds: string[],
+  batchLimit: number,
+): string[][] => listFlowBatches(extraIds, batchLimit);
+
+export const createBeforeFailure = (
+  deviceFailure: DeviceFailure,
+): DeviceFailure => {
+  const [firstLine] = deviceFailure.message.split("\n");
+  return {
+    ...deviceFailure,
+    message: `${BEFORE_FAILED_PREFIX}${firstLine}`,
+  };
+};
+
+const isDeviceVisited = (
+  deviceVisit: DeviceVisit,
+): deviceVisit is VisitedDevice => deviceVisit.kind === "visited";
+
+const isBeforeFailed = (
+  deviceVisit: DeviceVisit,
+): deviceVisit is BeforeFailedDevice => deviceVisit.kind === "before-failed";
+
+export const pickVisitedRouteSteps = (
+  deviceVisits: DeviceVisit[],
+): RouteStep[][] =>
+  deviceVisits.filter(isDeviceVisited).map(({ routeSteps }) => routeSteps);
+
+export const pickBeforeFailures = (
+  deviceVisits: DeviceVisit[],
+): DeviceFailure[] =>
+  deviceVisits.filter(isBeforeFailed).map(({ beforeFailure }) => beforeFailure);
+
+export const listBeforeRunSteps = (
+  beforeFailures: DeviceFailure[],
+  routeCount: number,
+  startedAt: number,
+): RunStep[] => {
+  const isNoBeforeFailure = beforeFailures.length === 0;
+  if (isNoBeforeFailure) return [];
+  const beforeRunStep = createCommandRunStep({
+    stepId: createStepId(routeCount + 1),
+    title: "before flow",
+    startedAt,
+    deviceSteps: beforeFailures.map((deviceAnswer) => ({
+      deviceAnswer,
+      findings: [],
+    })),
+  });
+  return [beforeRunStep];
+};
+
+// Each device lists its route steps in route order, so one route is the same index on every device that was visited.
 export const createSweepSteps = (
   routes: string[],
   routeStepsByDevice: RouteStep[][],
-): SweepStep[] =>
-  routes.map((route, routeIndex) => {
+): SweepStep[] => {
+  const isNoDeviceVisited = routeStepsByDevice.length === 0;
+  if (isNoDeviceVisited) return [];
+  return routes.map((route, routeIndex) => {
     const routeSteps = routeStepsByDevice.map(
       (deviceRouteSteps) => deviceRouteSteps[routeIndex],
     );
@@ -174,23 +273,29 @@ export const createSweepSteps = (
     });
     return { route, runStep };
   });
+};
 
 export const summarizeSweep = (
   sweepSteps: SweepStep[],
   runId: string,
+  beforeFailures: DeviceFailure[],
 ): CommandReply => {
-  const failures: DeviceFailure[] = sweepSteps.flatMap(({ route, runStep }) =>
-    runStep.deviceAnswers
-      .filter((deviceAnswer) => deviceAnswer.status === "failed")
-      .map((deviceAnswer) => ({
-        ...deviceAnswer,
-        message: `${route} ${deviceAnswer.message}`,
-      })),
+  const routeFailures: DeviceFailure[] = sweepSteps.flatMap(
+    ({ route, runStep }) =>
+      runStep.deviceAnswers
+        .filter((deviceAnswer) => deviceAnswer.status === "failed")
+        .map((deviceAnswer) => ({
+          ...deviceAnswer,
+          message: `${route} ${deviceAnswer.message}`,
+        })),
   );
+  const failures = [...beforeFailures, ...routeFailures];
   const deviceAnswers = sweepSteps.flatMap(
     ({ runStep }) => runStep.deviceAnswers,
   );
-  const deviceIds = new Set(deviceAnswers.map(({ deviceId }) => deviceId));
+  const answeredIds = deviceAnswers.map(({ deviceId }) => deviceId);
+  const beforeFailedIds = beforeFailures.map(({ deviceId }) => deviceId);
+  const deviceIds = new Set([...answeredIds, ...beforeFailedIds]);
   const shotCount = deviceAnswers.filter(
     ({ shotPath }) => shotPath !== null,
   ).length;

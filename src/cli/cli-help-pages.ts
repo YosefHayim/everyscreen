@@ -9,6 +9,7 @@ export const CLI_COMMAND_NAMES = [
   "check",
   "shot",
   "expect",
+  "sweep",
   "devices list",
   "devices add",
   "devices remove",
@@ -122,6 +123,28 @@ export const COMMAND_HELPS = {
     flagHelps: [
       { flag: "--text <text>", description: "The text that must show" },
       DEVICE_FLAG_HELP,
+    ],
+  },
+  sweep: {
+    summary: "Visit every route of your app and save a shot on every device",
+    usage:
+      "everyscreen sweep --url <url> [--devices <id,id,...>|all] [--max-routes <number>] [--before <flow.yaml>]",
+    flagHelps: [
+      { flag: "--url <url>", description: "The start page of your app" },
+      {
+        flag: "--devices <id,id,...>|all",
+        description:
+          "Which devices to sweep. all adds every catalog device. Default: the grid",
+      },
+      {
+        flag: "--max-routes <number>",
+        description: "Most routes to visit, up to 500. Default: 50",
+      },
+      {
+        flag: "--before <flow.yaml>",
+        description:
+          "Run this flow first on each device, for example a login. Default: none",
+      },
     ],
   },
   "devices list": {

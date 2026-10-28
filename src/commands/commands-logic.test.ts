@@ -296,6 +296,7 @@ describe("createStepTitle", () => {
         commandName: "sweep",
         url: "http://a.test/",
         maxRoutes: 50,
+        beforeSteps: null,
         ...everyDevice,
       },
       "sweep http://a.test/",

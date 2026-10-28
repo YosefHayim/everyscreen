@@ -3,10 +3,10 @@ import {
   createReplyLine,
   type DeviceFailure,
 } from "@/commands/commands-logic";
-import type { HubCommand } from "@/commands/commands-schema";
+import type { BeforeStep } from "@/commands/commands-schema";
 import type { Flow } from "@/flows/flow-schema";
 
-export const listFlowCommands = (flow: Flow): HubCommand[] =>
+export const listFlowCommands = (flow: Flow): BeforeStep[] =>
   flow.steps.map((step) => ({ ...step, deviceIds: flow.devices }));
 
 export const listFlowBatches = (

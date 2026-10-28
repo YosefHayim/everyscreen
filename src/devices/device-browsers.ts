@@ -43,7 +43,7 @@ const DEFAULT_PAGE_WATCHERS: Record<BrowserName, PageWatcher[]> = {
   webkit: [],
   firefox: [],
 };
-const BROWSER_TYPES: Record<BrowserName, BrowserType> = {
+export const BROWSER_TYPES: Record<BrowserName, BrowserType> = {
   chromium,
   webkit,
   firefox,
@@ -119,7 +119,7 @@ const connectHubBrowser = async (
 };
 
 // tsx compiles with keepNames, so functions sent to page.evaluate call __name, which the page does not have.
-const NAME_HELPER_SCRIPT = "globalThis.__name = (target) => target;";
+export const NAME_HELPER_SCRIPT = "globalThis.__name = (target) => target;";
 
 export const startDeviceBrowser = async (
   devicePreset: DevicePreset,

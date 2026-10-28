@@ -17,10 +17,11 @@ import {
   startHubInForeground,
   stopHub,
 } from "@/cli/hub-process";
-import type { CommandReply } from "@/commands/commands-logic";
+import { type CommandReply, pickErrorMessage } from "@/commands/commands-logic";
+import type { BeforeStep, SweepCommand } from "@/commands/commands-schema";
 import type { CustomDevice } from "@/devices/device-schema";
-import { listFlowPaths, runFlows } from "@/flows/flow-runner";
-import { summarizeFlows } from "@/flows/flows-logic";
+import { listFlowPaths, readFlow, runFlows } from "@/flows/flow-runner";
+import { listFlowCommands, summarizeFlows } from "@/flows/flows-logic";
 import { readStoredFile } from "@/hub/stored-files";
 import type { SkillAgent } from "@/skill/skill-agents";
 import { installSkill, pickSkillFile } from "@/skill/skill-install";
@@ -103,6 +104,35 @@ const runFlowFiles = async (
   return summarizeFlows(flowAnswers);
 };
 
+const readBeforeSteps = async (
+  rootFolder: string,
+  beforeFlowPath: string,
+): Promise<BeforeStep[] | CommandReply> => {
+  try {
+    const beforeFlow = await readFlow(rootFolder, beforeFlowPath);
+    return listFlowCommands(beforeFlow);
+  } catch (error) {
+    const errorLine = pickErrorMessage(error);
+    return createReply("failed", `before flow: ${errorLine}`);
+  }
+};
+
+const sweepApp = async (
+  rootFolder: string,
+  sweepCommand: SweepCommand,
+  beforeFlowPath: string | null,
+): Promise<CommandReply> => {
+  const isThereNoBeforeFlow = beforeFlowPath === null;
+  if (isThereNoBeforeFlow) return sendHubCommand(rootFolder, sweepCommand);
+  const beforeStepsReply = await readBeforeSteps(rootFolder, beforeFlowPath);
+  const isBeforeFlowUnreadable = !Array.isArray(beforeStepsReply);
+  if (isBeforeFlowUnreadable) return beforeStepsReply;
+  return sendHubCommand(rootFolder, {
+    ...sweepCommand,
+    beforeSteps: beforeStepsReply,
+  });
+};
+
 const installAgentSkill = async (
   rootFolder: string,
   agent: SkillAgent,
@@ -150,6 +180,12 @@ export const runCliRequest = (
         rootFolder,
         cliRequest.flowsGlob,
         cliRequest.parallel,
+      );
+    case "run-sweep":
+      return sweepApp(
+        rootFolder,
+        cliRequest.sweepCommand,
+        cliRequest.beforeFlowPath,
       );
     case "install-skill":
       return installAgentSkill(

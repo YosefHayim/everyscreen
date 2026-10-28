@@ -23,7 +23,7 @@ export const listFlowPaths = async (
   return flowPaths.toSorted();
 };
 
-const readFlow = async (
+export const readFlow = async (
   rootFolder: string,
   flowPath: string,
 ): Promise<Flow> => {

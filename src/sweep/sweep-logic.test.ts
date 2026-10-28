@@ -3,17 +3,23 @@ import { describe, expect, test } from "vitest";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import type { RunStep } from "@/runs/runs-logic";
 import {
+  createBeforeFailure,
   createCrashedStep,
   createLeftOriginStep,
   createRouteUrl,
   createSweepSteps,
   hasLeftOrigin,
+  listBeforeRunSteps,
+  listExtraDeviceBatches,
   mergeRoutes,
   type PageLink,
   parseSitemapLocs,
+  pickBeforeFailures,
   pickLinkRoutes,
   pickRoutes,
   pickStartRoute,
+  pickSweepDevices,
+  pickVisitedRouteSteps,
   summarizeSweep,
 } from "@/sweep/sweep-logic";
 
@@ -271,7 +277,7 @@ describe("summarizeSweep", () => {
       },
     ];
 
-    const reply = summarizeSweep(sweepSteps, "run-0007");
+    const reply = summarizeSweep(sweepSteps, "run-0007", []);
 
     expect(reply.line).toBe(
       "2 routes · 2 devices · 4 shots · 1 finding · report run-0007",
@@ -293,7 +299,7 @@ describe("summarizeSweep", () => {
       },
     ];
 
-    const reply = summarizeSweep(sweepSteps, "run-0008");
+    const reply = summarizeSweep(sweepSteps, "run-0008", []);
 
     expect(reply.line).toBe(
       "1 route · 2 devices · 2 shots · 1 finding · 1 failed · report run-0008",
@@ -317,7 +323,7 @@ describe("summarizeSweep", () => {
       { route: "/", runStep: createStep("step-1", [answerWithoutShot], 0) },
     ];
 
-    const reply = summarizeSweep(sweepSteps, "run-0009");
+    const reply = summarizeSweep(sweepSteps, "run-0009", []);
 
     expect(reply.line).toContain("0 shots");
   });
@@ -364,5 +370,172 @@ describe("createCrashedStep", () => {
       shotPath: null,
     });
     expect(crashedStep.findings).toEqual([]);
+  });
+});
+
+const createBeforeFailureAnswer = (deviceId: string, message: string) => ({
+  status: "failed" as const,
+  deviceId,
+  durationMs: 7,
+  message,
+  shotPath: "shots/login.png",
+});
+
+describe("pickSweepDevices", () => {
+  const runningIds = ["pixel-8", "iphone-se"];
+  const catalogIds = ["iphone-se", "ipad-pro", "galaxy-s24"];
+
+  test("sweeps only the grid when no devices are named", () => {
+    const sweepDevices = pickSweepDevices(null, runningIds, catalogIds);
+
+    expect(sweepDevices).toEqual({ gridIds: runningIds, extraIds: [] });
+  });
+
+  test("adds every catalog device off the grid for all", () => {
+    const sweepDevices = pickSweepDevices("all", runningIds, catalogIds);
+
+    expect(sweepDevices).toEqual({
+      gridIds: runningIds,
+      extraIds: ["ipad-pro", "galaxy-s24"],
+    });
+  });
+
+  test("splits a named list into grid devices and extra devices", () => {
+    const sweepDevices = pickSweepDevices(
+      ["galaxy-s24", "pixel-8"],
+      runningIds,
+      catalogIds,
+    );
+
+    expect(sweepDevices).toEqual({
+      gridIds: ["pixel-8"],
+      extraIds: ["galaxy-s24"],
+    });
+  });
+
+  test("throws the no-device message for an id nobody knows", () => {
+    const sweepWithUnknownId = () =>
+      pickSweepDevices(["pixel-8", "nokia-3310"], runningIds, catalogIds);
+
+    expect(sweepWithUnknownId).toThrow(HTTPException);
+    expect(sweepWithUnknownId).toThrow("No device nokia-3310");
+  });
+
+  test("throws when the grid is empty and no devices are named", () => {
+    const sweepWithoutGrid = () => pickSweepDevices(null, [], catalogIds);
+
+    expect(sweepWithoutGrid).toThrow("No device is running");
+  });
+});
+
+describe("listExtraDeviceBatches", () => {
+  test("groups the extra devices by the limit", () => {
+    const extraIds = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
+
+    const batches = listExtraDeviceBatches(extraIds, 4);
+
+    expect(batches).toEqual([
+      ["a", "b", "c", "d"],
+      ["e", "f", "g", "h"],
+      ["i"],
+    ]);
+  });
+
+  test("makes no batch for no extra devices", () => {
+    expect(listExtraDeviceBatches([], 4)).toEqual([]);
+  });
+});
+
+describe("createBeforeFailure", () => {
+  test("keeps the first line of the message behind the before flow prefix", () => {
+    const deviceFailure = createBeforeFailureAnswer(
+      "pixel-8",
+      'expect "Welcome" timed out\nCall log: waiting',
+    );
+
+    const beforeFailure = createBeforeFailure(deviceFailure);
+
+    expect(beforeFailure).toEqual({
+      ...deviceFailure,
+      message: 'before flow failed: expect "Welcome" timed out',
+    });
+  });
+});
+
+describe("pickVisitedRouteSteps and pickBeforeFailures", () => {
+  const routeSteps = [
+    {
+      startedAt: 1,
+      deviceStep: {
+        deviceAnswer: createOkAnswer("pixel-8", "a.png"),
+        findings: [],
+      },
+    },
+  ];
+  const beforeFailure = createBeforeFailureAnswer(
+    "iphone-se",
+    "before flow failed: x",
+  );
+  const deviceVisits = [
+    { kind: "visited" as const, routeSteps },
+    { kind: "before-failed" as const, beforeFailure },
+  ];
+
+  test("lists the route steps of the visited devices only", () => {
+    expect(pickVisitedRouteSteps(deviceVisits)).toEqual([routeSteps]);
+  });
+
+  test("lists the failures of the devices whose before flow failed", () => {
+    expect(pickBeforeFailures(deviceVisits)).toEqual([beforeFailure]);
+  });
+});
+
+describe("listBeforeRunSteps", () => {
+  test("makes no run step when no before flow failed", () => {
+    expect(listBeforeRunSteps([], 3, 100)).toEqual([]);
+  });
+
+  test("makes one run step after the route steps with every failed device", () => {
+    const beforeFailures = [
+      createBeforeFailureAnswer("iphone-se", "before flow failed: x"),
+    ];
+
+    const [beforeRunStep] = listBeforeRunSteps(beforeFailures, 3, 100);
+
+    expect(beforeRunStep.stepId).toBe("step-4");
+    expect(beforeRunStep.title).toBe("before flow");
+    expect(beforeRunStep.startedAt).toBe(100);
+    expect(beforeRunStep.deviceAnswers).toEqual(beforeFailures);
+  });
+});
+
+describe("summarizeSweep with before flow failures", () => {
+  test("counts the failed device and keeps its message as is", () => {
+    const sweepSteps = [
+      {
+        route: "/",
+        runStep: createStep("step-1", [createOkAnswer("pixel-8", "a.png")], 0),
+      },
+    ];
+    const beforeFailure = createBeforeFailureAnswer(
+      "iphone-se",
+      "before flow failed: no login button",
+    );
+
+    const reply = summarizeSweep(sweepSteps, "run-0010", [beforeFailure]);
+
+    expect(reply.line).toBe(
+      "1 route · 2 devices · 1 shot · 0 findings · 1 failed · report run-0010",
+    );
+    expect(reply.status).toBe("failed");
+    expect(reply.failures[0].message).toBe(
+      "before flow failed: no login button",
+    );
+  });
+});
+
+describe("createSweepSteps with no visited device", () => {
+  test("makes no sweep step", () => {
+    expect(createSweepSteps(["/", "/about"], [])).toEqual([]);
   });
 });
