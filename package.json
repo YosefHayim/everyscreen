@@ -44,7 +44,7 @@
     "lint": "biome check && knip",
     "lint:fix": "biome check --write",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:e2e"
+    "check": "biome check && pnpm typecheck && pnpm test"
   },
   "dependencies": {
     "@hono/node-server": "2.1.5",

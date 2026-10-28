@@ -10,6 +10,13 @@ export type FrameShape =
   | "laptop"
   | "kiosk";
 
+export interface SafeAreaInsets {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
 export interface DevicePreset {
   id: string;
   name: string;
