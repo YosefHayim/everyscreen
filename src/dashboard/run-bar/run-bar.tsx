@@ -11,7 +11,7 @@ export const RunBar = (): ReactElement | null => {
   const hasNoRunBar = runBar === null;
   if (hasNoRunBar) return null;
 
-  const { status, latestTest, counters, progressShares } = runBar;
+  const { status, isRunStopped, latestTest, counters, progressShares } = runBar;
   const isRunning = status === "running";
   const isRunFinished = !isRunning;
   const hasLatestTest = latestTest !== null;
@@ -34,6 +34,11 @@ export const RunBar = (): ReactElement | null => {
           {hasLatestTest && (
             <p className="m-0 truncate text-sm font-semibold text-ink">
               {latestTest.specFile} &middot; {latestTest.title}
+            </p>
+          )}
+          {isRunStopped && (
+            <p className="m-0 truncate text-xs text-failed">
+              {t("runBar.stopped")}
             </p>
           )}
         </div>

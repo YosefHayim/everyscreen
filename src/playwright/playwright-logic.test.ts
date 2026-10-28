@@ -311,6 +311,7 @@ describe("createTestEvent", () => {
 
     const testEvent = createTestEvent({
       deviceId: "pixel-8",
+      testId: "abc-1",
       titlePath,
       status: "running",
       errorMessage: undefined,
@@ -318,6 +319,7 @@ describe("createTestEvent", () => {
 
     expect(testEvent).toEqual({
       deviceId: "pixel-8",
+      testId: "abc-1",
       title: `cart${STEP_TITLE_SEPARATOR}adds a tote`,
       specFile: "shop.spec.ts",
       status: "running",
@@ -330,6 +332,7 @@ describe("createTestEvent", () => {
 
     const testEvent = createTestEvent({
       deviceId: "pixel-8",
+      testId: "abc-1",
       titlePath: ["shop.spec.ts", "pays"],
       status: "failed",
       errorMessage,
@@ -343,6 +346,7 @@ describe("createTestEvent", () => {
   test("leaves the error line empty on a passed test", () => {
     const testEvent = createTestEvent({
       deviceId: "pixel-8",
+      testId: "abc-1",
       titlePath: ["shop.spec.ts", "pays"],
       status: "ok",
       errorMessage: "left over",
@@ -354,6 +358,7 @@ describe("createTestEvent", () => {
   test("gives an empty spec file when the title path is empty", () => {
     const testEvent = createTestEvent({
       deviceId: "pixel-8",
+      testId: "abc-1",
       titlePath: [],
       status: "running",
       errorMessage: undefined,
@@ -425,6 +430,7 @@ describe("isStepFromFolder", () => {
 describe("createStepEvent", () => {
   const stepReport = {
     deviceId: "pixel-8",
+    testId: "abc-1",
     stepIndex: 2,
     stepTitle: 'Click "Apply"',
     errorMessage: undefined,
@@ -436,6 +442,7 @@ describe("createStepEvent", () => {
 
     expect(stepEvent).toEqual({
       deviceId: "pixel-8",
+      testId: "abc-1",
       stepIndex: 2,
       stepTitle: 'Click "Apply"',
       status: "running",

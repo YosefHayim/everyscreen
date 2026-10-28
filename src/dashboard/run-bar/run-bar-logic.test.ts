@@ -3,8 +3,8 @@ import type { RunTotals } from "@/live/live-test-schema";
 import {
   createElapsedLabel,
   pickElapsedMs,
+  pickLiveRunStatus,
   pickProgressShares,
-  pickRunStatus,
 } from "./run-bar-logic";
 
 const createTotals = (changes: Partial<RunTotals> = {}): RunTotals => ({
@@ -15,17 +15,20 @@ const createTotals = (changes: Partial<RunTotals> = {}): RunTotals => ({
   okCount: 0,
   failedCount: 0,
   outcome: null,
+  endReason: null,
   ...changes,
 });
 
-describe("pickRunStatus", () => {
+describe("pickLiveRunStatus", () => {
   test("is running until the run has an outcome", () => {
-    expect(pickRunStatus(createTotals())).toBe("running");
+    expect(pickLiveRunStatus(createTotals())).toBe("running");
   });
 
   test("is the outcome once the run ended", () => {
-    expect(pickRunStatus(createTotals({ outcome: "ok" }))).toBe("ok");
-    expect(pickRunStatus(createTotals({ outcome: "failed" }))).toBe("failed");
+    expect(pickLiveRunStatus(createTotals({ outcome: "ok" }))).toBe("ok");
+    expect(pickLiveRunStatus(createTotals({ outcome: "failed" }))).toBe(
+      "failed",
+    );
   });
 });
 

@@ -10,6 +10,7 @@
   },
   "runBar": {
     "label": "Test run",
+    "stopped": "Run stopped without a report",
     "status": {
       "running": "Running",
       "ok": "OK",

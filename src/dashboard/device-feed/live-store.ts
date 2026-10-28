@@ -4,10 +4,14 @@ import {
   type DeviceStep,
   pickStepTotalToKeep,
 } from "@/dashboard/device-feed/step-progress-logic";
+import {
+  type DeviceTest,
+  pickTileTest,
+} from "@/dashboard/device-feed/tile-test-logic";
 import { LIVE_PATH } from "@/environment";
 import type { DeviceLoad } from "@/estimates/estimates-logic";
 import type { LiveMessage } from "@/live/live-feed";
-import type { LiveTestStatus, RunTotals } from "@/live/live-test-schema";
+import type { RunTotals } from "@/live/live-test-schema";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
 
@@ -25,18 +29,11 @@ interface Connection {
   retryDelayMs: number;
 }
 
-export interface DeviceTest {
-  title: string;
-  specFile: string;
-  status: LiveTestStatus;
-  errorLine: string | null;
-}
-
 const NO_STEPS: DeviceStep[] = [];
 
 interface LiveFeed {
   deviceTests: ReadonlyMap<string, DeviceTest>;
-  deviceSteps: ReadonlyMap<string, DeviceStep[]>;
+  testSteps: ReadonlyMap<string, DeviceStep[]>;
   stepTotals: ReadonlyMap<string, number>;
   latestTest: DeviceTest | null;
   runTotals: RunTotals | null;
@@ -54,7 +51,7 @@ const connection: Connection = {
 
 const liveFeed: LiveFeed = {
   deviceTests: new Map(),
-  deviceSteps: new Map(),
+  testSteps: new Map(),
   stepTotals: new Map(),
   latestTest: null,
   runTotals: null,
@@ -82,33 +79,51 @@ type TestMessage = Extract<LiveMessage, { kind: "test" }>;
 
 const forgetRunTests = (): void => {
   liveFeed.deviceTests = new Map();
-  liveFeed.deviceSteps = new Map();
+  liveFeed.testSteps = new Map();
   liveFeed.stepTotals = new Map();
   liveFeed.latestTest = null;
 };
 
-const applyTestMessage = (testMessage: TestMessage): void => {
-  const { deviceId, title, specFile, status, errorLine } = testMessage;
-  const deviceTest = { title, specFile, status, errorLine };
-  liveFeed.deviceTests = new Map(liveFeed.deviceTests).set(
-    deviceId,
-    deviceTest,
+// A late dashboard gets the finished test before its steps, so the total is learned from either.
+const learnStepTotal = (testId: string): void => {
+  const deviceTest = liveFeed.deviceTests.get(testId);
+  const isTestUnknown = deviceTest === undefined;
+  if (isTestUnknown) return;
+
+  const testSteps = liveFeed.testSteps.get(testId) ?? NO_STEPS;
+  const stepTotal = pickStepTotalToKeep(deviceTest.status, testSteps);
+  const isStepTotalUnknown = stepTotal === null;
+  if (isStepTotalUnknown) return;
+  liveFeed.stepTotals = new Map(liveFeed.stepTotals).set(
+    deviceTest.title,
+    stepTotal,
   );
+};
+
+const applyTestMessage = (testMessage: TestMessage): void => {
+  const { kind: _kind, ...deviceTest } = testMessage;
+  const { testId, status } = deviceTest;
+  const otherTests = new Map(liveFeed.deviceTests);
+  otherTests.delete(testId);
+  liveFeed.deviceTests = otherTests.set(testId, deviceTest);
   liveFeed.latestTest = deviceTest;
 
   const isTestStarting = status === "running";
   if (isTestStarting) {
-    liveFeed.deviceSteps = new Map(liveFeed.deviceSteps).set(
-      deviceId,
-      NO_STEPS,
-    );
+    liveFeed.testSteps = new Map(liveFeed.testSteps).set(testId, NO_STEPS);
     return;
   }
-  const deviceSteps = liveFeed.deviceSteps.get(deviceId) ?? NO_STEPS;
-  const stepTotal = pickStepTotalToKeep(status, deviceSteps);
-  const isStepTotalUnknown = stepTotal === null;
-  if (isStepTotalUnknown) return;
-  liveFeed.stepTotals = new Map(liveFeed.stepTotals).set(title, stepTotal);
+  learnStepTotal(testId);
+};
+
+type StepMessage = Extract<LiveMessage, { kind: "step" }>;
+
+const applyStepMessage = (stepMessage: StepMessage): void => {
+  const { testId } = stepMessage;
+  const testSteps = liveFeed.testSteps.get(testId) ?? NO_STEPS;
+  const nextSteps = addDeviceStep(testSteps, stepMessage);
+  liveFeed.testSteps = new Map(liveFeed.testSteps).set(testId, nextSteps);
+  learnStepTotal(testId);
 };
 
 const applyLiveMessage = (liveMessage: LiveMessage): void => {
@@ -130,15 +145,9 @@ const applyLiveMessage = (liveMessage: LiveMessage): void => {
     case "test":
       applyTestMessage(liveMessage);
       return;
-    case "step": {
-      const deviceSteps = liveFeed.deviceSteps.get(liveMessage.deviceId);
-      const nextSteps = addDeviceStep(deviceSteps ?? NO_STEPS, liveMessage);
-      liveFeed.deviceSteps = new Map(liveFeed.deviceSteps).set(
-        liveMessage.deviceId,
-        nextSteps,
-      );
+    case "step":
+      applyStepMessage(liveMessage);
       return;
-    }
     case "run-totals": {
       const isRunStarting = liveMessage.phase === "start";
       if (isRunStarting) forgetRunTests();
@@ -228,11 +237,16 @@ export const getScreenImageUrl = (deviceId: string): string | null =>
 export const getDeviceLoad = (deviceId: string): DeviceLoad | null =>
   liveFeed.deviceLoads.get(deviceId) ?? null;
 
-export const getDeviceTest = (deviceId: string): DeviceTest | null =>
-  liveFeed.deviceTests.get(deviceId) ?? null;
+export const getDeviceTest = (deviceId: string): DeviceTest | null => {
+  const allTests = [...liveFeed.deviceTests.values()];
+  const deviceTests = allTests.filter(
+    (deviceTest) => deviceTest.deviceId === deviceId,
+  );
+  return pickTileTest(deviceTests);
+};
 
-export const getDeviceSteps = (deviceId: string): DeviceStep[] =>
-  liveFeed.deviceSteps.get(deviceId) ?? NO_STEPS;
+export const getTestSteps = (testId: string): DeviceStep[] =>
+  liveFeed.testSteps.get(testId) ?? NO_STEPS;
 
 export const getStepTotal = (testTitle: string): number | null =>
   liveFeed.stepTotals.get(testTitle) ?? null;

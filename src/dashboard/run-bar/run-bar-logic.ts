@@ -1,6 +1,6 @@
 import type { RunTotals } from "@/live/live-test-schema";
 
-export type RunStatus = "running" | "ok" | "failed";
+export type LiveRunStatus = "running" | "ok" | "failed";
 
 export interface ProgressShares {
   okPercent: number;
@@ -13,7 +13,7 @@ const SECONDS_PER_MINUTE = 60;
 const SECOND_DIGITS = 2;
 const FULL_PERCENT = 100;
 
-export const pickRunStatus = (runTotals: RunTotals): RunStatus =>
+export const pickLiveRunStatus = (runTotals: RunTotals): LiveRunStatus =>
   runTotals.outcome ?? "running";
 
 export const pickElapsedMs = (runTotals: RunTotals, nowMs: number): number => {
@@ -28,7 +28,7 @@ export const createElapsedLabel = (elapsedMs: number): string => {
   return `${minutes}:${String(seconds).padStart(SECOND_DIGITS, "0")}`;
 };
 
-const toPercent = (testCount: number, totalTests: number): number =>
+const pickPercent = (testCount: number, totalTests: number): number =>
   (testCount / totalTests) * FULL_PERCENT;
 
 export const pickProgressShares = (
@@ -39,12 +39,11 @@ export const pickProgressShares = (
   const hasNoTests = totalTests === 0;
   if (hasNoTests) return { okPercent: 0, failedPercent: 0, runningPercent: 0 };
 
-  const okPercent = toPercent(okCount, totalTests);
-  const failedPercent = toPercent(failedCount, totalTests);
-  const runningPercent = Math.min(
-    toPercent(runningCount, totalTests),
-    FULL_PERCENT - okPercent - failedPercent,
-  );
+  const okPercent = pickPercent(okCount, totalTests);
+  const failedPercent = pickPercent(failedCount, totalTests);
+  const wantedRunningPercent = pickPercent(runningCount, totalTests);
+  const freePercent = FULL_PERCENT - okPercent - failedPercent;
+  const runningPercent = Math.min(wantedRunningPercent, freePercent);
   return {
     okPercent,
     failedPercent,

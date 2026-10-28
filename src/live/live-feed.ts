@@ -1,22 +1,11 @@
 import type { Finding } from "@/checks/checks-logic";
 import type { DeviceLoad } from "@/estimates/estimates-logic";
-import type {
-  LiveTestStatus,
-  RunTotals,
-  StepEvent,
-} from "@/live/live-test-schema";
+import type { RunTotals, StepEvent, TestEvent } from "@/live/live-test-schema";
 
 export type LiveMessage =
   | { kind: "screen"; deviceId: string; imageBase64: string }
   | { kind: "estimate"; deviceId: string; deviceLoad: DeviceLoad }
-  | {
-      kind: "test";
-      deviceId: string;
-      title: string;
-      specFile: string;
-      status: LiveTestStatus;
-      errorLine: string | null;
-    }
+  | ({ kind: "test" } & TestEvent)
   | ({ kind: "step" } & StepEvent)
   | ({ kind: "run-totals" } & RunTotals)
   | { kind: "finding"; finding: Finding }
@@ -26,26 +15,37 @@ type LiveListener = (message: LiveMessage) => void;
 
 const listeners = new Set<LiveListener>();
 const lastScreens = new Map<string, LiveMessage>();
-const lastTests = new Map<string, LiveMessage>();
-const lastSteps = new Map<string, LiveMessage[]>();
-const lastRunTotals: { message: LiveMessage | null } = { message: null };
+const lastTests = new Map<string, TestEvent>();
+const lastSteps = new Map<string, StepEvent[]>();
+const lastRunTotals: { runTotals: RunTotals | null } = { runTotals: null };
 
 export const subscribe = (listener: LiveListener): (() => void) => {
   listeners.add(listener);
   for (const lastScreen of lastScreens.values()) listener(lastScreen);
-  const { message: runTotalsMessage } = lastRunTotals;
-  const hasRunTotals = runTotalsMessage !== null;
-  if (hasRunTotals) listener(runTotalsMessage);
-  for (const lastTest of lastTests.values()) listener(lastTest);
-  for (const deviceSteps of lastSteps.values()) {
-    for (const stepMessage of deviceSteps) listener(stepMessage);
+  const { runTotals } = lastRunTotals;
+  const hasRunTotals = runTotals !== null;
+  if (hasRunTotals) listener({ kind: "run-totals", ...runTotals });
+  for (const [testId, testEvent] of lastTests) {
+    listener({ kind: "test", ...testEvent });
+    const testSteps = lastSteps.get(testId) ?? [];
+    for (const stepEvent of testSteps) listener({ kind: "step", ...stepEvent });
   }
   return () => listeners.delete(listener);
 };
 
-const rememberStep = (deviceId: string, stepMessage: LiveMessage): void => {
-  const deviceSteps = lastSteps.get(deviceId) ?? [];
-  lastSteps.set(deviceId, [...deviceSteps, stepMessage]);
+const rememberTest = (testEvent: TestEvent): void => {
+  const isTestStarting = testEvent.status === "running";
+  if (isTestStarting) lastSteps.delete(testEvent.testId);
+  lastTests.delete(testEvent.testId);
+  lastTests.set(testEvent.testId, testEvent);
+};
+
+const rememberStep = (stepEvent: StepEvent): void => {
+  const testSteps = lastSteps.get(stepEvent.testId) ?? [];
+  const otherSteps = testSteps.filter(
+    ({ stepIndex }) => stepIndex !== stepEvent.stepIndex,
+  );
+  lastSteps.set(stepEvent.testId, [...otherSteps, stepEvent]);
 };
 
 const forgetAllTests = (): void => {
@@ -58,20 +58,16 @@ export const broadcast = (message: LiveMessage): void => {
     case "screen":
       lastScreens.set(message.deviceId, message);
       break;
-    case "test": {
-      const isTestStarting = message.status === "running";
-      if (isTestStarting) lastSteps.delete(message.deviceId);
-      lastTests.delete(message.deviceId);
-      lastTests.set(message.deviceId, message);
+    case "test":
+      rememberTest(message);
       break;
-    }
     case "step":
-      rememberStep(message.deviceId, message);
+      rememberStep(message);
       break;
     case "run-totals": {
       const isRunStarting = message.phase === "start";
       if (isRunStarting) forgetAllTests();
-      lastRunTotals.message = message;
+      lastRunTotals.runTotals = message;
       break;
     }
     case "estimate":
@@ -82,10 +78,16 @@ export const broadcast = (message: LiveMessage): void => {
   for (const listener of listeners) listener(message);
 };
 
-// A killed run must not leave a running test to replay for every new dashboard.
+export const readRunTotals = (): RunTotals | null => lastRunTotals.runTotals;
+
+// A killed run must not leave a running test or run totals to replay for every new dashboard.
 export const forgetTests = (deviceIds: string[]): void => {
-  for (const deviceId of deviceIds) {
-    lastTests.delete(deviceId);
-    lastSteps.delete(deviceId);
+  const forgottenTestIds = [...lastTests.values()]
+    .filter(({ deviceId }) => deviceIds.includes(deviceId))
+    .map(({ testId }) => testId);
+  for (const testId of forgottenTestIds) {
+    lastTests.delete(testId);
+    lastSteps.delete(testId);
   }
+  lastRunTotals.runTotals = null;
 };

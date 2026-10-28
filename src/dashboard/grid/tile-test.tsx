@@ -1,6 +1,5 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import type { StepProgress } from "@/dashboard/device-feed/step-progress-logic";
 import { TileStepSegments } from "@/dashboard/grid/tile-step-segments";
 import { useTileTest } from "@/dashboard/grid/use-tile-test";
 import { cn } from "@/dashboard/ui/cn";
@@ -18,8 +17,8 @@ const TEST_STATUS_LABEL_KEYS = {
   failed: "tile.test.failed",
 } satisfies Record<LiveTestStatus, string>;
 
-const pickStepLineKey = (stepProgress: StepProgress): string => {
-  const isTotalKnown = stepProgress.totalSteps !== null;
+const pickStepLineKey = (totalSteps: number | null): string => {
+  const isTotalKnown = totalSteps !== null;
   return isTotalKnown ? "tile.test.stepLineOf" : "tile.test.stepLine";
 };
 
@@ -38,8 +37,10 @@ export const TileTest = ({ deviceId }: TileTestProps): ReactElement | null => {
   const hasSegments = hasStepProgress && stepProgress.segments.length > 0;
   const hasErrorLine = status === "failed" && errorLine !== null;
 
+  const totalSteps = hasStepProgress ? stepProgress.totalSteps : null;
+  const stepLineKey = pickStepLineKey(totalSteps);
   const stepLine = hasStepProgress
-    ? t(pickStepLineKey(stepProgress), {
+    ? t(stepLineKey, {
         stepNumber: stepProgress.stepNumber,
         totalSteps: stepProgress.totalSteps,
         stepTitle: stepProgress.stepTitle,

@@ -9,6 +9,7 @@ import {
   testScreenSchema,
   testsClearSchema,
 } from "@/live/live-test-schema";
+import { watchRun } from "@/live/run-watchdog";
 
 const NO_CONTENT_STATUS = 204;
 
@@ -47,6 +48,7 @@ export const createLiveTestRoutes = () =>
       (c) => {
         const runTotals = c.req.valid("json");
         broadcast({ kind: "run-totals", ...runTotals });
+        watchRun(runTotals);
         return c.body(null, NO_CONTENT_STATUS);
       },
     )

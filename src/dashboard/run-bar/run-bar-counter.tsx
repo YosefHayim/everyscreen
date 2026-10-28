@@ -18,7 +18,7 @@ export const RunBarCounter = ({
   runCounter,
 }: RunBarCounterProps): ReactElement => {
   const { t } = useTranslation();
-  const { counterKey, valueText, tone } = runCounter;
+  const { counterKey, counterLabel, tone } = runCounter;
 
   return (
     <div className="flex flex-col gap-0.5">
@@ -31,7 +31,7 @@ export const RunBarCounter = ({
           COUNTER_TONE_CLASS_NAMES[tone],
         )}
       >
-        {valueText}
+        {counterLabel}
       </dd>
     </div>
   );

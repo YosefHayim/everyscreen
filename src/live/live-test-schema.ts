@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const liveTestStatusSchema = z.enum(["running", "ok", "failed"]);
 const runOutcomeSchema = z.enum(["ok", "failed"]);
+const runEndReasonSchema = z.enum(["reported", "stopped"]);
 
 export const testScreenSchema = z.object({
   deviceId: z.string().min(1),
@@ -10,6 +11,7 @@ export const testScreenSchema = z.object({
 
 export const testEventSchema = z.object({
   deviceId: z.string().min(1),
+  testId: z.string().min(1),
   title: z.string(),
   specFile: z.string(),
   status: liveTestStatusSchema,
@@ -18,6 +20,7 @@ export const testEventSchema = z.object({
 
 export const stepEventSchema = z.object({
   deviceId: z.string().min(1),
+  testId: z.string().min(1),
   stepIndex: z.number().int().min(1),
   stepTitle: z.string(),
   status: liveTestStatusSchema,
@@ -32,6 +35,7 @@ export const runTotalsSchema = z.object({
   okCount: z.number().int().min(0),
   failedCount: z.number().int().min(0),
   outcome: runOutcomeSchema.nullable(),
+  endReason: runEndReasonSchema.nullable(),
 });
 
 export const testsClearSchema = z.object({

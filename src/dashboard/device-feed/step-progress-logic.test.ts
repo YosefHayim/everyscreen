@@ -50,7 +50,7 @@ describe("addDeviceStep", () => {
 });
 
 describe("pickStepTotalToKeep", () => {
-  test("returns the last step index of a passed test", () => {
+  test("returns the last step index of an ok test", () => {
     const deviceSteps = [
       createStep({ stepIndex: 1 }),
       createStep({ stepIndex: 2 }),
@@ -67,7 +67,7 @@ describe("pickStepTotalToKeep", () => {
     expect(pickStepTotalToKeep("running", [createStep()])).toBeNull();
   });
 
-  test("returns null for a passed test without steps", () => {
+  test("returns null for an ok test without steps", () => {
     expect(pickStepTotalToKeep("ok", [])).toBeNull();
   });
 });

@@ -224,6 +224,7 @@ export const pickFirstErrorLine = (
 
 export interface TestAttempt {
   deviceId: string;
+  testId: string;
   titlePath: string[];
   status: LiveTestStatus;
   errorMessage: string | null | undefined;
@@ -231,11 +232,12 @@ export interface TestAttempt {
 
 // The title path starts with the spec file, which the run bar shows apart from the title.
 export const createTestEvent = (testAttempt: TestAttempt): TestEvent => {
-  const { deviceId, titlePath, status, errorMessage } = testAttempt;
+  const { deviceId, testId, titlePath, status, errorMessage } = testAttempt;
   const [specPath, ...titleParts] = titlePath;
   const isTestFailed = status === "failed";
   return {
     deviceId,
+    testId,
     title: titleParts.join(STEP_TITLE_SEPARATOR),
     specFile: basename(specPath ?? ""),
     status,
@@ -272,6 +274,7 @@ export const isStepFromFolder = (
 
 export interface StepReport {
   deviceId: string;
+  testId: string;
   stepIndex: number;
   stepTitle: string;
   errorMessage: string | null | undefined;
@@ -279,12 +282,14 @@ export interface StepReport {
 }
 
 export const createStepEvent = (stepReport: StepReport): StepEvent => {
-  const { deviceId, stepIndex, stepTitle, errorMessage, isEnded } = stepReport;
+  const { deviceId, testId, stepIndex, stepTitle, errorMessage, isEnded } =
+    stepReport;
   const errorLine = pickFirstErrorLine(errorMessage);
   const isStepFailed = errorLine !== null;
   const endStatus = isStepFailed ? "failed" : "ok";
   return {
     deviceId,
+    testId,
     stepIndex,
     stepTitle,
     status: isEnded ? endStatus : "running",

@@ -35,15 +35,15 @@ export const addDeviceStep = (
   );
 };
 
-// A failed test stops early, so only a passed test tells how many steps the test has.
+// A failed test stops early, so only an ok test tells how many steps the test has.
 export const pickStepTotalToKeep = (
   testStatus: LiveTestStatus,
   deviceSteps: DeviceStep[],
 ): number | null => {
-  const isTestPassed = testStatus === "ok";
+  const isTestOk = testStatus === "ok";
   const lastStep = deviceSteps.at(-1);
   const hasNoStep = lastStep === undefined;
-  if (!isTestPassed || hasNoStep) return null;
+  if (!isTestOk || hasNoStep) return null;
   return lastStep.stepIndex;
 };
 

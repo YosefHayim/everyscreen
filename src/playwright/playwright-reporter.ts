@@ -35,7 +35,11 @@ import {
   pickRunOutcome,
   pickTestKey,
 } from "@/playwright/playwright-logic";
-import { type HubTarget, postToHub } from "@/playwright/post-to-hub";
+import {
+  type HubTarget,
+  postToHub,
+  waitForHubPosts,
+} from "@/playwright/post-to-hub";
 import { readHubFileSafely } from "@/playwright/read-hub-file";
 import { createHubTroubleReporter } from "@/playwright/report-hub-trouble";
 import type { Run, RunStep } from "@/runs/runs-logic";
@@ -45,6 +49,7 @@ const OWN_FOLDER = dirname(fileURLToPath(import.meta.url));
 const SHOTS_SUBFOLDER = "shots";
 const SCREENSHOT_ATTACHMENT_NAME = "screenshot";
 const TEST_EVENTS_QUEUE_KEY = "test-events";
+const HEARTBEAT_INTERVAL_MS = 5000;
 // A title path starts with "", the project name and the file.
 const TITLE_PATH_PROJECT_PARTS = 2;
 
@@ -52,14 +57,16 @@ const pickTitlePath = (testCase: TestCase): string[] =>
   testCase.titlePath().slice(TITLE_PATH_PROJECT_PARTS);
 
 const listAncestorCategories = (testStep: TestStep): string[] => {
-  const ancestorCategories: string[] = [];
-  let ancestor = testStep.parent;
-  while (ancestor !== undefined) {
-    ancestorCategories.push(ancestor.category);
-    ancestor = ancestor.parent;
-  }
-  return ancestorCategories;
+  const { parent } = testStep;
+  const hasNoParent = parent === undefined;
+  if (hasNoParent) return [];
+  return [parent.category, ...listAncestorCategories(parent)];
 };
+
+interface RunEnd {
+  endedAt: number;
+  outcome: "ok" | "failed";
+}
 
 const pickDeviceId = (testCase: TestCase): string => {
   const project = testCase.parent.project();
@@ -78,6 +85,9 @@ export default class EveryscreenReporter implements Reporter {
   savedKeys = new Set<string>();
   savedSteps: RunStep[] = [];
   pendingTasks: Promise<void>[] = [];
+  pendingHubPosts: Promise<boolean>[] = [];
+  isHubGivenUp = false;
+  heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   hubTarget: HubTarget | null = null;
   deviceIds: string[] = [];
   totalTests = 0;
@@ -105,14 +115,18 @@ export default class EveryscreenReporter implements Reporter {
     routePath: string,
     message: TestEvent | StepEvent | RunTotals | TestsClear,
   ) => {
-    const { hubTarget } = this;
+    const { hubTarget, isHubGivenUp } = this;
     const isHubMissing = hubTarget === null;
-    if (isHubMissing) return;
+    if (isHubMissing || isHubGivenUp) return;
 
-    const hubPost = runOneAtATime(TEST_EVENTS_QUEUE_KEY, () =>
-      postToHub(hubTarget, routePath, message),
-    );
-    this.pendingTasks.push(hubPost);
+    const hubPost = runOneAtATime(TEST_EVENTS_QUEUE_KEY, async () => {
+      const isPostSkipped = this.isHubGivenUp;
+      if (isPostSkipped) return false;
+      const isPosted = await postToHub(hubTarget, routePath, message);
+      this.isHubGivenUp = !isPosted;
+      return isPosted;
+    });
+    this.pendingHubPosts.push(hubPost);
   };
 
   sendTestEvent = (
@@ -125,6 +139,7 @@ export default class EveryscreenReporter implements Reporter {
     const errorMessage = testResult.error?.message;
     const testEvent = createTestEvent({
       deviceId,
+      testId: testCase.id,
       titlePath,
       status,
       errorMessage,
@@ -132,19 +147,17 @@ export default class EveryscreenReporter implements Reporter {
     this.postToLiveTests("/events", testEvent);
   };
 
-  sendRunTotals = (
-    phase: RunTotals["phase"],
-    endedAt: number | null,
-    outcome: RunTotals["outcome"],
-  ) => {
+  sendRunTotals = (phase: RunTotals["phase"], runEnd: RunEnd | null) => {
+    const isRunEnded = runEnd !== null;
     this.postToLiveTests("/run", {
       phase,
       totalTests: this.totalTests,
       startedAt: this.startedAt,
-      endedAt,
+      endedAt: isRunEnded ? runEnd.endedAt : null,
       okCount: this.okCount,
       failedCount: this.failedCount,
-      outcome,
+      outcome: isRunEnded ? runEnd.outcome : null,
+      endReason: isRunEnded ? "reported" : null,
     });
   };
 
@@ -156,6 +169,7 @@ export default class EveryscreenReporter implements Reporter {
   ) => {
     const stepEvent = createStepEvent({
       deviceId: pickDeviceId(testCase),
+      testId: testCase.id,
       stepIndex,
       stepTitle: testStep.title,
       errorMessage: testStep.error?.message,
@@ -221,7 +235,11 @@ export default class EveryscreenReporter implements Reporter {
     const allTests = suite.allTests();
     this.totalTests = allTests.length;
     this.startedAt = Date.now();
-    this.sendRunTotals("start", null, null);
+    this.sendRunTotals("start", null);
+    this.heartbeatTimer = setInterval(
+      () => this.sendRunTotals("update", null),
+      HEARTBEAT_INTERVAL_MS,
+    );
     for (const testCase of allTests) {
       const testTitlePath = pickTitlePath(testCase);
       const testKey = pickTestKey(testTitlePath);
@@ -285,7 +303,7 @@ export default class EveryscreenReporter implements Reporter {
     const isTestGood = liveStatus === "ok";
     if (isTestFailed) this.failedCount += 1;
     if (isTestGood) this.okCount += 1;
-    this.sendRunTotals("update", null, null);
+    this.sendRunTotals("update", null);
 
     this.runTask(async () => {
       const { runId } = await this.readRun();
@@ -330,8 +348,17 @@ export default class EveryscreenReporter implements Reporter {
   };
 
   onEnd = async (fullResult: FullResult) => {
-    this.sendRunTotals("update", Date.now(), pickRunOutcome(fullResult.status));
+    const { heartbeatTimer } = this;
+    const isHeartbeatRunning = heartbeatTimer !== null;
+    if (isHeartbeatRunning) clearInterval(heartbeatTimer);
+    this.heartbeatTimer = null;
+
+    this.sendRunTotals("update", {
+      endedAt: Date.now(),
+      outcome: pickRunOutcome(fullResult.status),
+    });
     this.postToLiveTests("/clear", { deviceIds: this.deviceIds });
+    await waitForHubPosts(this.pendingHubPosts);
     await Promise.all(this.pendingTasks);
     const unsavedKeys = [...this.expectedCounts.keys()].filter(
       (testKey) => !this.savedKeys.has(testKey),

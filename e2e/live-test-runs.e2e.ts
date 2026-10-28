@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
 import { chromium } from "playwright";
 import { createServer } from "vite";
 import { WebSocket } from "ws";
-import { LIVE_PATH } from "@/environment";
+import { LIVE_PATH, LIVE_TESTS_PATH } from "@/environment";
 import { type RunningHub, startHub } from "@/hub/hub-server";
 import type { LiveMessage } from "@/live/live-feed";
 import { STEP_TITLE_SEPARATOR } from "@/playwright/playwright-logic";
@@ -19,6 +19,7 @@ const SUITE_CONFIG_PATH = fileURLToPath(
   new URL("live-suite/playwright.config.ts", import.meta.url),
 );
 const STARTUP_TIMEOUT_MS = 240_000;
+const RUN_SILENCE_WAIT_MS = 30_000;
 const PASSING_TITLE = "shows the green page";
 const FAILING_TITLE = "fails on purpose";
 const GREEN_CHANNELS = { red: 34, green: 170, blue: 102 };
@@ -121,6 +122,40 @@ const startDashboard = async (hubUrl: string) => {
   };
 };
 
+const postToLiveTests = async (
+  hubUrl: string,
+  routePath: string,
+  message: object,
+): Promise<void> => {
+  const hubReply = await fetch(`${hubUrl}${LIVE_TESTS_PATH}${routePath}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(message),
+  });
+  expect(hubReply.status).toBe(204);
+};
+
+const createRunTotals = (changes: object = {}) => ({
+  phase: "update",
+  totalTests: 1,
+  startedAt: Date.now(),
+  endedAt: null,
+  okCount: 0,
+  failedCount: 0,
+  outcome: null,
+  endReason: null,
+  ...changes,
+});
+
+const LATE_TEST = {
+  deviceId: "iphone-se",
+  testId: "late-1",
+  title: "pays",
+  specFile: "shop.spec.ts",
+  errorLine: null,
+};
+const LATE_STEP_TITLES = ["Go to the cart", "Click Apply", "Click Pay"];
+
 const liveTest = test.extend<object, { hubFolders: HubFolders }>({
   hubFolders: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright requires a destructuring pattern here
@@ -210,7 +245,7 @@ liveTest.describe("live test runs", () => {
         const runBar = page.getByRole("region", { name: "Test run" });
         const pixelTile = page
           .getByRole("article")
-          .filter({ hasText: "Pixel 8" });
+          .filter({ hasText: /Pixel 10(?! Pro)/ });
         const iphoneTile = page
           .getByRole("article")
           .filter({ hasText: "iPhone SE" });
@@ -241,6 +276,92 @@ liveTest.describe("live test runs", () => {
           await expect(deviceTile).toContainText("toHaveTitle");
           await expect(deviceTile).toHaveClass(/bg-failed-soft/);
         }
+      } finally {
+        await viteServer.close();
+      }
+    },
+  );
+
+  liveTest(
+    "shows step n of m on a dashboard that opens after the test finished",
+    async ({ hubFolders, page }) => {
+      const { runningHub } = hubFolders;
+      const hubUrl = runningHub.url;
+      await postToLiveTests(
+        hubUrl,
+        "/run",
+        createRunTotals({ phase: "start" }),
+      );
+      await postToLiveTests(hubUrl, "/events", {
+        ...LATE_TEST,
+        status: "running",
+      });
+      for (const [stepPosition, stepTitle] of LATE_STEP_TITLES.entries()) {
+        const stepEvent = {
+          deviceId: LATE_TEST.deviceId,
+          testId: LATE_TEST.testId,
+          stepIndex: stepPosition + 1,
+          stepTitle,
+          errorLine: null,
+        };
+        await postToLiveTests(hubUrl, "/steps", {
+          ...stepEvent,
+          status: "running",
+        });
+        await postToLiveTests(hubUrl, "/steps", { ...stepEvent, status: "ok" });
+      }
+      await postToLiveTests(hubUrl, "/events", { ...LATE_TEST, status: "ok" });
+      await postToLiveTests(
+        hubUrl,
+        "/run",
+        createRunTotals({
+          okCount: 1,
+          endedAt: Date.now(),
+          outcome: "ok",
+          endReason: "reported",
+        }),
+      );
+      const { viteServer, dashboardUrl } = await startDashboard(hubUrl);
+      try {
+        await page.setViewportSize(DESKTOP_VIEWPORT);
+        await page.goto(dashboardUrl);
+
+        const iphoneTile = page
+          .getByRole("article")
+          .filter({ hasText: "iPhone SE" });
+
+        await expect(iphoneTile).toContainText(/step 3\/3 · Click Pay/);
+      } finally {
+        await viteServer.close();
+      }
+    },
+  );
+
+  liveTest(
+    "ends a run that went silent as failed and says it stopped",
+    async ({ hubFolders, page }) => {
+      liveTest.setTimeout(STARTUP_TIMEOUT_MS);
+      const { runningHub } = hubFolders;
+      await postToLiveTests(
+        runningHub.url,
+        "/run",
+        createRunTotals({ phase: "start" }),
+      );
+      const { viteServer, dashboardUrl } = await startDashboard(runningHub.url);
+      try {
+        await page.setViewportSize(DESKTOP_VIEWPORT);
+        await page.goto(dashboardUrl);
+        const runBar = page.getByRole("region", { name: "Test run" });
+        await expect(
+          runBar.getByText("Running", { exact: true }).first(),
+        ).toBeVisible();
+
+        await expect(runBar).toContainText("Run stopped without a report", {
+          timeout: RUN_SILENCE_WAIT_MS,
+        });
+        await expect(
+          runBar.getByText("Failed", { exact: true }).first(),
+        ).toBeVisible();
       } finally {
         await viteServer.close();
       }
