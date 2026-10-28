@@ -4,7 +4,9 @@ import {
   checkRunEvent,
   mergeRunEvent,
   pickNextRunId,
+  pickRunningRun,
   pickRunStatus,
+  pickStepId,
   type Run,
   type RunStep,
 } from "@/runs/runs-logic";
@@ -163,5 +165,45 @@ describe("mergeRunEvent", () => {
     });
 
     expect(mergedRun.status).toBe("passed");
+  });
+});
+
+describe("pickStepId", () => {
+  test("numbers the first step 1", () => {
+    expect(pickStepId([])).toBe("step-1");
+  });
+
+  test("numbers the next step after the saved ones", () => {
+    const steps = [createStep([OK_ANSWER]), createStep([OK_ANSWER])];
+
+    expect(pickStepId(steps)).toBe("step-3");
+  });
+});
+
+describe("pickRunningRun", () => {
+  const createRun = (runId: string, status: Run["status"]): Run => ({
+    runId,
+    origin: "cli",
+    status,
+    startedAt: 1,
+    steps: [],
+  });
+
+  test("returns null when no run is saved", () => {
+    expect(pickRunningRun([])).toBeNull();
+  });
+
+  test("returns null when every run has ended", () => {
+    expect(pickRunningRun([createRun("run-0001", "passed")])).toBeNull();
+  });
+
+  test("returns the latest run that is still running", () => {
+    const runs = [
+      createRun("run-0001", "running"),
+      createRun("run-0002", "failed"),
+      createRun("run-0003", "running"),
+    ];
+
+    expect(pickRunningRun(runs)?.runId).toBe("run-0003");
   });
 });

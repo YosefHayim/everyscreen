@@ -7,9 +7,11 @@ import type {
   Page,
 } from "playwright";
 import { chromium, firefox, webkit } from "playwright";
+import { watchPage } from "@/checks/page-watch";
 import { emulateDevice } from "@/devices/device-emulation";
 import type { BrowserName, DevicePreset } from "@/devices/devices-logic";
 import { HUB_HOST } from "@/environment";
+import { startSampling } from "@/estimates/estimates-sampler";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { readStoredFile } from "@/hub/stored-files";
 import { startScreencast } from "@/live/screencast";
@@ -21,6 +23,12 @@ export type PageWatcher = (
   deviceId: string,
 ) => Promise<StopWatching>;
 
+export interface DevicePage {
+  device: DevicePreset;
+  page: Page;
+  hasLiveScreen: boolean;
+}
+
 export interface DeviceBrowser {
   deviceId: string;
   browserName: BrowserName;
@@ -31,7 +39,7 @@ export interface DeviceBrowser {
 }
 
 const DEFAULT_PAGE_WATCHERS: Record<BrowserName, PageWatcher[]> = {
-  chromium: [startScreencast],
+  chromium: [startScreencast, startSampling, watchPage],
   webkit: [],
   firefox: [],
 };

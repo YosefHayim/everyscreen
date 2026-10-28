@@ -19,11 +19,11 @@ export const readStoredFile = async (
 
 export const writeStoredFile = async (
   filePath: string,
-  serializedFile: string,
+  fileBytes: string | Uint8Array,
 ): Promise<void> => {
   const folderPath = dirname(filePath);
   const draftPath = `${filePath}.${randomUUID()}.draft`;
   await mkdir(folderPath, { recursive: true });
-  await writeFile(draftPath, serializedFile);
+  await writeFile(draftPath, fileBytes);
   await rename(draftPath, filePath);
 };

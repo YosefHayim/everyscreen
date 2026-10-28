@@ -99,3 +99,11 @@ export const mergeRunEvent = (run: Run, runEvent: RunEvent): Run => {
     }
   }
 };
+
+export const pickStepId = (steps: RunStep[]): string =>
+  `step-${steps.length + 1}`;
+
+export const pickRunningRun = (runs: Run[]): Run | null => {
+  const runningRuns = runs.filter(({ status }) => status === "running");
+  return runningRuns.at(-1) ?? null;
+};
