@@ -34,7 +34,7 @@
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "pnpm run \"/^dev:(hub|dashboard)$/\"",
-    "dev:hub": "tsx watch src/cli/cli.ts start",
+    "dev:hub": "tsx watch src/cli/cli.ts start --foreground",
     "dev:dashboard": "vite",
     "dev:site": "vite --config vite.site.config.ts",
     "prod": "pnpm build && node dist/cli.mjs start",
@@ -47,7 +47,7 @@
     "lint": "biome check && knip",
     "lint:fix": "biome check --write",
     "typecheck": "tsc --noEmit",
-    "check": "biome check && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build:site"
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build && pnpm build:site"
   },
   "dependencies": {
     "@hono/node-server": "2.1.5",
@@ -84,7 +84,6 @@
     "clsx": "2.1.1",
     "i18next": "26.5.11",
     "knip": "6.43.0",
-    "msw": "3.0.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-hook-form": "7.91.0",

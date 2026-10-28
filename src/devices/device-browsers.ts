@@ -118,6 +118,9 @@ const connectHubBrowser = async (
   return BROWSER_TYPES[browserName].connect(wsEndpoint);
 };
 
+// tsx compiles with keepNames, so functions sent to page.evaluate call __name, which the page does not have.
+const NAME_HELPER_SCRIPT = "globalThis.__name = (target) => target;";
+
 export const startDeviceBrowser = async (
   devicePreset: DevicePreset,
   pageWatchers: PageWatcher[] = DEFAULT_PAGE_WATCHERS[devicePreset.browserName],
@@ -203,6 +206,7 @@ export const startDeviceBrowser = async (
 
     const openPage = async (): Promise<Page> => {
       const browserContext = await hubBrowser.newContext(devicePreset.use);
+      await browserContext.addInitScript(NAME_HELPER_SCRIPT);
       const page = await browserContext.newPage();
       await runOneAtATime(wsEndpoint, () => trackPage(page));
       return page;

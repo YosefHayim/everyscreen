@@ -1,8 +1,7 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readStoredFile, writeStoredFile } from "@/hub/stored-files";
-
-export type SkillAgent = "claude" | "codex" | "cursor";
+import type { SkillAgent } from "@/skill/skill-agents";
 
 // Claude Code: https://code.claude.com/docs/en/skills
 // Codex: https://developers.openai.com/codex/skills
@@ -21,18 +20,22 @@ const SKILL_FILE_URLS = [
 
 const readSkillMarkdown = async (): Promise<string> => {
   for (const skillFileUrl of SKILL_FILE_URLS) {
-    const skillMarkdown = await readStoredFile(fileURLToPath(skillFileUrl));
+    const skillPath = fileURLToPath(skillFileUrl);
+    const skillMarkdown = await readStoredFile(skillPath);
     const isSkillMarkdownFound = skillMarkdown !== null;
     if (isSkillMarkdownFound) return skillMarkdown;
   }
   throw new Error("SKILL.md is missing from the Everyscreen package");
 };
 
+export const pickSkillFile = (agent: SkillAgent, rootFolder: string): string =>
+  join(rootFolder, SKILL_FOLDERS[agent], "SKILL.md");
+
 export const installSkill = async (
   agent: SkillAgent,
   rootFolder: string,
 ): Promise<string> => {
-  const installedFile = join(rootFolder, SKILL_FOLDERS[agent], "SKILL.md");
+  const installedFile = pickSkillFile(agent, rootFolder);
   const skillMarkdown = await readSkillMarkdown();
 
   await writeStoredFile(installedFile, skillMarkdown);

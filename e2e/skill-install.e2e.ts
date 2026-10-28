@@ -2,7 +2,8 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import { installSkill, type SkillAgent } from "@/skill/skill-install";
+import type { SkillAgent } from "@/skill/skill-agents";
+import { installSkill } from "@/skill/skill-install";
 
 const SKILL_PATHS: Record<SkillAgent, string> = {
   claude: ".claude/skills/everyscreen/SKILL.md",

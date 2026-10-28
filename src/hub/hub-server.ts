@@ -1,5 +1,5 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { type ServerType, serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
@@ -16,6 +16,7 @@ import { HUB_FILE_PATH, HUB_HOST } from "@/environment";
 import { createHubApp } from "@/hub/hub-app";
 import type { HubFile } from "@/hub/hub-file";
 import { writeProblem } from "@/hub/problem-reply";
+import { writeStoredFile } from "@/hub/stored-files";
 import { liveRoutes } from "@/live/live-routes";
 
 const HUB_FILE_MODE = 0o600;
@@ -24,7 +25,7 @@ const API_PATH = "/api/*";
 const CLIENT_ROUTE_PATH = "*";
 const INDEX_FILE = "index.html";
 
-export interface HubStart {
+interface HubStart {
   rootFolder: string;
   port: number;
   dashboardFolder: string;
@@ -90,6 +91,7 @@ const startGridDevices = async (
 };
 
 const createHubFile = (port: number, gridDevices: GridDevice[]): HubFile => ({
+  pid: process.pid,
   port,
   devices: Object.fromEntries(
     gridDevices.map(({ device, deviceBrowser }) => [
@@ -106,9 +108,8 @@ const writeHubFile = async (
   hubFilePath: string,
   hubFile: HubFile,
 ): Promise<void> => {
-  await mkdir(dirname(hubFilePath), { recursive: true });
   const serializedHubFile = JSON.stringify(hubFile, null, 2);
-  await writeFile(hubFilePath, serializedHubFile, { mode: HUB_FILE_MODE });
+  await writeStoredFile(hubFilePath, serializedHubFile, HUB_FILE_MODE);
 };
 
 const createHubServerApp = (hubStart: HubStart, devicePages: DevicePage[]) => {
@@ -156,6 +157,20 @@ const closeServer = (httpServer: ServerType): Promise<void> =>
     if (canCloseConnections) httpServer.closeAllConnections();
   });
 
+const listenOrStopDevices = async (
+  hubServerApp: Hono,
+  websocketServer: WebSocketServer,
+  port: number,
+  gridDevices: GridDevice[],
+): Promise<ListeningServer> => {
+  try {
+    return await listen(hubServerApp, websocketServer, port);
+  } catch (error) {
+    await stopGridDevices(gridDevices);
+    throw error;
+  }
+};
+
 export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
   const { rootFolder, port } = hubStart;
   const devicesFile = await readDevicesFile(rootFolder);
@@ -165,8 +180,13 @@ export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
 
   const websocketServer = new WebSocketServer({ noServer: true });
   const hubServerApp = createHubServerApp(hubStart, devicePages);
+  const listeningServer = await listenOrStopDevices(
+    hubServerApp,
+    websocketServer,
+    port,
+    gridDevices,
+  );
   try {
-    const listeningServer = await listen(hubServerApp, websocketServer, port);
     const hubFile = createHubFile(listeningServer.port, gridDevices);
     await writeHubFile(hubFilePath, hubFile);
 
@@ -178,6 +198,7 @@ export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
     };
     return { url: `http://${HUB_HOST}:${listeningServer.port}`, stop };
   } catch (error) {
+    await closeServer(listeningServer.httpServer);
     await stopGridDevices(gridDevices);
     throw error;
   }
