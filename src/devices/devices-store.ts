@@ -3,11 +3,8 @@ import { HTTPException } from "hono/http-exception";
 import { parse, stringify } from "yaml";
 import { type DevicesFile, devicesFileSchema } from "@/devices/device-schema";
 import { DEVICES_FILE_PATH } from "@/environment";
-import {
-  readStoredFile,
-  runWithFileLock,
-  writeStoredFile,
-} from "@/hub/stored-files";
+import { runOneAtATime } from "@/hub/run-one-at-a-time";
+import { readStoredFile, writeStoredFile } from "@/hub/stored-files";
 
 const BAD_DEVICES_FILE_STATUS = 422;
 
@@ -62,7 +59,7 @@ export const updateDevicesFile = async (
   changeDevicesFile: (devicesFile: DevicesFile) => DevicesFile,
 ): Promise<DevicesFile> => {
   const devicesFilePath = join(rootFolder, DEVICES_FILE_PATH);
-  return runWithFileLock(devicesFilePath, async () => {
+  return runOneAtATime(devicesFilePath, async () => {
     const devicesFile = await readDevicesYaml(devicesFilePath);
     const changedFile = changeDevicesFile(devicesFile);
     await writeStoredFile(devicesFilePath, stringify(changedFile));
