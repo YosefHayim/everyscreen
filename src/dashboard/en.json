@@ -176,7 +176,7 @@
       "matrixDevice": "Device",
       "matrixVerdict": "Result",
       "stepHeader": "Step {{number}}: {{title}}",
-      "rowTally": "{{okCount}} ok · {{warnCount}} warn · {{failedCount}} failed",
+      "routeTally": "{{okCount}} ok · {{warnCount}} warn · {{failedCount}} failed",
       "findingsTitle": "Findings",
       "noFindings": "No findings in this run",
       "findingStep": "Step {{number}} · {{title}}",

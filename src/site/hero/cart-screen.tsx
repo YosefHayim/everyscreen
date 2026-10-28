@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { SiteIcon } from "@/site/ui/site-icon";
 import type { SiteIconName } from "@/site/ui/site-icon-paths";
 
-const CART_ROWS = [
+const CART_LINES = [
   {
     id: "shirt",
     icon: "shirt",
@@ -29,7 +29,7 @@ const CART_ROWS = [
   priceKey: string;
 }[];
 
-const TOTAL_ROWS = [
+const TOTAL_LINES = [
   { id: "subtotal", labelKey: "cart.subtotal", amountKey: "cart.totalPrice" },
   { id: "shipping", labelKey: "cart.shipping", amountKey: "cart.shippingFree" },
   { id: "total", labelKey: "cart.total", amountKey: "cart.totalPrice" },
@@ -45,11 +45,11 @@ export const CartScreen = ({
   hasCouponOverflow,
 }: CartScreenProps): ReactElement => {
   const { t } = useTranslation();
-  const visibleTotalRows = TOTAL_ROWS.filter((totalRow) => {
-    const isShippingRow = totalRow.id === "shipping";
-    return !(isShippingRow && hasCouponOverflow);
+  const visibleTotalLines = TOTAL_LINES.filter((totalLine) => {
+    const isShippingLine = totalLine.id === "shipping";
+    return !(isShippingLine && hasCouponOverflow);
   });
-  const couponRowClassName = hasCouponOverflow ? "w-[134px] flex-none" : "";
+  const couponLineClassName = hasCouponOverflow ? "w-[134px] flex-none" : "";
   const couponFieldClassName = hasCouponOverflow
     ? "w-[94px] flex-none"
     : "flex-1";
@@ -64,29 +64,29 @@ export const CartScreen = ({
         <span className="text-[8px] text-ink-3">{t("cart.count")}</span>
       </div>
       <div className="mt-2 flex flex-col gap-1.5">
-        {CART_ROWS.map((cartRow) => (
-          <div key={cartRow.id} className="flex h-7 items-center gap-1.5">
+        {CART_LINES.map((cartLine) => (
+          <div key={cartLine.id} className="flex h-7 items-center gap-1.5">
             <span
-              className={`grid size-7 flex-none place-items-center rounded-md ${cartRow.tileClassName}`}
+              className={`grid size-7 flex-none place-items-center rounded-md ${cartLine.tileClassName}`}
             >
-              <SiteIcon name={cartRow.icon} size={16} strokeWidth={1.6} />
+              <SiteIcon name={cartLine.icon} size={16} strokeWidth={1.6} />
             </span>
             <span className="flex flex-1 flex-col">
               <span className="text-[8.5px] font-medium">
-                {t(cartRow.nameKey)}
+                {t(cartLine.nameKey)}
               </span>
               <span className="text-[7.5px] text-ink-3">
-                {t(cartRow.detailKey)}
+                {t(cartLine.detailKey)}
               </span>
             </span>
             <span className="text-[8.5px] font-medium">
-              {t(cartRow.priceKey)}
+              {t(cartLine.priceKey)}
             </span>
           </div>
         ))}
       </div>
       <div className="my-2.5 h-px bg-line-soft" />
-      <div className={`relative flex h-5 gap-1 ${couponRowClassName}`}>
+      <div className={`relative flex h-5 gap-1 ${couponLineClassName}`}>
         <span
           className={`flex items-center rounded-[5px] border border-line px-1.5 text-[7.5px] text-ink-3 ${couponFieldClassName}`}
         >
@@ -115,18 +115,18 @@ export const CartScreen = ({
         )}
       </div>
       <div className="mt-3 flex flex-col gap-1 text-[8px] text-ink-2">
-        {visibleTotalRows.map((totalRow) => {
-          const isTotalRow = totalRow.id === "total";
-          const weightClassName = isTotalRow
+        {visibleTotalLines.map((totalLine) => {
+          const isTotalLine = totalLine.id === "total";
+          const weightClassName = isTotalLine
             ? "text-[9px] font-semibold text-ink"
             : "";
           return (
             <div
-              key={totalRow.id}
+              key={totalLine.id}
               className={`flex justify-between ${weightClassName}`}
             >
-              <span>{t(totalRow.labelKey)}</span>
-              <span>{t(totalRow.amountKey)}</span>
+              <span>{t(totalLine.labelKey)}</span>
+              <span>{t(totalLine.amountKey)}</span>
             </div>
           );
         })}

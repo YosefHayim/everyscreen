@@ -3,16 +3,16 @@ import { useTranslation } from "react-i18next";
 import { SiteIcon } from "@/site/ui/site-icon";
 import type { SiteIconName } from "@/site/ui/site-icon-paths";
 
-export interface CheckRowEntry {
+export interface CheckSummary {
   id: string;
   icon: SiteIconName;
 }
 
-interface CheckRowProps {
-  check: CheckRowEntry;
+interface CheckLineProps {
+  check: CheckSummary;
 }
 
-export const CheckRow = ({ check }: CheckRowProps): ReactElement => {
+export const CheckLine = ({ check }: CheckLineProps): ReactElement => {
   const { t } = useTranslation();
 
   return (

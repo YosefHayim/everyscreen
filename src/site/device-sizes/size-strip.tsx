@@ -2,18 +2,18 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/dashboard/ui/cn";
 
-const SIZE_ROW_SCALE = 0.13;
+const SIZE_STRIP_SCALE = 0.13;
 
 type OutlineShape = "phone" | "tablet" | "laptop" | "kiosk";
 
-interface SizeRowDevice {
+interface SizeStripDevice {
   id: string;
   outlineShape: OutlineShape;
   viewportWidth: number;
   viewportHeight: number;
 }
 
-const SIZE_ROW_DEVICES: SizeRowDevice[] = [
+const SIZE_STRIP_DEVICES: SizeStripDevice[] = [
   {
     id: "iphone-se",
     outlineShape: "phone",
@@ -77,12 +77,12 @@ const OUTLINE_CLASS_NAMES = {
   kiosk: "rounded-md border border-dashed border-cobalt bg-cobalt/5",
 } satisfies Record<OutlineShape, string>;
 
-export const SizeRow = (): ReactElement => {
+export const SizeStrip = (): ReactElement => {
   const { t } = useTranslation();
 
   return (
     <ul className="scroll-sideways m-0 flex list-none items-end justify-start gap-5 rounded-2xl border border-line bg-card p-6 md:justify-center">
-      {SIZE_ROW_DEVICES.map((device) => {
+      {SIZE_STRIP_DEVICES.map((device) => {
         const isKiosk = device.outlineShape === "kiosk";
         return (
           <li
@@ -95,8 +95,8 @@ export const SizeRow = (): ReactElement => {
                 OUTLINE_CLASS_NAMES[device.outlineShape],
               )}
               style={{
-                width: Math.round(device.viewportWidth * SIZE_ROW_SCALE),
-                height: Math.round(device.viewportHeight * SIZE_ROW_SCALE),
+                width: Math.round(device.viewportWidth * SIZE_STRIP_SCALE),
+                height: Math.round(device.viewportHeight * SIZE_STRIP_SCALE),
               }}
             >
               {isKiosk && (

@@ -67,12 +67,12 @@ export const RunMatrix = ({
             </tr>
           </thead>
           <tbody>
-            {matrix.map((matrixRow) => (
-              <tr key={matrixRow.deviceId} className="border-t border-line">
+            {matrix.map((matrixRoute) => (
+              <tr key={matrixRoute.deviceId} className="border-t border-line">
                 <th scope="row" className="px-4 py-3 text-start font-medium">
-                  {pickDeviceName(deviceViews, matrixRow.deviceId)}
+                  {pickDeviceName(deviceViews, matrixRoute.deviceId)}
                 </th>
-                {matrixRow.cells.map((cell) => {
+                {matrixRoute.cells.map((cell) => {
                   const cellIcon = CELL_ICONS[cell.status];
                   const hasCellIcon = cellIcon !== null;
                   return (
@@ -91,10 +91,10 @@ export const RunMatrix = ({
                   );
                 })}
                 <td className="px-4 py-3 text-end font-mono text-xs whitespace-nowrap text-ink-2">
-                  {t("runs.report.rowTally", {
-                    okCount: matrixRow.okCount,
-                    warnCount: matrixRow.warnCount,
-                    failedCount: matrixRow.failedCount,
+                  {t("runs.report.routeTally", {
+                    okCount: matrixRoute.okCount,
+                    warnCount: matrixRoute.warnCount,
+                    failedCount: matrixRoute.failedCount,
                   })}
                 </td>
               </tr>
