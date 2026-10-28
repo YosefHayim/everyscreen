@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
+const DEFAULT_FILE_MODE = 0o666;
+
 const isMissingFileError = (error: unknown): boolean =>
   error instanceof Error && "code" in error && error.code === "ENOENT";
 
@@ -29,10 +31,11 @@ export const readStoredFile = async (
 export const writeStoredFile = async (
   filePath: string,
   fileBytes: string | Uint8Array,
+  fileMode: number = DEFAULT_FILE_MODE,
 ): Promise<void> => {
   const folderPath = dirname(filePath);
   const draftPath = `${filePath}.${randomUUID()}.draft`;
   await mkdir(folderPath, { recursive: true });
-  await writeFile(draftPath, fileBytes);
+  await writeFile(draftPath, fileBytes, { mode: fileMode });
   await rename(draftPath, filePath);
 };

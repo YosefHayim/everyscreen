@@ -1,5 +1,5 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { type ServerType, serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
@@ -16,6 +16,7 @@ import { HUB_FILE_PATH, HUB_HOST } from "@/environment";
 import { createHubApp } from "@/hub/hub-app";
 import type { HubFile } from "@/hub/hub-file";
 import { writeProblem } from "@/hub/problem-reply";
+import { writeStoredFile } from "@/hub/stored-files";
 import { liveRoutes } from "@/live/live-routes";
 
 const HUB_FILE_MODE = 0o600;
@@ -107,9 +108,8 @@ const writeHubFile = async (
   hubFilePath: string,
   hubFile: HubFile,
 ): Promise<void> => {
-  await mkdir(dirname(hubFilePath), { recursive: true });
   const serializedHubFile = JSON.stringify(hubFile, null, 2);
-  await writeFile(hubFilePath, serializedHubFile, { mode: HUB_FILE_MODE });
+  await writeStoredFile(hubFilePath, serializedHubFile, HUB_FILE_MODE);
 };
 
 const createHubServerApp = (hubStart: HubStart, devicePages: DevicePage[]) => {

@@ -5,6 +5,7 @@ import { sendHubCommand } from "@/cli/hub-client";
 import type { CommandReply } from "@/commands/commands-logic";
 import { type Flow, flowSchema } from "@/flows/flow-schema";
 import {
+  createFailedFlowAnswer,
   createFlowAnswer,
   type FlowAnswer,
   listFlowBatches,
@@ -29,11 +30,14 @@ const readFlow = async (
   const flowYaml = await readFile(join(rootFolder, flowPath), "utf8");
   const flowDocument: unknown = parse(flowYaml);
   const flowCheck = flowSchema.safeParse(flowDocument);
-  if (flowCheck.success) return flowCheck.data;
+  const isFlowValid = flowCheck.success;
+  if (isFlowValid) return flowCheck.data;
   const [firstIssue] = flowCheck.error.issues;
   const badField = firstIssue.path.join(".");
+  const isFieldNamed = badField !== "";
+  const badPlace = isFieldNamed ? badField : "file";
   throw new Error(
-    `${flowPath} is not a valid flow: ${badField || "file"}: ${firstIssue.message}`,
+    `${flowPath} is not a valid flow: ${badPlace}: ${firstIssue.message}`,
     { cause: flowCheck.error },
   );
 };
@@ -53,6 +57,20 @@ const runFlow = async (
   return createFlowAnswer(flowPath, stepReplies);
 };
 
+// One unreadable flow must not reject its batch while the other flows still run.
+const runFlowOrFail = async (
+  rootFolder: string,
+  flowPath: string,
+): Promise<FlowAnswer> => {
+  try {
+    return await runFlow(rootFolder, flowPath);
+  } catch (error) {
+    const isErrorKnown = error instanceof Error;
+    const problemLine = isErrorKnown ? error.message : "the flow did not run";
+    return createFailedFlowAnswer(flowPath, problemLine);
+  }
+};
+
 export const runFlows = async (
   rootFolder: string,
   flowPaths: string[],
@@ -61,7 +79,7 @@ export const runFlows = async (
   const flowAnswers: FlowAnswer[] = [];
   for (const flowBatch of listFlowBatches(flowPaths, parallel)) {
     const batchAnswers = await Promise.all(
-      flowBatch.map((flowPath) => runFlow(rootFolder, flowPath)),
+      flowBatch.map((flowPath) => runFlowOrFail(rootFolder, flowPath)),
     );
     flowAnswers.push(...batchAnswers);
   }

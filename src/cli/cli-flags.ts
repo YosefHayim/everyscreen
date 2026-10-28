@@ -5,6 +5,7 @@ const FLAG_TYPES = {
   help: { type: "boolean" },
   foreground: { type: "boolean" },
   touch: { type: "boolean" },
+  yes: { type: "boolean" },
   port: { type: "string" },
   device: { type: "string" },
   url: { type: "string" },
@@ -46,8 +47,8 @@ export const readCommandLine = (
     const { positionals, values } = parsedCommandLine;
     return { kind: "read", commandWords: positionals, flags: values };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "unreadable flags";
+    const isErrorKnown = error instanceof Error;
+    const errorMessage = isErrorKnown ? error.message : "unreadable flags";
     const [reason] = errorMessage.split(". ");
     return {
       kind: "unreadable",

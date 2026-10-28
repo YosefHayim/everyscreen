@@ -4,42 +4,42 @@ import {
   CLI_COMMAND_NAMES,
   type CliCommandName,
   COMMAND_HELPS,
-} from "@/cli/cli-help-texts";
+  type FlagHelp,
+} from "@/cli/cli-help-pages";
 import type { CommandReply } from "@/commands/commands-logic";
 import { type HubCommand, hubCommandSchema } from "@/commands/commands-schema";
 import { type CustomDevice, customDeviceSchema } from "@/devices/device-schema";
-import { HUB_PORT } from "@/environment";
 import { SKILL_AGENTS, type SkillAgent } from "@/skill/skill-install";
 
 const DEFAULT_FLOWS_GLOB = "flows/*.yaml";
 const DEFAULT_PARALLEL = 1;
 const MAX_PORT = 65_535;
-const COMMAND_COLUMN_WIDTH = 16;
+const COLUMN_GAP = "  ";
 const PRODUCT_LINE = "Run your web app on many device sizes at once.";
-const HUB_DOWN_LINE = "hub is not running · run npx everyscreen start";
+export const HUB_DOWN_LINE = "hub is not running · run npx everyscreen start";
 
 export type CliRequest =
   | { kind: "send-command"; hubCommand: HubCommand }
-  | { kind: "start"; port: number; isForeground: boolean }
+  | { kind: "start"; port: number | null; isForeground: boolean }
   | { kind: "stop" }
   | { kind: "status" }
   | { kind: "list-devices" }
   | { kind: "add-device"; customDevice: CustomDevice }
-  | { kind: "remove-device"; deviceId: string }
+  | { kind: "remove-device"; deviceId: string; isConfirmed: boolean }
   | { kind: "run-flows"; flowsGlob: string; parallel: number }
-  | { kind: "install-skill"; agent: SkillAgent };
+  | { kind: "install-skill"; agent: SkillAgent; isConfirmed: boolean };
 
 export type CliPlan =
-  | { kind: "show-help"; helpText: string }
+  | { kind: "show-help"; helpPage: string }
   | { kind: "bad-usage"; message: string }
   | { kind: "run"; cliRequest: CliRequest };
 
-type CliRequestOutcome =
+type CliRequestCheck =
   | { kind: "ready"; cliRequest: CliRequest }
   | { kind: "bad-usage"; message: string };
 
 const startFlagsSchema = z.object({
-  port: z.number().int().min(0).max(MAX_PORT).default(HUB_PORT),
+  port: z.number().int().min(0).max(MAX_PORT).optional(),
   foreground: z.boolean().default(false),
 });
 
@@ -53,6 +53,11 @@ const skillFlagsSchema = z.object({
 });
 
 const removeDeviceFlagsSchema = z.object({ device: z.string() });
+
+const COMMON_FLAG_HELPS: readonly FlagHelp[] = [
+  { flag: "--json", description: "Print one JSON object" },
+  { flag: "--help", description: "Show this help" },
+];
 
 export const createReply = (
   status: CommandReply["status"],
@@ -73,7 +78,23 @@ export const createRunningLine = (
 export const createDeviceListLine = (deviceIds: string[]): string =>
   `${deviceIds.length} devices · ${deviceIds.join(", ")}`;
 
-export const createReplyText = (
+export const createNeedsYesReply = (
+  commandName: CliCommandName,
+): CommandReply =>
+  createReply(
+    "failed",
+    `${commandName} changes files and needs --yes when it does not run in a terminal`,
+  );
+
+export const isPortConflict = (
+  requestedPort: number | null,
+  runningPort: number,
+): boolean => requestedPort !== null && requestedPort !== runningPort;
+
+export const createPortConflictReply = (hubUrl: string): CommandReply =>
+  createReply("failed", `hub already running at ${hubUrl} · stop it first`);
+
+export const createPrintedReply = (
   commandReply: CommandReply,
   isJsonWanted: boolean,
   isTerminal: boolean,
@@ -87,15 +108,24 @@ export const createReplyText = (
   return [commandReply.line, ...failureLines].join("\n");
 };
 
-export const createHelpText = (
+const createHelpLines = (helpLines: FlagHelp[]): string[] => {
+  const widestName = Math.max(...helpLines.map(({ flag }) => flag.length));
+  return helpLines.map(
+    ({ flag, description }) =>
+      `  ${flag.padEnd(widestName)}${COLUMN_GAP}${description}`,
+  );
+};
+
+export const createHelpPage = (
   cliCommandName: CliCommandName | null,
 ): string => {
   const isRootHelp = cliCommandName === null;
   if (isRootHelp) {
-    const commandLines = CLI_COMMAND_NAMES.map(
-      (commandName) =>
-        `  ${commandName.padEnd(COMMAND_COLUMN_WIDTH)}${COMMAND_HELPS[commandName].summary}`,
-    );
+    const commandHelps = CLI_COMMAND_NAMES.map((commandName) => ({
+      flag: commandName,
+      description: COMMAND_HELPS[commandName].summary,
+    }));
+    const commandLines = createHelpLines(commandHelps);
     return [
       `everyscreen · ${PRODUCT_LINE}`,
       "",
@@ -109,7 +139,10 @@ export const createHelpText = (
     ].join("\n");
   }
   const commandHelp = COMMAND_HELPS[cliCommandName];
-  const flagLines = commandHelp.flagLines.map((flagLine) => `  ${flagLine}`);
+  const flagLines = createHelpLines([
+    ...commandHelp.flagHelps,
+    ...COMMON_FLAG_HELPS,
+  ]);
   return [
     `everyscreen ${cliCommandName} · ${commandHelp.summary}`,
     "",
@@ -117,8 +150,6 @@ export const createHelpText = (
     "",
     "Flags:",
     ...flagLines,
-    "  --json           Print one JSON object",
-    "  --help           Show this help",
   ].join("\n");
 };
 
@@ -132,16 +163,16 @@ export const pickCommandName = (
   return foundName ?? null;
 };
 
-const readNumberFlag = (flagText: string | undefined): number | undefined => {
-  const isFlagMissing = flagText === undefined;
+const readNumberFlag = (flagWord: string | undefined): number | undefined => {
+  const isFlagMissing = flagWord === undefined;
   if (isFlagMissing) return undefined;
-  return Number(flagText);
+  return Number(flagWord);
 };
 
 const createBadUsage = (
   commandName: CliCommandName,
   issue: z.core.$ZodIssue,
-): CliRequestOutcome => {
+): CliRequestCheck => {
   const flagName = issue.path.join(".");
   return {
     kind: "bad-usage",
@@ -149,15 +180,15 @@ const createBadUsage = (
   };
 };
 
-const createReadyRequest = (cliRequest: CliRequest): CliRequestOutcome => ({
+const createReadyCheck = (cliRequest: CliRequest): CliRequestCheck => ({
   kind: "ready",
   cliRequest,
 });
 
-const createHubCommandOutcome = (
+const checkHubCommandFlags = (
   commandName: CliCommandName,
   flags: CliFlags,
-): CliRequestOutcome => {
+): CliRequestCheck => {
   const isDeviceMissing = flags.device === undefined;
   const hubCommandCandidate = {
     commandName,
@@ -170,8 +201,9 @@ const createHubCommandOutcome = (
     deviceIds: isDeviceMissing ? null : [flags.device],
   };
   const hubCommandCheck = hubCommandSchema.safeParse(hubCommandCandidate);
-  if (hubCommandCheck.success) {
-    return createReadyRequest({
+  const isValidHubCommandCheck = hubCommandCheck.success;
+  if (isValidHubCommandCheck) {
+    return createReadyCheck({
       kind: "send-command",
       hubCommand: hubCommandCheck.data,
     });
@@ -179,22 +211,23 @@ const createHubCommandOutcome = (
   return createBadUsage(commandName, hubCommandCheck.error.issues[0]);
 };
 
-const createStartOutcome = (flags: CliFlags): CliRequestOutcome => {
+const checkStartFlags = (flags: CliFlags): CliRequestCheck => {
   const startCheck = startFlagsSchema.safeParse({
     port: readNumberFlag(flags.port),
     foreground: flags.foreground,
   });
-  if (startCheck.success) {
-    return createReadyRequest({
+  const isValidStartCheck = startCheck.success;
+  if (isValidStartCheck) {
+    return createReadyCheck({
       kind: "start",
-      port: startCheck.data.port,
+      port: startCheck.data.port ?? null,
       isForeground: startCheck.data.foreground,
     });
   }
   return createBadUsage("start", startCheck.error.issues[0]);
 };
 
-const createAddDeviceOutcome = (flags: CliFlags): CliRequestOutcome => {
+const checkAddDeviceFlags = (flags: CliFlags): CliRequestCheck => {
   const customDeviceCheck = customDeviceSchema.safeParse({
     name: flags.name,
     width: readNumberFlag(flags.width),
@@ -202,8 +235,9 @@ const createAddDeviceOutcome = (flags: CliFlags): CliRequestOutcome => {
     pixelRatio: readNumberFlag(flags["pixel-ratio"]),
     hasTouch: flags.touch,
   });
-  if (customDeviceCheck.success) {
-    return createReadyRequest({
+  const isValidCustomDeviceCheck = customDeviceCheck.success;
+  if (isValidCustomDeviceCheck) {
+    return createReadyCheck({
       kind: "add-device",
       customDevice: customDeviceCheck.data,
     });
@@ -211,24 +245,30 @@ const createAddDeviceOutcome = (flags: CliFlags): CliRequestOutcome => {
   return createBadUsage("devices add", customDeviceCheck.error.issues[0]);
 };
 
-const createRemoveDeviceOutcome = (flags: CliFlags): CliRequestOutcome => {
+const checkRemoveDeviceFlags = (
+  flags: CliFlags,
+  isConfirmed: boolean,
+): CliRequestCheck => {
   const removeCheck = removeDeviceFlagsSchema.safeParse(flags);
-  if (removeCheck.success) {
-    return createReadyRequest({
+  const isValidRemoveCheck = removeCheck.success;
+  if (isValidRemoveCheck) {
+    return createReadyCheck({
       kind: "remove-device",
       deviceId: removeCheck.data.device,
+      isConfirmed,
     });
   }
   return createBadUsage("devices remove", removeCheck.error.issues[0]);
 };
 
-const createRunFlowsOutcome = (flags: CliFlags): CliRequestOutcome => {
+const checkRunFlowsFlags = (flags: CliFlags): CliRequestCheck => {
   const runCheck = runFlagsSchema.safeParse({
     flows: flags.flows,
     parallel: readNumberFlag(flags.parallel),
   });
-  if (runCheck.success) {
-    return createReadyRequest({
+  const isValidRunCheck = runCheck.success;
+  if (isValidRunCheck) {
+    return createReadyCheck({
       kind: "run-flows",
       flowsGlob: runCheck.data.flows,
       parallel: runCheck.data.parallel,
@@ -237,38 +277,44 @@ const createRunFlowsOutcome = (flags: CliFlags): CliRequestOutcome => {
   return createBadUsage("run", runCheck.error.issues[0]);
 };
 
-const createInstallSkillOutcome = (flags: CliFlags): CliRequestOutcome => {
+const checkInstallSkillFlags = (
+  flags: CliFlags,
+  isConfirmed: boolean,
+): CliRequestCheck => {
   const skillCheck = skillFlagsSchema.safeParse(flags);
-  if (skillCheck.success) {
-    return createReadyRequest({
+  const isValidSkillCheck = skillCheck.success;
+  if (isValidSkillCheck) {
+    return createReadyCheck({
       kind: "install-skill",
       agent: skillCheck.data.agent,
+      isConfirmed,
     });
   }
   return createBadUsage("skill install", skillCheck.error.issues[0]);
 };
 
-const createRequestOutcome = (
+const checkRequestFlags = (
   commandName: CliCommandName,
   flags: CliFlags,
-): CliRequestOutcome => {
+  isConfirmed: boolean,
+): CliRequestCheck => {
   switch (commandName) {
     case "start":
-      return createStartOutcome(flags);
+      return checkStartFlags(flags);
     case "stop":
-      return createReadyRequest({ kind: "stop" });
+      return createReadyCheck({ kind: "stop" });
     case "status":
-      return createReadyRequest({ kind: "status" });
+      return createReadyCheck({ kind: "status" });
     case "devices list":
-      return createReadyRequest({ kind: "list-devices" });
+      return createReadyCheck({ kind: "list-devices" });
     case "devices add":
-      return createAddDeviceOutcome(flags);
+      return checkAddDeviceFlags(flags);
     case "devices remove":
-      return createRemoveDeviceOutcome(flags);
+      return checkRemoveDeviceFlags(flags, isConfirmed);
     case "run":
-      return createRunFlowsOutcome(flags);
+      return checkRunFlowsFlags(flags);
     case "skill install":
-      return createInstallSkillOutcome(flags);
+      return checkInstallSkillFlags(flags, isConfirmed);
     case "open":
     case "tap":
     case "fill":
@@ -276,18 +322,22 @@ const createRequestOutcome = (
     case "check":
     case "shot":
     case "expect":
-      return createHubCommandOutcome(commandName, flags);
+      return checkHubCommandFlags(commandName, flags);
   }
 };
 
-export const planCli = (commandWords: string[], flags: CliFlags): CliPlan => {
+export const planCli = (
+  commandWords: string[],
+  flags: CliFlags,
+  isTerminal: boolean,
+): CliPlan => {
   const commandName = pickCommandName(commandWords);
   const isHelpWanted = flags.help === true;
   const isNothingTyped = commandWords.length === 0;
   const isCommandUnknown = commandName === null;
   const isRootHelpWanted = isNothingTyped || (isCommandUnknown && isHelpWanted);
   if (isRootHelpWanted) {
-    return { kind: "show-help", helpText: createHelpText(null) };
+    return { kind: "show-help", helpPage: createHelpPage(null) };
   }
   if (isCommandUnknown) {
     const typedCommand = commandWords.join(" ");
@@ -297,10 +347,11 @@ export const planCli = (commandWords: string[], flags: CliFlags): CliPlan => {
     };
   }
   if (isHelpWanted) {
-    return { kind: "show-help", helpText: createHelpText(commandName) };
+    return { kind: "show-help", helpPage: createHelpPage(commandName) };
   }
-  const requestOutcome = createRequestOutcome(commandName, flags);
-  const isUsageBad = requestOutcome.kind === "bad-usage";
-  if (isUsageBad) return requestOutcome;
-  return { kind: "run", cliRequest: requestOutcome.cliRequest };
+  const isConfirmed = flags.yes === true || isTerminal;
+  const requestCheck = checkRequestFlags(commandName, flags, isConfirmed);
+  const isUsageBad = requestCheck.kind === "bad-usage";
+  if (isUsageBad) return requestCheck;
+  return { kind: "run", cliRequest: requestCheck.cliRequest };
 };

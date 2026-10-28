@@ -9,6 +9,9 @@ import type { HubApp } from "@/hub/hub-app";
 import { type HubFile, hubFileSchema } from "@/hub/hub-file";
 import { readStoredFile } from "@/hub/stored-files";
 
+const ANSWER_TIMEOUT_MS = 3000;
+const LOST_CONNECTION_CODES = ["ECONNREFUSED", "ECONNRESET"];
+
 const problemSchema = z.object({ detail: z.string() });
 
 const createHubClient = (hubUrl: string) => hc<HubApp>(hubUrl);
@@ -17,6 +20,9 @@ export type HubClient = ReturnType<typeof createHubClient>;
 
 export const createHubUrl = (hubFile: HubFile): string =>
   `http://${HUB_HOST}:${hubFile.port}`;
+
+export const countDevices = (hubFile: HubFile): number =>
+  Object.keys(hubFile.devices).length;
 
 export const readHubFile = async (
   rootFolder: string,
@@ -30,32 +36,55 @@ export const readHubFile = async (
   return hubFileSchema.parse(hubFileDocument);
 };
 
-const isConnectionRefused = (error: unknown): boolean =>
-  error instanceof TypeError &&
-  error.cause instanceof Error &&
-  "code" in error.cause &&
-  error.cause.code === "ECONNREFUSED";
+const isConnectionLost = (error: unknown): boolean => {
+  const isFetchError = error instanceof TypeError;
+  if (!isFetchError) return false;
+  const lostCause = error.cause;
+  const hasCode = lostCause instanceof Error && "code" in lostCause;
+  if (!hasCode) return false;
+  return LOST_CONNECTION_CODES.includes(String(lostCause.code));
+};
+
+const isAnswerTimeout = (error: unknown): boolean =>
+  error instanceof DOMException && error.name === "TimeoutError";
 
 export const readProblemReply = async (
-  problemResponse: Response,
+  problemReply: Response,
 ): Promise<CommandReply> => {
-  const problemDocument: unknown = await problemResponse.json();
+  const problemDocument: unknown = await problemReply.json();
   const problem = problemSchema.parse(problemDocument);
   return createReply("failed", problem.detail);
 };
 
+// A hub file can outlive a crashed hub, so only a hub that answers counts as running.
+export const isHubAnswering = async (hubFile: HubFile): Promise<boolean> => {
+  const hubClient = createHubClient(createHubUrl(hubFile));
+  try {
+    await hubClient.api.devices.$get(
+      {},
+      { init: { signal: AbortSignal.timeout(ANSWER_TIMEOUT_MS) } },
+    );
+    return true;
+  } catch (error) {
+    const isHubSilent = isConnectionLost(error) || isAnswerTimeout(error);
+    if (isHubSilent) return false;
+    throw error;
+  }
+};
+
 export const callHub = async (
   rootFolder: string,
-  askHubClient: (hubClient: HubClient) => Promise<CommandReply>,
+  askHubClient: (hubClient: HubClient, hubUrl: string) => Promise<CommandReply>,
 ): Promise<CommandReply> => {
   const hubFile = await readHubFile(rootFolder);
   const isHubFileMissing = hubFile === null;
   if (isHubFileMissing) return createHubDownReply();
-  const hubClient = createHubClient(createHubUrl(hubFile));
+  const hubUrl = createHubUrl(hubFile);
+  const hubClient = createHubClient(hubUrl);
   try {
-    return await askHubClient(hubClient);
+    return await askHubClient(hubClient, hubUrl);
   } catch (error) {
-    const isHubDown = isConnectionRefused(error);
+    const isHubDown = isConnectionLost(error);
     if (isHubDown) return createHubDownReply();
     throw error;
   }
@@ -66,10 +95,10 @@ export const sendHubCommand = (
   hubCommand: HubCommand,
 ): Promise<CommandReply> =>
   callHub(rootFolder, async (hubClient) => {
-    const commandsResponse = await hubClient.api.commands.$post({
+    const commandsReply = await hubClient.api.commands.$post({
       json: hubCommand,
     });
-    const isCommandRefused = !commandsResponse.ok;
-    if (isCommandRefused) return readProblemReply(commandsResponse);
-    return commandsResponse.json();
+    const isCommandRefused = !commandsReply.ok;
+    if (isCommandRefused) return readProblemReply(commandsReply);
+    return commandsReply.json();
   });

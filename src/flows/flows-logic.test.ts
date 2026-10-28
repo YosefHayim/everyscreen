@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { CommandReply, DeviceFailure } from "@/commands/commands-logic";
 import type { Flow } from "@/flows/flow-schema";
 import {
+  createFailedFlowAnswer,
   createFlowAnswer,
   listFlowBatches,
   listFlowCommands,
@@ -71,7 +72,7 @@ describe("listFlowCommands", () => {
 });
 
 describe("listFlowBatches", () => {
-  test("makes one batch of every flow when a batch holds one flow more than needed", () => {
+  test("puts every flow in one batch when the batch size is larger than the flow count", () => {
     const batches = listFlowBatches(["a.yaml", "b.yaml"], 5);
 
     expect(batches).toEqual([["a.yaml", "b.yaml"]]);
@@ -133,6 +134,7 @@ describe("createFlowAnswer", () => {
       status: "ok",
       runId: "run-0001",
       failures: [],
+      problemLine: null,
     });
   });
 
@@ -154,6 +156,7 @@ describe("createFlowAnswer", () => {
 
     expect(flowAnswer.status).toBe("failed");
     expect(flowAnswer.failures).toEqual([deviceFailure]);
+    expect(flowAnswer.problemLine).toBeNull();
   });
 
   test("fails with the reply line when no device failure came back", () => {
@@ -166,15 +169,22 @@ describe("createFlowAnswer", () => {
 
     const flowAnswer = createFlowAnswer("flows/a.yaml", [refusedReply]);
 
-    expect(flowAnswer.failures).toEqual([
-      {
-        status: "failed",
-        deviceId: "flows/a.yaml",
-        durationMs: 0,
-        message: "No device nope",
-        shotPath: null,
-      },
-    ]);
+    expect(flowAnswer.failures).toEqual([]);
+    expect(flowAnswer.problemLine).toBe("No device nope");
+  });
+});
+
+describe("createFailedFlowAnswer", () => {
+  test("fails with no run and carries the problem line", () => {
+    const flowAnswer = createFailedFlowAnswer("flows/a.yaml", "bad flow file");
+
+    expect(flowAnswer).toEqual({
+      flowPath: "flows/a.yaml",
+      status: "failed",
+      runId: null,
+      failures: [],
+      problemLine: "bad flow file",
+    });
   });
 });
 
@@ -186,12 +196,14 @@ describe("summarizeFlows", () => {
         status: "ok" as const,
         runId: "run-0001",
         failures: [],
+        problemLine: null,
       },
       {
         flowPath: "b.yaml",
         status: "ok" as const,
         runId: "run-0002",
         failures: [],
+        problemLine: null,
       },
     ];
 
@@ -208,12 +220,14 @@ describe("summarizeFlows", () => {
         status: "ok" as const,
         runId: "run-0001",
         failures: [],
+        problemLine: null,
       },
       {
         flowPath: "b.yaml",
         status: "failed" as const,
         runId: "run-0001",
         failures: [deviceFailure],
+        problemLine: null,
       },
     ];
 
@@ -224,6 +238,17 @@ describe("summarizeFlows", () => {
       "2 flows · 1 ok · 1 failed · report run-0001",
     );
     expect(commandReply.failures).toEqual([deviceFailure]);
+  });
+
+  test("adds the problem line of a flow that could not run to the reply line", () => {
+    const flowAnswers = [createFailedFlowAnswer("b.yaml", "bad flow file")];
+
+    const commandReply = summarizeFlows(flowAnswers);
+
+    expect(commandReply.status).toBe("failed");
+    expect(commandReply.line).toBe(
+      "1 flow · 0 ok · 1 failed · b.yaml: bad flow file",
+    );
   });
 
   test("fails when no flow was found", () => {

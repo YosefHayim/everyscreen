@@ -1,21 +1,19 @@
 import { describe, expect, test } from "vitest";
-import type { CliFlags } from "@/cli/cli-flags";
 import {
-  type CliPlan,
   createDeviceListLine,
-  createHelpText,
+  createHelpPage,
   createHubDownReply,
+  createNeedsYesReply,
+  createPortConflictReply,
+  createPrintedReply,
   createReadyLine,
   createReply,
-  createReplyText,
   createRunningLine,
+  isPortConflict,
   pickCommandName,
   planCli,
 } from "@/cli/cli-logic";
 import type { CommandReply } from "@/commands/commands-logic";
-
-const planRequest = (commandWords: string[], flags: CliFlags): CliPlan =>
-  planCli(commandWords, flags);
 
 describe("createReply", () => {
   test("makes a reply with no run and no failures", () => {
@@ -59,6 +57,41 @@ describe("createRunningLine", () => {
   });
 });
 
+describe("createNeedsYesReply", () => {
+  test("names the command and asks for --yes", () => {
+    const commandReply = createNeedsYesReply("devices remove");
+
+    expect(commandReply.status).toBe("failed");
+    expect(commandReply.line).toContain("devices remove");
+    expect(commandReply.line).toContain("--yes");
+  });
+});
+
+describe("isPortConflict", () => {
+  test("is false when no port was asked for", () => {
+    expect(isPortConflict(null, 4100)).toBe(false);
+  });
+
+  test("is false when the asked port is the running port", () => {
+    expect(isPortConflict(4100, 4100)).toBe(false);
+  });
+
+  test("is true when the asked port is another port", () => {
+    expect(isPortConflict(5000, 4100)).toBe(true);
+  });
+});
+
+describe("createPortConflictReply", () => {
+  test("names the running hub and says to stop it", () => {
+    const commandReply = createPortConflictReply("http://127.0.0.1:4100");
+
+    expect(commandReply.status).toBe("failed");
+    expect(commandReply.line).toBe(
+      "hub already running at http://127.0.0.1:4100 · stop it first",
+    );
+  });
+});
+
 describe("createDeviceListLine", () => {
   test("lists every device id after the count", () => {
     const deviceListLine = createDeviceListLine(["iphone-se", "pixel-8"]);
@@ -67,7 +100,7 @@ describe("createDeviceListLine", () => {
   });
 });
 
-describe("createReplyText", () => {
+describe("createPrintedReply", () => {
   const failedReply: CommandReply = {
     status: "failed",
     line: "2 devices · 1 ok · 1 failed",
@@ -84,43 +117,56 @@ describe("createReplyText", () => {
   };
 
   test("writes the line and one line per failure in a terminal", () => {
-    const replyText = createReplyText(failedReply, false, true);
+    const printedReply = createPrintedReply(failedReply, false, true);
 
-    expect(replyText).toBe(
+    expect(printedReply).toBe(
       "2 devices · 1 ok · 1 failed\niphone-se  fail  cookie bar covers Add to cart  412 ms",
     );
   });
 
   test("writes one JSON object when --json is passed", () => {
-    const replyText = createReplyText(failedReply, true, true);
+    const printedReply = createPrintedReply(failedReply, true, true);
 
-    expect(JSON.parse(replyText)).toEqual(failedReply);
+    expect(JSON.parse(printedReply)).toEqual(failedReply);
   });
 
   test("writes one JSON object when the output is not a terminal", () => {
-    const replyText = createReplyText(failedReply, false, false);
+    const printedReply = createPrintedReply(failedReply, false, false);
 
-    expect(JSON.parse(replyText)).toEqual(failedReply);
-    expect(replyText).not.toContain("\n");
+    expect(JSON.parse(printedReply)).toEqual(failedReply);
+    expect(printedReply).not.toContain("\n");
   });
 });
 
-describe("createHelpText", () => {
+describe("createHelpPage", () => {
   test("lists every command on the root help", () => {
-    const helpText = createHelpText(null);
+    const helpPage = createHelpPage(null);
 
-    expect(helpText).toContain("Usage: everyscreen <command> [flags]");
-    expect(helpText).toContain("devices remove");
-    expect(helpText).toContain("skill install");
+    expect(helpPage).toContain("Usage: everyscreen <command> [flags]");
+    expect(helpPage).toContain("devices remove");
+    expect(helpPage).toContain("skill install");
   });
 
   test("shows the usage and flags of one command", () => {
-    const helpText = createHelpText("tap");
+    const helpPage = createHelpPage("tap");
 
-    expect(helpText).toContain(
+    expect(helpPage).toContain(
       "Usage: everyscreen tap --role <role> --name <name> [--device <id>]",
     );
-    expect(helpText).toContain("--json");
+    expect(helpPage).toContain("--json");
+  });
+
+  test("starts every flag description in the same column", () => {
+    const helpPage = createHelpPage("start");
+
+    expect(helpPage).toContain(
+      "  --port <number>  Port for the hub. Default: 4100",
+    );
+    expect(helpPage).toContain(
+      "  --foreground     Keep the hub in this terminal instead of the background",
+    );
+    expect(helpPage).toContain("  --json           Print one JSON object");
+    expect(helpPage).toContain("  --help           Show this help");
   });
 });
 
@@ -144,25 +190,25 @@ describe("pickCommandName", () => {
 
 describe("planCli", () => {
   test("shows the root help when nothing is typed", () => {
-    const cliPlan = planRequest([], {});
+    const cliPlan = planCli([], {}, true);
 
     expect(cliPlan).toEqual({
       kind: "show-help",
-      helpText: createHelpText(null),
+      helpPage: createHelpPage(null),
     });
   });
 
   test("shows the root help for an unknown command with --help", () => {
-    const cliPlan = planRequest(["nope"], { help: true });
+    const cliPlan = planCli(["nope"], { help: true }, true);
 
     expect(cliPlan).toEqual({
       kind: "show-help",
-      helpText: createHelpText(null),
+      helpPage: createHelpPage(null),
     });
   });
 
   test("rejects an unknown command", () => {
-    const cliPlan = planRequest(["nope"], {});
+    const cliPlan = planCli(["nope"], {}, true);
 
     expect(cliPlan).toEqual({
       kind: "bad-usage",
@@ -171,16 +217,16 @@ describe("planCli", () => {
   });
 
   test("shows the help of one command", () => {
-    const cliPlan = planRequest(["tap"], { help: true });
+    const cliPlan = planCli(["tap"], { help: true }, true);
 
     expect(cliPlan).toEqual({
       kind: "show-help",
-      helpText: createHelpText("tap"),
+      helpPage: createHelpPage("tap"),
     });
   });
 
   test("plans open on every device", () => {
-    const cliPlan = planRequest(["open"], { url: "http://localhost:5173" });
+    const cliPlan = planCli(["open"], { url: "http://localhost:5173" }, true);
 
     expect(cliPlan).toEqual({
       kind: "run",
@@ -196,11 +242,15 @@ describe("planCli", () => {
   });
 
   test("plans tap on one device", () => {
-    const cliPlan = planRequest(["tap"], {
-      role: "button",
-      name: "Add to cart",
-      device: "iphone-se",
-    });
+    const cliPlan = planCli(
+      ["tap"],
+      {
+        role: "button",
+        name: "Add to cart",
+        device: "iphone-se",
+      },
+      true,
+    );
 
     expect(cliPlan).toEqual({
       kind: "run",
@@ -216,33 +266,82 @@ describe("planCli", () => {
     });
   });
 
-  test("plans fill, scroll, check, shot and expect as hub commands", () => {
-    const filledPlan = planRequest(["fill"], {
-      role: "textbox",
-      name: "Coupon",
-      with: "SPRING",
-    });
-    const scrolledPlan = planRequest(["scroll"], { to: "bottom" });
-    const checkedPlan = planRequest(["check"], {});
-    const shotPlan = planRequest(["shot"], {});
-    const expectedPlan = planRequest(["expect"], { text: "Total $66" });
-
-    const commandNames = [
-      filledPlan,
-      scrolledPlan,
-      checkedPlan,
-      shotPlan,
-      expectedPlan,
-    ].map((cliPlan) =>
-      cliPlan.kind === "run" && cliPlan.cliRequest.kind === "send-command"
-        ? cliPlan.cliRequest.hubCommand.commandName
-        : null,
+  test("plans fill as a hub command", () => {
+    const cliPlan = planCli(
+      ["fill"],
+      { role: "textbox", name: "Coupon", with: "SPRING" },
+      true,
     );
-    expect(commandNames).toEqual(["fill", "scroll", "check", "shot", "expect"]);
+
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: {
+        kind: "send-command",
+        hubCommand: {
+          commandName: "fill",
+          role: "textbox",
+          name: "Coupon",
+          with: "SPRING",
+          deviceIds: null,
+        },
+      },
+    });
+  });
+
+  test("plans scroll as a hub command", () => {
+    const cliPlan = planCli(["scroll"], { to: "bottom" }, true);
+
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: {
+        kind: "send-command",
+        hubCommand: { commandName: "scroll", to: "bottom", deviceIds: null },
+      },
+    });
+  });
+
+  test("plans check as a hub command", () => {
+    const cliPlan = planCli(["check"], {}, true);
+
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: {
+        kind: "send-command",
+        hubCommand: { commandName: "check", deviceIds: null },
+      },
+    });
+  });
+
+  test("plans shot as a hub command", () => {
+    const cliPlan = planCli(["shot"], {}, true);
+
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: {
+        kind: "send-command",
+        hubCommand: { commandName: "shot", deviceIds: null },
+      },
+    });
+  });
+
+  test("plans expect as a hub command", () => {
+    const cliPlan = planCli(["expect"], { text: "Total $66" }, true);
+
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: {
+        kind: "send-command",
+        hubCommand: {
+          commandName: "expect",
+          text: "Total $66",
+          deviceIds: null,
+        },
+      },
+    });
   });
 
   test("rejects tap without a role and names the flag", () => {
-    const cliPlan = planRequest(["tap"], { name: "Add" });
+    const cliPlan = planCli(["tap"], { name: "Add" }, true);
 
     expect(cliPlan.kind).toBe("bad-usage");
     expect(cliPlan).toMatchObject({
@@ -251,7 +350,7 @@ describe("planCli", () => {
   });
 
   test("rejects a hub command whose flags are all missing", () => {
-    const cliPlan = planRequest(["open"], {});
+    const cliPlan = planCli(["open"], {}, true);
 
     expect(cliPlan).toMatchObject({
       kind: "bad-usage",
@@ -259,17 +358,17 @@ describe("planCli", () => {
     });
   });
 
-  test("plans start with the default port in the background", () => {
-    const cliPlan = planRequest(["start"], {});
+  test("plans start with no port in the background", () => {
+    const cliPlan = planCli(["start"], {}, true);
 
     expect(cliPlan).toEqual({
       kind: "run",
-      cliRequest: { kind: "start", port: 4100, isForeground: false },
+      cliRequest: { kind: "start", port: null, isForeground: false },
     });
   });
 
   test("plans start on port 0 in the foreground", () => {
-    const cliPlan = planRequest(["start"], { port: "0", foreground: true });
+    const cliPlan = planCli(["start"], { port: "0", foreground: true }, true);
 
     expect(cliPlan).toEqual({
       kind: "run",
@@ -278,7 +377,7 @@ describe("planCli", () => {
   });
 
   test("rejects a port that is not a number", () => {
-    const cliPlan = planRequest(["start"], { port: "abc" });
+    const cliPlan = planCli(["start"], { port: "abc" }, true);
 
     expect(cliPlan).toMatchObject({
       kind: "bad-usage",
@@ -287,9 +386,9 @@ describe("planCli", () => {
   });
 
   test("plans stop, status and devices list", () => {
-    const stopPlan = planRequest(["stop"], {});
-    const statusPlan = planRequest(["status"], {});
-    const listPlan = planRequest(["devices", "list"], {});
+    const stopPlan = planCli(["stop"], {}, true);
+    const statusPlan = planCli(["status"], {}, true);
+    const listPlan = planCli(["devices", "list"], {}, true);
 
     expect(stopPlan).toEqual({ kind: "run", cliRequest: { kind: "stop" } });
     expect(statusPlan).toEqual({ kind: "run", cliRequest: { kind: "status" } });
@@ -300,12 +399,16 @@ describe("planCli", () => {
   });
 
   test("plans devices add with the schema defaults", () => {
-    const cliPlan = planRequest(["devices", "add"], {
-      name: "Galaxy Fold",
-      width: "280",
-      height: "653",
-      touch: true,
-    });
+    const cliPlan = planCli(
+      ["devices", "add"],
+      {
+        name: "Galaxy Fold",
+        width: "280",
+        height: "653",
+        touch: true,
+      },
+      true,
+    );
 
     expect(cliPlan).toMatchObject({
       kind: "run",
@@ -323,12 +426,16 @@ describe("planCli", () => {
   });
 
   test("plans devices add with a pixel ratio", () => {
-    const cliPlan = planRequest(["devices", "add"], {
-      name: "Retina",
-      width: "800",
-      height: "600",
-      "pixel-ratio": "2",
-    });
+    const cliPlan = planCli(
+      ["devices", "add"],
+      {
+        name: "Retina",
+        width: "800",
+        height: "600",
+        "pixel-ratio": "2",
+      },
+      true,
+    );
 
     expect(cliPlan).toMatchObject({
       cliRequest: { customDevice: { pixelRatio: 2, hasTouch: false } },
@@ -336,7 +443,7 @@ describe("planCli", () => {
   });
 
   test("rejects devices add without a size", () => {
-    const cliPlan = planRequest(["devices", "add"], { name: "Tiny" });
+    const cliPlan = planCli(["devices", "add"], { name: "Tiny" }, true);
 
     expect(cliPlan).toMatchObject({
       kind: "bad-usage",
@@ -345,16 +452,40 @@ describe("planCli", () => {
   });
 
   test("plans devices remove", () => {
-    const cliPlan = planRequest(["devices", "remove"], { device: "tiny" });
+    const cliPlan = planCli(["devices", "remove"], { device: "tiny" }, true);
 
     expect(cliPlan).toEqual({
       kind: "run",
-      cliRequest: { kind: "remove-device", deviceId: "tiny" },
+      cliRequest: {
+        kind: "remove-device",
+        deviceId: "tiny",
+        isConfirmed: true,
+      },
+    });
+  });
+
+  test("does not confirm devices remove without a terminal or --yes", () => {
+    const cliPlan = planCli(["devices", "remove"], { device: "tiny" }, false);
+
+    expect(cliPlan).toMatchObject({
+      cliRequest: { kind: "remove-device", isConfirmed: false },
+    });
+  });
+
+  test("confirms devices remove without a terminal when --yes is passed", () => {
+    const cliPlan = planCli(
+      ["devices", "remove"],
+      { device: "tiny", yes: true },
+      false,
+    );
+
+    expect(cliPlan).toMatchObject({
+      cliRequest: { kind: "remove-device", isConfirmed: true },
     });
   });
 
   test("rejects devices remove without a device", () => {
-    const cliPlan = planRequest(["devices", "remove"], {});
+    const cliPlan = planCli(["devices", "remove"], {}, true);
 
     expect(cliPlan).toMatchObject({
       kind: "bad-usage",
@@ -363,7 +494,7 @@ describe("planCli", () => {
   });
 
   test("plans run with the default flows glob and one flow at a time", () => {
-    const cliPlan = planRequest(["run"], {});
+    const cliPlan = planCli(["run"], {}, true);
 
     expect(cliPlan).toEqual({
       kind: "run",
@@ -372,10 +503,14 @@ describe("planCli", () => {
   });
 
   test("plans run with a glob and parallel flows", () => {
-    const cliPlan = planRequest(["run"], {
-      flows: "e2e/*.yaml",
-      parallel: "3",
-    });
+    const cliPlan = planCli(
+      ["run"],
+      {
+        flows: "e2e/*.yaml",
+        parallel: "3",
+      },
+      true,
+    );
 
     expect(cliPlan).toEqual({
       kind: "run",
@@ -384,7 +519,7 @@ describe("planCli", () => {
   });
 
   test("rejects run with zero parallel flows", () => {
-    const cliPlan = planRequest(["run"], { parallel: "0" });
+    const cliPlan = planCli(["run"], { parallel: "0" }, true);
 
     expect(cliPlan).toMatchObject({
       kind: "bad-usage",
@@ -393,16 +528,20 @@ describe("planCli", () => {
   });
 
   test("plans skill install for claude by default", () => {
-    const cliPlan = planRequest(["skill", "install"], {});
+    const cliPlan = planCli(["skill", "install"], {}, true);
 
     expect(cliPlan).toEqual({
       kind: "run",
-      cliRequest: { kind: "install-skill", agent: "claude" },
+      cliRequest: {
+        kind: "install-skill",
+        agent: "claude",
+        isConfirmed: true,
+      },
     });
   });
 
   test("rejects an agent that is not supported", () => {
-    const cliPlan = planRequest(["skill", "install"], { agent: "vim" });
+    const cliPlan = planCli(["skill", "install"], { agent: "vim" }, true);
 
     expect(cliPlan).toMatchObject({
       kind: "bad-usage",

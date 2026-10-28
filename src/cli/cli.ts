@@ -14,29 +14,40 @@ const runPlan = async (
   cliPlan: CliPlan,
   isJsonWanted: boolean,
 ): Promise<number> => {
-  if (cliPlan.kind === "show-help") {
-    process.stdout.write(`${cliPlan.helpText}\n`);
-    return EXIT_CODES.ok;
+  switch (cliPlan.kind) {
+    case "show-help":
+      writeReply(createReply("ok", cliPlan.helpPage), isJsonWanted);
+      return EXIT_CODES.ok;
+    case "bad-usage":
+      writeReply(createReply("failed", cliPlan.message), isJsonWanted);
+      return EXIT_CODES.badUsage;
+    case "run": {
+      const commandReply = await runCliRequest(
+        cliPlan.cliRequest,
+        process.cwd(),
+      );
+      writeReply(commandReply, isJsonWanted);
+      return EXIT_CODES[commandReply.status];
+    }
   }
-  if (cliPlan.kind === "bad-usage") {
-    writeReply(createReply("failed", cliPlan.message), isJsonWanted);
-    return EXIT_CODES.badUsage;
-  }
-  const commandReply = await runCliRequest(cliPlan.cliRequest, process.cwd());
-  writeReply(commandReply, isJsonWanted);
-  return EXIT_CODES[commandReply.status];
 };
 
 const runCli = async (): Promise<void> => {
   const commandLineWords = process.argv.slice(2);
   const isJsonWanted = commandLineWords.includes("--json");
   const commandLine = readCommandLine(commandLineWords);
-  if (commandLine.kind === "unreadable") {
+  const isCommandLineUnreadable = commandLine.kind === "unreadable";
+  if (isCommandLineUnreadable) {
     writeReply(createReply("failed", commandLine.message), isJsonWanted);
     process.exitCode = EXIT_CODES.badUsage;
     return;
   }
-  const cliPlan = planCli(commandLine.commandWords, commandLine.flags);
+  const isTerminal = process.stdout.isTTY === true;
+  const cliPlan = planCli(
+    commandLine.commandWords,
+    commandLine.flags,
+    isTerminal,
+  );
   try {
     process.exitCode = await runPlan(cliPlan, isJsonWanted);
   } catch (error) {

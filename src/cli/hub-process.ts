@@ -1,21 +1,29 @@
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { mkdir, open, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import {
   createHubDownReply,
+  createPortConflictReply,
   createReadyLine,
   createReply,
   createRunningLine,
+  isPortConflict,
 } from "@/cli/cli-logic";
-import { createHubUrl, readHubFile } from "@/cli/hub-client";
+import {
+  countDevices,
+  createHubUrl,
+  isHubAnswering,
+  readHubFile,
+} from "@/cli/hub-client";
 import type { CommandReply } from "@/commands/commands-logic";
-import { HUB_FILE_PATH, STORE_FOLDER } from "@/environment";
+import { HUB_FILE_PATH, HUB_PORT, STORE_FOLDER } from "@/environment";
 import type { HubFile } from "@/hub/hub-file";
 import { startHub } from "@/hub/hub-server";
 
-const HUB_LOG_FILE = "hub.log";
+const HUB_LOG_PATH = `${STORE_FOLDER}/hub.log`;
 const START_TIMEOUT_MS = 180_000;
 const STOP_TIMEOUT_MS = 30_000;
 const POLL_INTERVAL_MS = 200;
@@ -26,7 +34,7 @@ const DASHBOARD_FOLDER = fileURLToPath(
   new URL(isBuiltCli ? "./dashboard" : "../../dist/dashboard", import.meta.url),
 );
 
-const isProcessAlive = (processId: number): boolean => {
+export const isProcessAlive = (processId: number): boolean => {
   try {
     process.kill(processId, 0);
     return true;
@@ -43,7 +51,8 @@ const waitForHubFile = async (
   hubProcessId: number,
 ): Promise<HubFile | null> => {
   const giveUpAt = Date.now() + START_TIMEOUT_MS;
-  while (Date.now() < giveUpAt) {
+  const isBeforeDeadline = () => Date.now() < giveUpAt;
+  while (isBeforeDeadline()) {
     const hubFile = await readHubFile(rootFolder);
     const isHubReady = hubFile !== null && hubFile.pid === hubProcessId;
     if (isHubReady) return hubFile;
@@ -59,7 +68,7 @@ const spawnHubProcess = async (
   port: number,
 ): Promise<number> => {
   await mkdir(join(rootFolder, STORE_FOLDER), { recursive: true });
-  const hubLog = await open(join(rootFolder, STORE_FOLDER, HUB_LOG_FILE), "a");
+  const hubLog = await open(join(rootFolder, HUB_LOG_PATH), "a");
   const [, cliPath] = process.argv;
   const hubProcess = spawn(
     process.execPath,
@@ -77,8 +86,13 @@ const spawnHubProcess = async (
       stdio: ["ignore", hubLog.fd, hubLog.fd],
     },
   );
+  try {
+    // once() rejects when the process emits "error" (ENOENT, EAGAIN) before it spawns.
+    await once(hubProcess, "spawn");
+  } finally {
+    await hubLog.close();
+  }
   hubProcess.unref();
-  await hubLog.close();
   const hubProcessId = hubProcess.pid;
   const hasSpawnFailed = hubProcessId === undefined;
   if (hasSpawnFailed) throw new Error("The hub process did not start");
@@ -87,51 +101,55 @@ const spawnHubProcess = async (
 
 export const startHubInBackground = async (
   rootFolder: string,
-  port: number,
+  requestedPort: number | null,
 ): Promise<CommandReply> => {
   const oldHubFile = await readHubFile(rootFolder);
   const hasOldHubFile = oldHubFile !== null;
-  const isOldHubRunning = hasOldHubFile && isProcessAlive(oldHubFile.pid);
+  const isOldHubRunning = hasOldHubFile && (await isHubAnswering(oldHubFile));
   if (isOldHubRunning) {
-    const deviceCount = Object.keys(oldHubFile.devices).length;
-    return createReply(
-      "ok",
-      createRunningLine(createHubUrl(oldHubFile), deviceCount),
-    );
+    const oldHubUrl = createHubUrl(oldHubFile);
+    const hasPortConflict = isPortConflict(requestedPort, oldHubFile.port);
+    if (hasPortConflict) return createPortConflictReply(oldHubUrl);
+    const oldDeviceCount = countDevices(oldHubFile);
+    const runningLine = createRunningLine(oldHubUrl, oldDeviceCount);
+    return createReply("ok", runningLine);
   }
   await rm(join(rootFolder, HUB_FILE_PATH), { force: true });
 
-  const hubProcessId = await spawnHubProcess(rootFolder, port);
+  const hubPort = requestedPort ?? HUB_PORT;
+  const hubProcessId = await spawnHubProcess(rootFolder, hubPort);
   const hubFile = await waitForHubFile(rootFolder, hubProcessId);
   const hasHubStarted = hubFile !== null;
   if (!hasHubStarted) {
-    return createReply(
-      "failed",
-      `hub did not start · see ${STORE_FOLDER}/${HUB_LOG_FILE}`,
-    );
+    return createReply("failed", `hub did not start · see ${HUB_LOG_PATH}`);
   }
-  const deviceCount = Object.keys(hubFile.devices).length;
-  return createReply("ok", createReadyLine(createHubUrl(hubFile), deviceCount));
+  const hubUrl = createHubUrl(hubFile);
+  const deviceCount = countDevices(hubFile);
+  return createReply("ok", createReadyLine(hubUrl, deviceCount));
 };
 
 export const startHubInForeground = async (
   rootFolder: string,
-  port: number,
+  requestedPort: number | null,
 ): Promise<CommandReply> => {
   const runningHub = await startHub({
     rootFolder,
-    port,
+    port: requestedPort ?? HUB_PORT,
     dashboardFolder: DASHBOARD_FOLDER,
   });
   const stopHubOnSignal = async (): Promise<void> => {
-    await runningHub.stop();
+    try {
+      await runningHub.stop();
+    } catch (error) {
+      console.error({ error });
+    }
   };
   process.once("SIGTERM", stopHubOnSignal);
   process.once("SIGINT", stopHubOnSignal);
   const hubFile = await readHubFile(rootFolder);
   const isHubFileMissing = hubFile === null;
   if (isHubFileMissing) throw new Error("The hub did not write its hub file");
-  const deviceCount = Object.keys(hubFile.devices).length;
+  const deviceCount = countDevices(hubFile);
   return createReply("ok", createReadyLine(runningHub.url, deviceCount));
 };
 
@@ -139,7 +157,8 @@ export const stopHub = async (rootFolder: string): Promise<CommandReply> => {
   const hubFile = await readHubFile(rootFolder);
   const isHubFileMissing = hubFile === null;
   if (isHubFileMissing) return createHubDownReply();
-  const isHubRunning = isProcessAlive(hubFile.pid);
+  // After a crash the process id can belong to another program, so ask the hub first.
+  const isHubRunning = await isHubAnswering(hubFile);
   if (!isHubRunning) {
     await rm(join(rootFolder, HUB_FILE_PATH), { force: true });
     return createHubDownReply();
@@ -147,7 +166,9 @@ export const stopHub = async (rootFolder: string): Promise<CommandReply> => {
 
   process.kill(hubFile.pid, "SIGTERM");
   const giveUpAt = Date.now() + STOP_TIMEOUT_MS;
-  while (isProcessAlive(hubFile.pid) && Date.now() < giveUpAt) {
+  const isWaitingForExit = () =>
+    isProcessAlive(hubFile.pid) && Date.now() < giveUpAt;
+  while (isWaitingForExit()) {
     await wait(POLL_INTERVAL_MS);
   }
   const isHubStillRunning = isProcessAlive(hubFile.pid);

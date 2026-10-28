@@ -30,11 +30,14 @@ const readSkillMarkdown = async (): Promise<string> => {
   throw new Error("SKILL.md is missing from the Everyscreen package");
 };
 
+export const pickSkillFile = (agent: SkillAgent, rootFolder: string): string =>
+  join(rootFolder, SKILL_FOLDERS[agent], "SKILL.md");
+
 export const installSkill = async (
   agent: SkillAgent,
   rootFolder: string,
 ): Promise<string> => {
-  const installedFile = join(rootFolder, SKILL_FOLDERS[agent], "SKILL.md");
+  const installedFile = pickSkillFile(agent, rootFolder);
   const skillMarkdown = await readSkillMarkdown();
 
   await writeStoredFile(installedFile, skillMarkdown);

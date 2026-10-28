@@ -2,13 +2,16 @@ import { execFile } from "node:child_process";
 import { once } from "node:events";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "@playwright/test";
+import { promisify } from "node:util";
+import { test as base, expect } from "@playwright/test";
+import { HUB_DOWN_LINE } from "@/cli/cli-logic";
+import { isProcessAlive } from "@/cli/hub-process";
 import type { CommandReply } from "@/commands/commands-logic";
 import { HUB_FILE_PATH } from "@/environment";
-import { hubFileSchema } from "@/hub/hub-file";
+import { type HubFile, hubFileSchema } from "@/hub/hub-file";
 
 const CLI_PATH = join(import.meta.dirname, "../src/cli/cli.ts");
 const TSCONFIG_PATH = join(import.meta.dirname, "../tsconfig.json");
@@ -35,160 +38,230 @@ steps:
 interface CliRun {
   exitCode: number;
   stdout: string;
-  commandReply: CommandReply | null;
+  commandReply: CommandReply;
 }
 
-let workFolder = "";
-let shopServer: Server;
-let shopUrl = "";
-let formUrl = "";
+interface ExecFailure {
+  code: number;
+  stdout: string;
+}
 
-const runCli = (cliArguments: string[]): Promise<CliRun> =>
-  new Promise((finish) => {
+interface CliWorld {
+  workFolder: string;
+  shopUrl: string;
+  runCli: (cliArguments: string[]) => Promise<CliRun>;
+  readHubFile: () => Promise<HubFile>;
+}
+
+const execFileAsync = promisify(execFile);
+
+const isExecFailure = (error: unknown): error is ExecFailure =>
+  error instanceof Error &&
+  "code" in error &&
+  typeof error.code === "number" &&
+  "stdout" in error &&
+  typeof error.stdout === "string";
+
+const createCliRun = (exitCode: number, stdout: string): CliRun => {
+  const commandReply: CommandReply = JSON.parse(stdout);
+  return { exitCode, stdout, commandReply };
+};
+
+const createRunCli =
+  (workFolder: string) =>
+  async (cliArguments: string[]): Promise<CliRun> => {
     const nodeArguments = [
       "--import",
       TSX_LOADER_URL,
       CLI_PATH,
       ...cliArguments,
     ];
-    execFile(
-      process.execPath,
-      nodeArguments,
-      {
+    try {
+      const { stdout } = await execFileAsync(process.execPath, nodeArguments, {
         cwd: workFolder,
         env: { ...process.env, TSX_TSCONFIG_PATH: TSCONFIG_PATH },
-      },
-      (error, stdout) => {
-        const exitCode = typeof error?.code === "number" ? error.code : 0;
-        const isJsonLine = stdout.trimStart().startsWith("{");
-        const commandReply: CommandReply | null = isJsonLine
-          ? JSON.parse(stdout)
-          : null;
-        finish({ exitCode, stdout, commandReply });
-      },
+      });
+      return createCliRun(0, stdout);
+    } catch (error) {
+      // A non-zero exit rejects with the exit code and what the CLI printed.
+      if (!isExecFailure(error)) throw error;
+      return createCliRun(error.code, error.stdout);
+    }
+  };
+
+const createReadHubFile =
+  (workFolder: string) => async (): Promise<HubFile> => {
+    const serializedHubFile = await readFile(
+      join(workFolder, HUB_FILE_PATH),
+      "utf8",
     );
-  });
+    return hubFileSchema.parse(JSON.parse(serializedHubFile));
+  };
 
-const readHubFile = async () => {
-  const serializedHubFile = await readFile(
-    join(workFolder, HUB_FILE_PATH),
-    "utf8",
-  );
-  return hubFileSchema.parse(JSON.parse(serializedHubFile));
-};
+const test = base.extend<object, { cliWorld: CliWorld }>({
+  cliWorld: [
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright reads the fixture dependencies from this pattern.
+    async ({}, use) => {
+      const workFolder = await mkdtemp(join(tmpdir(), "everyscreen-cli-"));
+      const shopHtml = await readFile(HOLLIS_GOODS_PATH);
+      const shopServer = createServer((shopRequest, shopReply) => {
+        const isFormRequest = shopRequest.url === FORM_PATH;
+        shopReply.setHeader("Content-Type", "text/html");
+        shopReply.end(isFormRequest ? FORM_HTML : shopHtml);
+      });
+      shopServer.listen(0, "127.0.0.1");
+      await once(shopServer, "listening");
+      const shopAddress = shopServer.address();
+      const isShopAddressMissing =
+        shopAddress === null || typeof shopAddress === "string";
+      if (isShopAddressMissing) {
+        throw new Error("The shop server did not listen");
+      }
+      const shopUrl = `http://127.0.0.1:${shopAddress.port}/`;
+      const formUrl = `http://127.0.0.1:${shopAddress.port}${FORM_PATH}`;
+      await mkdir(join(workFolder, "flows"));
+      await writeFile(
+        join(workFolder, "flows/form-pixel.yaml"),
+        FLOW_PIXEL.replace("FORM_URL", formUrl),
+      );
+      await writeFile(
+        join(workFolder, "flows/form-iphone.yaml"),
+        FLOW_IPHONE.replace("FORM_URL", formUrl),
+      );
+      const readHubFile = createReadHubFile(workFolder);
 
-const isProcessAlive = (processId: number): boolean => {
-  try {
-    process.kill(processId, 0);
-    return true;
-  } catch {
-    return false;
-  }
-};
+      await use({
+        workFolder,
+        shopUrl,
+        runCli: createRunCli(workFolder),
+        readHubFile,
+      });
+
+      const hasHubFile = existsSync(join(workFolder, HUB_FILE_PATH));
+      if (hasHubFile) {
+        const hubFile = await readHubFile();
+        process.kill(hubFile.pid, "SIGTERM");
+      }
+      shopServer.close();
+      await rm(workFolder, { recursive: true, force: true });
+    },
+    { scope: "worker" },
+  ],
+});
 
 test.describe("the everyscreen command line", () => {
   test.describe.configure({ mode: "serial" });
 
-  test.beforeAll(async () => {
-    workFolder = await mkdtemp(join(tmpdir(), "everyscreen-cli-"));
-    const shopHtml = await readFile(HOLLIS_GOODS_PATH);
-    shopServer = createServer((shopRequest, shopReply) => {
-      const isFormRequest = shopRequest.url === FORM_PATH;
-      shopReply.setHeader("Content-Type", "text/html");
-      shopReply.end(isFormRequest ? FORM_HTML : shopHtml);
-    });
-    shopServer.listen(0, "127.0.0.1");
-    await once(shopServer, "listening");
-    const shopAddress = shopServer.address();
-    const isShopAddressMissing =
-      shopAddress === null || typeof shopAddress === "string";
-    if (isShopAddressMissing) throw new Error("The shop server did not listen");
-    shopUrl = `http://127.0.0.1:${shopAddress.port}/`;
-    formUrl = `http://127.0.0.1:${shopAddress.port}${FORM_PATH}`;
+  test("prints the help of the root command as one JSON object and exits 0", async ({
+    cliWorld,
+  }) => {
+    const helpRun = await cliWorld.runCli(["--help"]);
+    const jsonHelpRun = await cliWorld.runCli(["--help", "--json"]);
 
-    await mkdir(join(workFolder, "flows"));
-    await writeFile(
-      join(workFolder, "flows/form-pixel.yaml"),
-      FLOW_PIXEL.replace("FORM_URL", formUrl),
+    expect(helpRun.exitCode).toBe(0);
+    expect(helpRun.commandReply.status).toBe("ok");
+    expect(helpRun.commandReply.line).toContain(
+      "Usage: everyscreen <command> [flags]",
     );
-    await writeFile(
-      join(workFolder, "flows/form-iphone.yaml"),
-      FLOW_IPHONE.replace("FORM_URL", formUrl),
+    expect(helpRun.commandReply.line).toContain("devices remove");
+    expect(jsonHelpRun.commandReply).toEqual(helpRun.commandReply);
+  });
+
+  test("prints the help of one command and exits 0", async ({ cliWorld }) => {
+    const helpRun = await cliWorld.runCli(["tap", "--help"]);
+
+    expect(helpRun.exitCode).toBe(0);
+    expect(helpRun.commandReply.line).toContain(
+      "Usage: everyscreen tap --role",
     );
   });
 
-  test.afterAll(async () => {
-    const hasHubFile = existsSync(join(workFolder, HUB_FILE_PATH));
-    if (hasHubFile) {
-      const hubFile = await readHubFile();
-      process.kill(hubFile.pid, "SIGTERM");
-    }
-    shopServer?.close();
-    await rm(workFolder, { recursive: true, force: true });
-  });
-
-  test("prints the help of the root command and exits 0", async () => {
-    const helpRun = await runCli(["--help"]);
-
-    expect(helpRun.exitCode).toBe(0);
-    expect(helpRun.stdout).toContain("Usage: everyscreen <command> [flags]");
-    expect(helpRun.stdout).toContain("devices remove");
-  });
-
-  test("prints the help of one command and exits 0", async () => {
-    const helpRun = await runCli(["tap", "--help"]);
-
-    expect(helpRun.exitCode).toBe(0);
-    expect(helpRun.stdout).toContain("Usage: everyscreen tap --role");
-  });
-
-  test("exits 2 for an unknown command, an unknown flag and a missing flag", async () => {
-    const unknownCommandRun = await runCli(["nope"]);
-    const unknownFlagRun = await runCli(["tap", "--nope", "x"]);
-    const missingFlagRun = await runCli(["tap", "--role", "button"]);
+  test("exits 2 for an unknown command, an unknown flag and a missing flag", async ({
+    cliWorld,
+  }) => {
+    const unknownCommandRun = await cliWorld.runCli(["nope"]);
+    const unknownFlagRun = await cliWorld.runCli(["tap", "--nope", "x"]);
+    const missingFlagRun = await cliWorld.runCli(["tap", "--role", "button"]);
 
     expect(unknownCommandRun.exitCode).toBe(2);
     expect(unknownFlagRun.exitCode).toBe(2);
     expect(missingFlagRun.exitCode).toBe(2);
-    expect(missingFlagRun.commandReply?.line).toContain("tap --name");
+    expect(missingFlagRun.commandReply.line).toContain("tap --name");
   });
 
-  test("says the hub is not running before it starts", async () => {
-    const tapRun = await runCli(["tap", "--role", "button", "--name", "Close"]);
-    const stopRun = await runCli(["stop"]);
+  test("says the hub is not running before it starts", async ({ cliWorld }) => {
+    const tapRun = await cliWorld.runCli([
+      "tap",
+      "--role",
+      "button",
+      "--name",
+      "Close",
+    ]);
+    const stopRun = await cliWorld.runCli(["stop"]);
 
     expect(tapRun.exitCode).toBe(1);
-    expect(tapRun.commandReply?.line).toBe(
-      "hub is not running · run npx everyscreen start",
-    );
+    expect(tapRun.commandReply.line).toBe(HUB_DOWN_LINE);
     expect(stopRun.exitCode).toBe(1);
   });
 
-  test("starts the hub on port 0 and answers with one line", async () => {
+  test("starts the hub on port 0 and answers with one line", async ({
+    cliWorld,
+  }) => {
     test.setTimeout(STARTUP_TIMEOUT_MS);
 
-    const startRun = await runCli(["start", "--port", "0"]);
+    const startRun = await cliWorld.runCli(["start", "--port", "0"]);
+    const hubFile = await cliWorld.readHubFile();
+    const isHubAlive = isProcessAlive(hubFile.pid);
 
     expect(startRun.exitCode).toBe(0);
-    const hubFile = await readHubFile();
-    expect(startRun.commandReply?.line).toBe(
+    expect(startRun.commandReply.line).toBe(
       `hub ready at http://127.0.0.1:${hubFile.port} · ${DEVICE_COUNT} devices`,
     );
-    expect(isProcessAlive(hubFile.pid)).toBe(true);
+    expect(isHubAlive).toBe(true);
   });
 
-  test("shows the running hub with status", async () => {
-    const statusRun = await runCli(["status"]);
+  test("shows the running hub with status", async ({ cliWorld }) => {
+    const statusRun = await cliWorld.runCli(["status"]);
 
     expect(statusRun.exitCode).toBe(0);
-    expect(statusRun.commandReply?.line).toMatch(
+    expect(statusRun.commandReply.line).toMatch(
       /^hub running at http:\/\/127\.0\.0\.1:\d+ · 9 devices$/,
     );
   });
 
-  test("opens a url and taps on every device with one JSON object each", async () => {
-    const openRun = await runCli(["open", "--url", shopUrl, "--json"]);
-    const tapRun = await runCli([
+  test("says the hub runs already when start is called again", async ({
+    cliWorld,
+  }) => {
+    const startAgainRun = await cliWorld.runCli(["start"]);
+
+    expect(startAgainRun.exitCode).toBe(0);
+    expect(startAgainRun.commandReply.line).toMatch(/^hub running at /);
+  });
+
+  test("refuses start on another port while the hub runs", async ({
+    cliWorld,
+  }) => {
+    const hubFile = await cliWorld.readHubFile();
+    const otherPort = String(hubFile.port + 1);
+
+    const startOtherRun = await cliWorld.runCli(["start", "--port", otherPort]);
+
+    expect(startOtherRun.exitCode).toBe(1);
+    expect(startOtherRun.commandReply.line).toBe(
+      `hub already running at http://127.0.0.1:${hubFile.port} · stop it first`,
+    );
+  });
+
+  test("opens a url and taps on every device with one JSON object each", async ({
+    cliWorld,
+  }) => {
+    const openRun = await cliWorld.runCli([
+      "open",
+      "--url",
+      cliWorld.shopUrl,
+      "--json",
+    ]);
+    const tapRun = await cliWorld.runCli([
       "tap",
       "--role",
       "button",
@@ -200,16 +273,18 @@ test.describe("the everyscreen command line", () => {
     ]);
 
     expect(openRun.stdout.trimEnd().split("\n")).toHaveLength(1);
-    expect(openRun.commandReply?.line).toMatch(
+    expect(openRun.commandReply.line).toMatch(
       /^9 devices · .*report run-0001$/,
     );
-    expect(openRun.commandReply?.runId).toBe("run-0001");
+    expect(openRun.commandReply.runId).toBe("run-0001");
     expect(tapRun.stdout.trimEnd().split("\n")).toHaveLength(1);
-    expect(tapRun.commandReply?.line).toMatch(/^1 device · .*report run-0001$/);
+    expect(tapRun.commandReply.line).toMatch(/^1 device · .*report run-0001$/);
   });
 
-  test("exits 1 and lists the failure when a step fails on a device", async () => {
-    const expectRun = await runCli([
+  test("exits 1 and lists the failure when a step fails on a device", async ({
+    cliWorld,
+  }) => {
+    const expectRun = await cliWorld.runCli([
       "expect",
       "--text",
       "This text is nowhere on the page",
@@ -218,12 +293,12 @@ test.describe("the everyscreen command line", () => {
     ]);
 
     expect(expectRun.exitCode).toBe(1);
-    expect(expectRun.commandReply?.status).toBe("failed");
-    expect(expectRun.commandReply?.failures[0].deviceId).toBe("pixel-8");
+    expect(expectRun.commandReply.status).toBe("failed");
+    expect(expectRun.commandReply.failures[0].deviceId).toBe("pixel-8");
   });
 
-  test("runs two flows in parallel and counts both", async () => {
-    const flowsRun = await runCli([
+  test("runs two flows in parallel and counts both", async ({ cliWorld }) => {
+    const flowsRun = await cliWorld.runCli([
       "run",
       "--flows",
       "flows/*.yaml",
@@ -231,14 +306,34 @@ test.describe("the everyscreen command line", () => {
       "2",
     ]);
 
-    expect(flowsRun.commandReply?.line).toMatch(
+    expect(flowsRun.commandReply.line).toMatch(
       /^2 flows · 2 ok · report run-\d+$/,
     );
     expect(flowsRun.exitCode).toBe(0);
   });
 
-  test("adds, lists and removes a custom device", async () => {
-    const addRun = await runCli([
+  test("fails one flow that cannot be read and still counts the others", async ({
+    cliWorld,
+  }) => {
+    const brokenFlowPath = join(cliWorld.workFolder, "flows/broken.yaml");
+    await writeFile(brokenFlowPath, "steps: 1");
+
+    const flowsRun = await cliWorld.runCli([
+      "run",
+      "--flows",
+      "flows/*.yaml",
+      "--parallel",
+      "3",
+    ]);
+    await rm(brokenFlowPath);
+
+    expect(flowsRun.exitCode).toBe(1);
+    expect(flowsRun.commandReply.line).toContain("3 flows · 2 ok · 1 failed");
+    expect(flowsRun.commandReply.line).toContain("flows/broken.yaml");
+  });
+
+  test("adds, lists and removes a custom device", async ({ cliWorld }) => {
+    const addRun = await cliWorld.runCli([
       "devices",
       "add",
       "--name",
@@ -248,52 +343,95 @@ test.describe("the everyscreen command line", () => {
       "--height",
       "600",
     ]);
-    const listRun = await runCli(["devices", "list"]);
-    const removeRun = await runCli([
+    const listRun = await cliWorld.runCli(["devices", "list"]);
+    const removeWithoutYesRun = await cliWorld.runCli([
       "devices",
       "remove",
       "--device",
       "tiny-phone",
     ]);
-    const removeAgainRun = await runCli([
+    const removeRun = await cliWorld.runCli([
       "devices",
       "remove",
       "--device",
       "tiny-phone",
+      "--yes",
+    ]);
+    const removeAgainRun = await cliWorld.runCli([
+      "devices",
+      "remove",
+      "--device",
+      "tiny-phone",
+      "--yes",
     ]);
 
-    expect(addRun.commandReply?.line).toContain("device added · tiny-phone");
-    expect(listRun.commandReply?.line).toMatch(/^10 devices · .*tiny-phone$/);
-    expect(removeRun.commandReply?.line).toContain(
+    expect(addRun.commandReply.line).toContain("device added · tiny-phone");
+    expect(listRun.commandReply.line).toMatch(/^10 devices · .*tiny-phone$/);
+    expect(removeWithoutYesRun.exitCode).toBe(1);
+    expect(removeWithoutYesRun.commandReply.line).toContain("--yes");
+    expect(removeRun.commandReply.line).toContain(
       "device removed · tiny-phone",
     );
     expect(removeAgainRun.exitCode).toBe(1);
   });
 
-  test("installs the skill for an agent", async () => {
-    const skillRun = await runCli(["skill", "install", "--agent", "codex"]);
+  test("installs the skill and asks for --yes before it overwrites it", async ({
+    cliWorld,
+  }) => {
+    const skillFile = join(
+      cliWorld.workFolder,
+      ".agents/skills/everyscreen/SKILL.md",
+    );
+
+    const skillRun = await cliWorld.runCli([
+      "skill",
+      "install",
+      "--agent",
+      "codex",
+    ]);
+    const skillMarkdown = await readFile(skillFile, "utf8");
+    const overwriteRun = await cliWorld.runCli([
+      "skill",
+      "install",
+      "--agent",
+      "codex",
+    ]);
+    const confirmedRun = await cliWorld.runCli([
+      "skill",
+      "install",
+      "--agent",
+      "codex",
+      "--yes",
+    ]);
 
     expect(skillRun.exitCode).toBe(0);
-    const skillMarkdown = await readFile(
-      join(workFolder, ".agents/skills/everyscreen/SKILL.md"),
-      "utf8",
-    );
     expect(skillMarkdown).toContain("name: everyscreen");
+    expect(overwriteRun.exitCode).toBe(1);
+    expect(overwriteRun.commandReply.line).toContain("--yes");
+    expect(confirmedRun.exitCode).toBe(0);
   });
 
-  test("stops the hub, removes the hub file and answers hub is not running", async () => {
-    const hubFile = await readHubFile();
+  test("stops the hub, removes the hub file and answers hub is not running", async ({
+    cliWorld,
+  }) => {
+    const hubFile = await cliWorld.readHubFile();
 
-    const stopRun = await runCli(["stop"]);
-    const tapRun = await runCli(["tap", "--role", "button", "--name", "Close"]);
+    const stopRun = await cliWorld.runCli(["stop"]);
+    const tapRun = await cliWorld.runCli([
+      "tap",
+      "--role",
+      "button",
+      "--name",
+      "Close",
+    ]);
+    const isHubAlive = isProcessAlive(hubFile.pid);
+    const hasHubFile = existsSync(join(cliWorld.workFolder, HUB_FILE_PATH));
 
     expect(stopRun.exitCode).toBe(0);
-    expect(stopRun.commandReply?.line).toBe("hub stopped");
-    expect(isProcessAlive(hubFile.pid)).toBe(false);
-    expect(existsSync(join(workFolder, HUB_FILE_PATH))).toBe(false);
+    expect(stopRun.commandReply.line).toBe("hub stopped");
+    expect(isHubAlive).toBe(false);
+    expect(hasHubFile).toBe(false);
     expect(tapRun.exitCode).toBe(1);
-    expect(tapRun.commandReply?.line).toBe(
-      "hub is not running · run npx everyscreen start",
-    );
+    expect(tapRun.commandReply.line).toBe(HUB_DOWN_LINE);
   });
 });

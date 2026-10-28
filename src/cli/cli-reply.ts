@@ -1,4 +1,4 @@
-import { createReplyText } from "@/cli/cli-logic";
+import { createPrintedReply } from "@/cli/cli-logic";
 import type { CommandReply } from "@/commands/commands-logic";
 
 export const writeReply = (
@@ -6,6 +6,10 @@ export const writeReply = (
   isJsonWanted: boolean,
 ): void => {
   const isTerminal = process.stdout.isTTY === true;
-  const replyText = createReplyText(commandReply, isJsonWanted, isTerminal);
-  process.stdout.write(`${replyText}\n`);
+  const printedReply = createPrintedReply(
+    commandReply,
+    isJsonWanted,
+    isTerminal,
+  );
+  process.stdout.write(`${printedReply}\n`);
 };

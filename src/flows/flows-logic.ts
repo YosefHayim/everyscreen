@@ -28,25 +28,19 @@ export interface FlowAnswer {
   status: "ok" | "failed";
   runId: string | null;
   failures: DeviceFailure[];
+  problemLine: string | null;
 }
 
-// A failed step with no device failure (for example a device that is not running) still shows its line.
-const createFlowFailures = (
+export const createFailedFlowAnswer = (
   flowPath: string,
-  failedReply: CommandReply,
-): DeviceFailure[] => {
-  const hasDeviceFailure = failedReply.failures.length > 0;
-  if (hasDeviceFailure) return failedReply.failures;
-  return [
-    {
-      status: "failed",
-      deviceId: flowPath,
-      durationMs: 0,
-      message: failedReply.line,
-      shotPath: null,
-    },
-  ];
-};
+  problemLine: string,
+): FlowAnswer => ({
+  flowPath,
+  status: "failed",
+  runId: null,
+  failures: [],
+  problemLine,
+});
 
 export const createFlowAnswer = (
   flowPath: string,
@@ -55,9 +49,19 @@ export const createFlowAnswer = (
   const runId = stepReplies.at(-1)?.runId ?? null;
   const failedReply = stepReplies.find(({ status }) => status === "failed");
   const isEveryStepOk = failedReply === undefined;
-  if (isEveryStepOk) return { flowPath, status: "ok", runId, failures: [] };
-  const failures = createFlowFailures(flowPath, failedReply);
-  return { flowPath, status: "failed", runId, failures };
+  if (isEveryStepOk) {
+    return { flowPath, status: "ok", runId, failures: [], problemLine: null };
+  }
+  // A failed step with no device failure (for example a device that is not running) still shows its line.
+  const hasDeviceFailure = failedReply.failures.length > 0;
+  const problemLine = hasDeviceFailure ? null : failedReply.line;
+  return {
+    flowPath,
+    status: "failed",
+    runId,
+    failures: failedReply.failures,
+    problemLine,
+  };
 };
 
 export const summarizeFlows = (flowAnswers: FlowAnswer[]): CommandReply => {
@@ -68,7 +72,18 @@ export const summarizeFlows = (flowAnswers: FlowAnswer[]): CommandReply => {
   const runId = flowAnswers.at(-1)?.runId ?? null;
   const isEveryFlowOk = failedCount === 0 && okCount > 0;
   const status = isEveryFlowOk ? "ok" : "failed";
-  const line = createReplyLine({ unit: "flow", okCount, failedCount, runId });
+  const summaryLine = createReplyLine({
+    unit: "flow",
+    okCount,
+    failedCount,
+    runId,
+  });
+  const hasProblemLine = ({ problemLine }: FlowAnswer): boolean =>
+    problemLine !== null;
+  const problemLines = flowAnswers
+    .filter(hasProblemLine)
+    .map(({ flowPath, problemLine }) => `${flowPath}: ${problemLine}`);
+  const line = [summaryLine, ...problemLines].join(" · ");
   const failures = flowAnswers.flatMap((flowAnswer) => flowAnswer.failures);
   return { status, line, runId, failures };
 };
