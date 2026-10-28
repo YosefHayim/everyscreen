@@ -1,8 +1,9 @@
 import type { Page } from "playwright";
-import type {
-  DevicePreset,
-  FrameShape,
-  SafeAreaInsets,
+import {
+  type DevicePreset,
+  type FrameShape,
+  pickDeviceViewport,
+  type SafeAreaInsets,
 } from "@/devices/devices-logic";
 
 const NO_INSETS: SafeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
@@ -20,12 +21,8 @@ export const emulateDevice = async (
   page: Page,
   devicePreset: DevicePreset,
 ): Promise<void> => {
-  const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } =
-    devicePreset.use;
-  const isViewportMissing = viewport === undefined || viewport === null;
-  if (isViewportMissing) {
-    throw new Error(`Device ${devicePreset.id} has no viewport`);
-  }
+  const { deviceScaleFactor, isMobile, hasTouch, userAgent } = devicePreset.use;
+  const viewport = pickDeviceViewport(devicePreset);
 
   const cdpSession = await page.context().newCDPSession(page);
   await cdpSession.send("Emulation.setDeviceMetricsOverride", {

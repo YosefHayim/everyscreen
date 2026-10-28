@@ -11,6 +11,7 @@ import {
 } from "@/commands/commands-logic";
 import type { HubCommand } from "@/commands/commands-schema";
 import type { DevicePage } from "@/devices/device-browsers";
+import { pickDeviceViewport } from "@/devices/devices-logic";
 import { writeStoredFile } from "@/hub/stored-files";
 import { sendStepScreen } from "@/live/screencast";
 
@@ -104,7 +105,7 @@ export const runStepOnDevice = async (
   const startedAt = Date.now();
 
   const actionErrorMessage = await tryCommand(devicePage, hubCommand);
-  const measurements = await measurePage(page);
+  const measurements = await measurePage(page, pickDeviceViewport(device));
   const checkDevice = pickCheckDevice(device);
   const findings = listFindings(measurements, checkDevice);
   const durationMs = Date.now() - startedAt;
