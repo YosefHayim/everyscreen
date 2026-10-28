@@ -1,4 +1,4 @@
-import type { ConnectionStatus } from "@/dashboard/live/live-store";
+import type { ConnectionStatus } from "@/dashboard/device-feed/live-store";
 
 export type SetupStepStatus = "done" | "now" | "later";
 export type SetupStepKey = "startHub" | "openApp" | "runTests";

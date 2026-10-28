@@ -1,9 +1,9 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import { useHasScreenImage } from "@/dashboard/device-feed/use-has-screen-image";
+import { useLiveStatus } from "@/dashboard/device-feed/use-live-status";
 import { SetupStep } from "@/dashboard/grid/setup-step";
 import { pickSetupStepProgress } from "@/dashboard/grid/setup-steps-logic";
-import { useHasScreenImage } from "@/dashboard/live/use-has-screen-image";
-import { useLiveStatus } from "@/dashboard/live/use-live-status";
 
 export const SetupSteps = (): ReactElement => {
   const { t } = useTranslation();

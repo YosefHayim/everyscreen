@@ -12,11 +12,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         dark: "bg-ink text-card shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)]",
+        outline: "border border-line bg-card text-ink",
         accent:
           "bg-pink text-ink font-semibold shadow-[inset_0_0_0_1px_rgb(255_255_255/0.35)]",
       },
       size: {
         large: "h-12 rounded-full px-6 text-[15px]",
+        small: "h-11 rounded-full px-4 text-[13px] md:h-10",
       },
     },
     defaultVariants: { size: "large" },

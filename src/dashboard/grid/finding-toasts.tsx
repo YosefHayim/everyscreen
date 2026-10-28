@@ -1,20 +1,15 @@
 import { type ReactElement, useState } from "react";
 import type { Finding } from "@/checks/checks-logic";
-import { WAITING_DEVICES } from "@/dashboard/grid/waiting-devices";
-import { useFindings } from "@/dashboard/live/use-findings";
+import { useFindings } from "@/dashboard/device-feed/use-findings";
+import { pickDeviceName } from "@/dashboard/devices/device-view-logic";
+import { useDeviceViews } from "@/dashboard/devices/use-device-views";
 import { FindingToast } from "@/dashboard/ui/finding-toast";
 
 const MAX_VISIBLE_TOASTS = 3;
 
-const readDeviceName = (deviceId: string): string => {
-  const device = WAITING_DEVICES.find(
-    (waitingDevice) => waitingDevice.deviceId === deviceId,
-  );
-  return device?.name ?? deviceId;
-};
-
 export const FindingToasts = (): ReactElement => {
   const findings = useFindings();
+  const deviceViews = useDeviceViews().data ?? [];
   const [dismissedFindings, setDismissedFindings] = useState<Finding[]>([]);
   const visibleFindings = findings
     .filter((finding) => !dismissedFindings.includes(finding))
@@ -26,7 +21,7 @@ export const FindingToasts = (): ReactElement => {
         <FindingToast
           key={`${finding.deviceId}-${finding.kind}-${finding.selector}-${finding.message}`}
           finding={finding}
-          deviceName={readDeviceName(finding.deviceId)}
+          deviceName={pickDeviceName(deviceViews, finding.deviceId)}
           onDismiss={() =>
             setDismissedFindings([...dismissedFindings, finding])
           }

@@ -1,10 +1,20 @@
 {
   "shell": {
-    "name": "Everyscreen"
+    "name": "Everyscreen",
+    "nav": {
+      "label": "Main",
+      "grid": "Grid",
+      "runs": "Runs",
+      "devices": "Devices"
+    }
   },
   "grid": {
     "tilesLabel": "Devices in the grid",
-    "copy": { "idle": "Copy", "copied": "Copied", "failed": "Copy failed" },
+    "copy": {
+      "idle": "Copy",
+      "copied": "Copied",
+      "failed": "Copy failed"
+    },
     "empty": {
       "title": "Open your app to fill the grid",
       "hubRunning": "Hub running on {{hubUrl}}",
@@ -22,7 +32,10 @@
         "openApp": "Open your app",
         "runTests": "Run your tests"
       },
-      "stepStates": { "done": "Done", "now": "Now" }
+      "stepStates": {
+        "done": "Done",
+        "now": "Now"
+      }
     }
   },
   "tile": {
@@ -58,5 +71,139 @@
     "loading": "Loading",
     "empty": "Nothing here yet",
     "failed": "Something went wrong"
+  },
+  "checks": {
+    "overflow": "Past the screen edge",
+    "clipped-text": "Clipped text",
+    "safe-area": "Under the notch or home bar",
+    "tap-target": "Small tap target",
+    "console-error": "Console error",
+    "failed-request": "Failed request"
+  },
+  "status": {
+    "ok": "Ok",
+    "warn": "Finding",
+    "failed": "Failed",
+    "none": "Not run"
+  },
+  "focus": {
+    "back": "Grid",
+    "railTitle": "Other devices",
+    "railLabel": "Other devices in the grid",
+    "viewport": "{{width}}×{{height}} @{{pixelRatio}}x",
+    "findingsTitle": "Findings",
+    "noFindings": "No findings on this device",
+    "selector": "Selector",
+    "estimatesTitle": "Estimates",
+    "noEstimates": "No estimate yet",
+    "waiting": "Waiting for the first screen image",
+    "figures": {
+      "fps": "Frame rate",
+      "cpu": "CPU",
+      "memory": "Memory",
+      "layoutShift": "Layout shift"
+    },
+    "est": "est."
+  },
+  "runs": {
+    "title": "Runs",
+    "subtitle": "Flows and test suites on every device in the grid, side by side.",
+    "statusFilters": {
+      "all": "All",
+      "running": "Running",
+      "failed": "Failed",
+      "passed": "Passed"
+    },
+    "originFilters": {
+      "all": "Any source",
+      "cli": "CLI",
+      "flow": "YAML",
+      "playwright": "Playwright"
+    },
+    "origins": {
+      "cli": "CLI",
+      "flow": "YAML",
+      "playwright": "Playwright"
+    },
+    "sourceLabel": "Source",
+    "statusLabel": "Status",
+    "runningNow": "Running now",
+    "finished": "Finished",
+    "noRuns": "No runs match these filters",
+    "noSteps": "No steps yet",
+    "failedOn": "Failed on {{deviceId}}",
+    "findingsCount_one": "{{count}} finding",
+    "findingsCount_other": "{{count}} findings",
+    "stepCount_one": "{{count}} step",
+    "stepCount_other": "{{count}} steps",
+    "openRun": "Open {{runId}}",
+    "report": {
+      "title": "Run {{runId}}",
+      "back": "All runs",
+      "stats": {
+        "steps": "Steps",
+        "devices": "Devices",
+        "duration": "Duration",
+        "started": "Started",
+        "result": "Result"
+      },
+      "okDevices": "{{count}} ok",
+      "failedDevices": "{{count}} failed",
+      "matrixTitle": "Every step, on every screen",
+      "matrixDevice": "Device",
+      "matrixResult": "Result",
+      "stepHeader": "Step {{number}}: {{title}}",
+      "rowResult": "{{okCount}} ok · {{warnCount}} warn · {{failedCount}} failed",
+      "findingsTitle": "Findings",
+      "noFindings": "No findings in this run",
+      "findingStep": "Step {{number}} · {{title}}",
+      "proofTitle": "Why it failed",
+      "proofStep": "Step {{number}}: {{title}}",
+      "proofDevices": "Failed on {{deviceNames}}",
+      "noShot": "No shot was saved for this step",
+      "shotAlt": "Shot of {{deviceName}} at step {{number}}",
+      "codeTitle": "Failing code",
+      "noCode": "No code block was saved for this step",
+      "errorTitle": "Error"
+    }
+  },
+  "devices": {
+    "title": "Devices",
+    "subtitle": "{{count}} in the grid. Each frame opens at its true viewport.",
+    "groups": {
+      "phones": "Phones",
+      "tablets": "Tablets",
+      "desktop": "Desktop",
+      "custom": "Custom"
+    },
+    "openForm": "Add a device",
+    "closeForm": "Close",
+    "touch": "Touch",
+    "noTouch": "No touch",
+    "remove": "Remove {{name}}",
+    "removeFailed": "The hub could not remove that device.",
+    "viewport": "{{width}}×{{height}} · {{pixelRatio}}x",
+    "add": {
+      "title": "Add a device",
+      "name": "Name",
+      "width": "Width (px)",
+      "height": "Height (px)",
+      "pixelRatio": "Pixel ratio",
+      "browserName": "Engine",
+      "frameShape": "Frame",
+      "touch": "Touch screen",
+      "submit": "Add to grid",
+      "saving": "Adding",
+      "failed": "The hub could not add that device.",
+      "frames": {
+        "home-button": "Home button",
+        "dynamic-island": "Dynamic island",
+        "punch-hole": "Punch hole",
+        "tablet": "Tablet",
+        "laptop": "Laptop",
+        "kiosk": "Kiosk"
+      }
+    },
+    "removeLabel": "Remove"
   }
 }
