@@ -9,7 +9,7 @@ import { type RunningHub, startHub } from "@/hub/hub-server";
 import type { Run } from "@/runs/runs-logic";
 
 const DASHBOARD_HTML = "<!doctype html><h1>Everyscreen test dashboard</h1>";
-const DEVICE_IDS = ["iphone-se", "pixel-8"];
+const DEVICE_IDS = ["iphone-se", "pixel-10"];
 const STARTUP_TIMEOUT_MS = 180_000;
 const SWEEP_TIMEOUT_MS = 120_000;
 const EXPECTED_ROUTES = [

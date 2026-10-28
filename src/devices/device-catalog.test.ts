@@ -1,7 +1,13 @@
 import { devices } from "playwright";
 import { describe, expect, test } from "vitest";
-import { DEFAULT_GRID_DEVICES, DEVICE_CATALOG } from "@/devices/device-catalog";
-import type { CatalogDevice } from "@/devices/devices-logic";
+import { DEFAULT_GRID_IDS } from "@/devices/default-grid-ids";
+import { DEVICE_CATALOG } from "@/devices/device-catalog";
+import type { CatalogDevice, DeviceViewport } from "@/devices/devices-logic";
+
+interface RegistrySizes {
+  screen?: DeviceViewport;
+  viewport: DeviceViewport;
+}
 
 const LEGACY_IDS = [
   "iphone-se",
@@ -14,13 +20,26 @@ const LEGACY_IDS = [
   "laptop-1440",
   "store-kiosk",
 ];
-const MAX_DEFAULT_GRID_DEVICES = 12;
+const EXPECTED_DEFAULT_GRID_IDS = [
+  "iphone-se",
+  "iphone-17",
+  "iphone-17-pro-max",
+  "galaxy-s25",
+  "pixel-10",
+  "xiaomi-15",
+  "ipad-mini",
+  "ipad-pro-11",
+  "galaxy-tab-s9",
+  "macbook-air-13",
+  "windows-laptop-1366",
+  "linux-1920",
+];
 
 const listSizes = (catalogDevice: CatalogDevice): number[] => [
   catalogDevice.fullScreen.width,
   catalogDevice.fullScreen.height,
-  catalogDevice.browserViewport.width,
-  catalogDevice.browserViewport.height,
+  catalogDevice.browserViewport?.width ?? 0,
+  catalogDevice.browserViewport?.height ?? 0,
   catalogDevice.deviceScaleFactor,
   catalogDevice.cornerRadius ?? 0,
   catalogDevice.cutout.width ?? 0,
@@ -44,13 +63,15 @@ describe("DEVICE_CATALOG", () => {
   });
 
   test("only names devices that exist in the installed Playwright registry", () => {
-    const registryNames = DEVICE_CATALOG.flatMap(({ registryName }) =>
-      registryName === null ? [] : [registryName],
-    );
+    const registryNames = DEVICE_CATALOG.flatMap(({ registryName }) => {
+      const hasRegistryName = registryName !== null;
+      return hasRegistryName ? [registryName] : [];
+    });
 
-    const missingNames = registryNames.filter(
-      (registryName) => devices[registryName] === undefined,
-    );
+    const missingNames = registryNames.filter((registryName) => {
+      const isRegistryDeviceMissing = devices[registryName] === undefined;
+      return isRegistryDeviceMissing;
+    });
     expect(registryNames.length).toBeGreaterThan(0);
     expect(missingNames).toEqual([]);
   });
@@ -64,13 +85,16 @@ describe("DEVICE_CATALOG", () => {
   });
 
   test("gives every full screen a positive size and a browser viewport that fits inside it", () => {
-    const badIds = DEVICE_CATALOG.filter(
-      ({ fullScreen, browserViewport }) =>
-        fullScreen.width <= 0 ||
-        fullScreen.height <= 0 ||
-        browserViewport.width > fullScreen.width ||
-        browserViewport.height > fullScreen.height,
-    ).map(({ id }) => id);
+    const badIds = DEVICE_CATALOG.filter(({ fullScreen, browserViewport }) => {
+      const hasNoFullScreenSize =
+        fullScreen.width <= 0 || fullScreen.height <= 0;
+      const isBrowserSizeKnown = browserViewport !== null;
+      const isBrowserTooBig =
+        isBrowserSizeKnown &&
+        (browserViewport.width > fullScreen.width ||
+          browserViewport.height > fullScreen.height);
+      return hasNoFullScreenSize || isBrowserTooBig;
+    }).map(({ id }) => id);
 
     expect(badIds).toEqual([]);
   });
@@ -88,18 +112,42 @@ describe("DEVICE_CATALOG", () => {
   });
 });
 
-describe("DEFAULT_GRID_DEVICES", () => {
-  test("holds at most twelve devices", () => {
-    expect(DEFAULT_GRID_DEVICES.length).toBeLessThanOrEqual(
-      MAX_DEFAULT_GRID_DEVICES,
+describe("registry devices", () => {
+  test("take their sizes from the Playwright registry", () => {
+    const registryDevices = DEVICE_CATALOG.filter(
+      ({ registryName }) => registryName !== null,
     );
+
+    const wrongIds = registryDevices
+      .filter((catalogDevice) => {
+        const registryDevice: RegistrySizes =
+          devices[catalogDevice.registryName ?? ""];
+        const registryScreen = registryDevice.screen ?? registryDevice.viewport;
+        const isFullScreenSame =
+          catalogDevice.fullScreen.width === registryScreen.width &&
+          catalogDevice.fullScreen.height === registryScreen.height;
+        const isBrowserSame =
+          catalogDevice.browserViewport?.width ===
+            registryDevice.viewport.width &&
+          catalogDevice.browserViewport?.height ===
+            registryDevice.viewport.height;
+        return !isFullScreenSame || !isBrowserSame;
+      })
+      .map(({ id }) => id);
+
+    expect(registryDevices.length).toBeGreaterThan(0);
+    expect(wrongIds).toEqual([]);
+  });
+});
+
+describe("DEFAULT_GRID_IDS", () => {
+  test("lists the twelve default devices in order", () => {
+    expect(DEFAULT_GRID_IDS).toEqual(EXPECTED_DEFAULT_GRID_IDS);
   });
 
   test("holds only devices that are in the catalog", () => {
     const catalogIds = DEVICE_CATALOG.map(({ id }) => id);
 
-    const gridIds = DEFAULT_GRID_DEVICES.map(({ id }) => id);
-
-    expect(catalogIds).toEqual(expect.arrayContaining(gridIds));
+    expect(catalogIds).toEqual(expect.arrayContaining(DEFAULT_GRID_IDS));
   });
 });

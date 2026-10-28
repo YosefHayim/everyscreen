@@ -1,15 +1,15 @@
 import type {
   CatalogDevice,
-  DeviceIdentity,
+  CatalogIdentity,
   DeviceViewport,
 } from "@/devices/devices-logic";
 
-export interface RegistrySizes {
+interface RegistrySizes {
   screen?: DeviceViewport;
   viewport: DeviceViewport;
 }
 
-export interface RegistryDevice extends RegistrySizes {
+interface RegistryDevice extends RegistrySizes {
   userAgent: string;
   deviceScaleFactor: number;
   isMobile: boolean;
@@ -17,12 +17,11 @@ export interface RegistryDevice extends RegistrySizes {
 }
 
 // Playwright lists no screen for devices where the viewport already fills the screen.
-export const pickRegistryScreen = (
-  registrySizes: RegistrySizes,
-): DeviceViewport => registrySizes.screen ?? registrySizes.viewport;
+const pickRegistryScreen = (registrySizes: RegistrySizes): DeviceViewport =>
+  registrySizes.screen ?? registrySizes.viewport;
 
 export const createCatalogDeviceFromRegistry = (
-  identity: DeviceIdentity,
+  identity: CatalogIdentity,
   registryName: string,
   registryDevice: RegistryDevice,
 ): CatalogDevice => ({

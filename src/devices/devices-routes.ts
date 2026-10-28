@@ -6,6 +6,7 @@ import {
   checkDeviceRemoval,
   checkNewDevice,
   createPresetFromCustomDevice,
+  listCatalogReplies,
   pickGridDevices,
 } from "@/devices/devices-logic";
 import { readDevicesFile, updateDevicesFile } from "@/devices/devices-store";
@@ -19,7 +20,10 @@ export const createDevicesRoutes = (rootFolder: string) =>
       const devicesFile = await readDevicesFile(rootFolder);
       return c.json(pickGridDevices(devicesFile));
     })
-    .get("/catalog", (c) => c.json(DEVICE_CATALOG))
+    .get("/catalog", async (c) => {
+      const devicesFile = await readDevicesFile(rootFolder);
+      return c.json(listCatalogReplies(devicesFile));
+    })
     .post(
       "/",
       zValidator("json", customDeviceSchema, rejectInvalidRequest),

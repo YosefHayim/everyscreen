@@ -1,8 +1,8 @@
 import { devices } from "playwright";
 import type {
   CatalogDevice,
+  CatalogIdentity,
   DeviceCutout,
-  DeviceIdentity,
   SafeAreaInsets,
 } from "@/devices/devices-logic";
 import { FRAME_SHAPE_INSETS } from "@/devices/frame-shape-insets";
@@ -11,11 +11,11 @@ import { CPU_TIERS } from "@/environment";
 
 interface RegistryDeviceSpec {
   registryName: string;
-  identity: DeviceIdentity;
+  identity: CatalogIdentity;
 }
 
 type DeviceBase = Omit<
-  DeviceIdentity,
+  CatalogIdentity,
   "id" | "name" | "cornerRadius" | "safeAreaInsets" | "cutout"
 >;
 

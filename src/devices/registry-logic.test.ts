@@ -1,28 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { DEVICE_CATALOG } from "@/devices/device-catalog";
-import {
-  createCatalogDeviceFromRegistry,
-  pickRegistryScreen,
-} from "@/devices/registry-logic";
-
-describe("pickRegistryScreen", () => {
-  test("returns the registry screen when there is one", () => {
-    const screen = pickRegistryScreen({
-      screen: { width: 393, height: 852 },
-      viewport: { width: 393, height: 659 },
-    });
-
-    expect(screen).toEqual({ width: 393, height: 852 });
-  });
-
-  test("returns the viewport when the registry has no screen", () => {
-    const screen = pickRegistryScreen({
-      viewport: { width: 360, height: 780 },
-    });
-
-    expect(screen).toEqual({ width: 360, height: 780 });
-  });
-});
+import { createCatalogDeviceFromRegistry } from "@/devices/registry-logic";
 
 describe("createCatalogDeviceFromRegistry", () => {
   test("reads sizes and emulation from the registry device", () => {
@@ -49,5 +27,23 @@ describe("createCatalogDeviceFromRegistry", () => {
       userAgent: "Agent",
       deviceScaleFactor: 3,
     });
+  });
+
+  test("uses the viewport as the full screen when the registry has no screen", () => {
+    const [identityDevice] = DEVICE_CATALOG;
+
+    const catalogDevice = createCatalogDeviceFromRegistry(
+      identityDevice,
+      "Some phone",
+      {
+        viewport: { width: 360, height: 780 },
+        userAgent: "Agent",
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+      },
+    );
+
+    expect(catalogDevice.fullScreen).toEqual({ width: 360, height: 780 });
   });
 });

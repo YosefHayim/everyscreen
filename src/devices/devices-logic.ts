@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import type { BrowserContextOptions } from "playwright";
-import { DEFAULT_GRID_DEVICES, DEVICE_CATALOG } from "@/devices/device-catalog";
+import { DEVICE_CATALOG } from "@/devices/device-catalog";
 import type { CustomDevice, DevicesFile } from "@/devices/device-schema";
 import { FRAME_SHAPE_INSETS } from "@/devices/frame-shape-insets";
 import { CPU_TIERS } from "@/environment";
@@ -70,32 +70,42 @@ export interface DeviceIdentity {
   browserName: BrowserName;
   frameShape: FrameShape;
   cpuSlowdown: number;
-  platform: DevicePlatform;
+  platform: DevicePlatform | null;
   maker: DeviceMaker;
   cornerRadius: number | null;
-  cutout: DeviceCutout;
+  cutout: DeviceCutout | null;
   safeAreaInsets: SafeAreaInsets;
 }
 
-export interface CatalogDevice extends DeviceIdentity {
+// A custom device has no platform and no cutout; the frame draws its shape's default.
+export interface CatalogIdentity extends DeviceIdentity {
+  platform: DevicePlatform;
+  cutout: DeviceCutout;
+}
+
+export interface CatalogDevice extends CatalogIdentity {
   registryName: string | null;
   fullScreen: DeviceViewport;
-  browserViewport: DeviceViewport;
-  userAgent: string | null;
+  browserViewport: DeviceViewport | null;
+  userAgent: string;
   deviceScaleFactor: number;
   isMobile: boolean;
   hasTouch: boolean;
 }
 
+export interface CatalogDeviceReply extends CatalogDevice {
+  isHiddenByCustomDevice: boolean;
+}
+
 export interface DevicePreset extends DeviceIdentity {
-  origin: "catalog" | "custom";
+  isCustom: boolean;
   viewportMode: ViewportMode;
   use: BrowserContextOptions;
 }
 
 const DEVICE_ID_CLASH_STATUS = 409;
 const DEVICE_MISSING_STATUS = 404;
-const BAD_VIEWPORT_MODE_STATUS = 422;
+const UNKNOWN_DEVICE_STATUS = 422;
 const NON_ID_CHARACTERS = /[^\p{L}\p{N}]+/gu;
 const EDGE_DASHES = /^-|-$/g;
 
@@ -107,33 +117,6 @@ export const pickDeviceId = (deviceName: string): string =>
 
 const hasDeviceId = (customDevice: CustomDevice, deviceId: string): boolean =>
   pickDeviceId(customDevice.name) === deviceId;
-
-const FRAME_SHAPE_PLATFORMS = {
-  "home-button": "ios",
-  "dynamic-island": "ios",
-  "punch-hole": "android",
-  tablet: "ipados",
-  laptop: "macos",
-  kiosk: "linux",
-} as const satisfies Record<FrameShape, DevicePlatform>;
-
-const FRAME_SHAPE_CUTOUT_KINDS = {
-  "home-button": "home-button",
-  "dynamic-island": "dynamic-island",
-  "punch-hole": "punch-hole-center",
-  tablet: "none",
-  laptop: "none",
-  kiosk: "none",
-} as const satisfies Record<FrameShape, CutoutKind>;
-
-// A custom device has no measured frame, so the cutout has no size and the dashboard draws the shape's default.
-const createCutoutOfKind = (kind: CutoutKind): DeviceCutout => ({
-  kind,
-  width: null,
-  height: null,
-  top: null,
-  left: null,
-});
 
 export const createPresetFromCustomDevice = (
   customDevice: CustomDevice,
@@ -150,12 +133,12 @@ export const createPresetFromCustomDevice = (
     browserName: customDevice.browserName,
     frameShape,
     cpuSlowdown,
-    platform: FRAME_SHAPE_PLATFORMS[frameShape],
+    platform: null,
     maker: "generic",
     cornerRadius: null,
-    cutout: createCutoutOfKind(FRAME_SHAPE_CUTOUT_KINDS[frameShape]),
+    cutout: null,
     safeAreaInsets: FRAME_SHAPE_INSETS[frameShape],
-    origin: "custom",
+    isCustom: true,
     viewportMode: "full-screen",
     use: {
       viewport: { width: customDevice.width, height: customDevice.height },
@@ -174,11 +157,11 @@ const pickModeViewport = (
     case "full-screen":
       return catalogDevice.fullScreen;
     case "browser":
-      return catalogDevice.browserViewport;
+      return catalogDevice.browserViewport ?? catalogDevice.fullScreen;
   }
 };
 
-export const createPresetFromCatalogDevice = (
+const createPresetFromCatalogDevice = (
   catalogDevice: CatalogDevice,
   viewportMode: ViewportMode,
 ): DevicePreset => {
@@ -193,12 +176,12 @@ export const createPresetFromCatalogDevice = (
     cornerRadius: catalogDevice.cornerRadius,
     cutout: catalogDevice.cutout,
     safeAreaInsets: catalogDevice.safeAreaInsets,
-    origin: "catalog",
+    isCustom: false,
     viewportMode,
     use: {
       viewport: pickModeViewport(catalogDevice, viewportMode),
       screen: catalogDevice.fullScreen,
-      userAgent: catalogDevice.userAgent ?? undefined,
+      userAgent: catalogDevice.userAgent,
       deviceScaleFactor: catalogDevice.deviceScaleFactor,
       isMobile: catalogDevice.isMobile,
       hasTouch: catalogDevice.hasTouch,
@@ -218,23 +201,48 @@ export const findCatalogPreset = (
   return createPresetFromCatalogDevice(catalogDevice, viewportMode);
 };
 
-export const pickGridDevices = (devicesFile: DevicesFile): DevicePreset[] => {
-  const customPresets = devicesFile.devices.map(createPresetFromCustomDevice);
-  const customIds = customPresets.map((customPreset) => customPreset.id);
-  const defaultPresets = DEFAULT_GRID_DEVICES.filter(
-    (defaultDevice) => !customIds.includes(defaultDevice.id),
-  ).map((defaultDevice) =>
-    createPresetFromCatalogDevice(
-      defaultDevice,
-      devicesFile.viewportModes[defaultDevice.id] ?? "full-screen",
-    ),
+const pickGridPreset = (
+  devicesFile: DevicesFile,
+  gridId: string,
+): DevicePreset => {
+  const customDevice = devicesFile.devices.find((device) =>
+    hasDeviceId(device, gridId),
   );
-  return [...defaultPresets, ...customPresets];
+  const isCustomDeviceFound = customDevice !== undefined;
+  if (isCustomDeviceFound) return createPresetFromCustomDevice(customDevice);
+  return findCatalogPreset(
+    gridId,
+    devicesFile.viewportModes[gridId] ?? "full-screen",
+  );
+};
+
+// A custom device with a catalog id hides the catalog device everywhere.
+export const pickGridDevices = (devicesFile: DevicesFile): DevicePreset[] => {
+  const gridPresets = devicesFile.grid.map((gridId) =>
+    pickGridPreset(devicesFile, gridId),
+  );
+  const gridIds = gridPresets.map(({ id }) => id);
+  const otherCustomPresets = devicesFile.devices
+    .map(createPresetFromCustomDevice)
+    .filter((customPreset) => !gridIds.includes(customPreset.id));
+  return [...gridPresets, ...otherCustomPresets];
+};
+
+export const listCatalogReplies = (
+  devicesFile: DevicesFile,
+): CatalogDeviceReply[] => {
+  const customIds = devicesFile.devices.map((customDevice) =>
+    pickDeviceId(customDevice.name),
+  );
+  return DEVICE_CATALOG.map((catalogDevice) => ({
+    ...catalogDevice,
+    isHiddenByCustomDevice: customIds.includes(catalogDevice.id),
+  }));
 };
 
 export const checkNewDevice = (
   customDevice: CustomDevice,
-  takenDevices: { id: string }[],
+  takenDevices: Pick<DevicePreset, "id">[],
 ): CustomDevice => {
   const newDeviceId = pickDeviceId(customDevice.name);
   const isIdTaken = takenDevices.some(
@@ -265,19 +273,36 @@ export const checkDeviceRemoval = (
   const keptDevices = devicesFile.devices.filter(
     (customDevice) => !hasDeviceId(customDevice, deviceId),
   );
-  return { ...devicesFile, devices: keptDevices };
+  const isCatalogDevice = DEVICE_CATALOG.some(({ id }) => id === deviceId);
+  const keptGrid = devicesFile.grid.filter(
+    (gridId) => isCatalogDevice || gridId !== deviceId,
+  );
+  return { ...devicesFile, devices: keptDevices, grid: keptGrid };
 };
 
-export const checkViewportModes = (devicesFile: DevicesFile): DevicesFile => {
-  const catalogIds = DEVICE_CATALOG.map((catalogDevice) => catalogDevice.id);
-  const unknownIds = Object.keys(devicesFile.viewportModes).filter(
-    (deviceId) => !catalogIds.includes(deviceId),
-  );
-  const hasUnknownId = unknownIds.length > 0;
-  if (hasUnknownId) {
-    throw new HTTPException(BAD_VIEWPORT_MODE_STATUS, {
-      message: `viewportModes: no catalog device ${unknownIds.join(", ")}`,
-    });
+const listUnknownIds = (devicesFile: DevicesFile, deviceIds: string[]) => {
+  const knownIds = [
+    ...DEVICE_CATALOG.map(({ id }) => id),
+    ...devicesFile.devices.map((customDevice) =>
+      pickDeviceId(customDevice.name),
+    ),
+  ];
+  return deviceIds.filter((deviceId) => !knownIds.includes(deviceId));
+};
+
+export const checkDeviceIds = (devicesFile: DevicesFile): DevicesFile => {
+  const fieldIds = {
+    grid: devicesFile.grid,
+    viewportModes: Object.keys(devicesFile.viewportModes),
+  };
+  for (const [field, deviceIds] of Object.entries(fieldIds)) {
+    const [unknownId] = listUnknownIds(devicesFile, deviceIds);
+    const isUnknownIdFound = unknownId !== undefined;
+    if (isUnknownIdFound) {
+      throw new HTTPException(UNKNOWN_DEVICE_STATUS, {
+        message: `${field}: no device with id ${unknownId}`,
+      });
+    }
   }
   return devicesFile;
 };

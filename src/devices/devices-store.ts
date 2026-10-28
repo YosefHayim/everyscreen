@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { HTTPException } from "hono/http-exception";
 import { parse, stringify } from "yaml";
 import { type DevicesFile, devicesFileSchema } from "@/devices/device-schema";
-import { checkViewportModes } from "@/devices/devices-logic";
+import { checkDeviceIds } from "@/devices/devices-logic";
 import { DEVICES_FILE_PATH } from "@/environment";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { readStoredFile, writeStoredFile } from "@/hub/stored-files";
@@ -29,7 +29,7 @@ const parseYaml = (devicesYaml: string): unknown => {
 export const parseDevicesYaml = (devicesYaml: string): DevicesFile => {
   const parsedYaml = parseYaml(devicesYaml);
   const parsedFile = devicesFileSchema.safeParse(parsedYaml ?? {});
-  if (parsedFile.success) return checkViewportModes(parsedFile.data);
+  if (parsedFile.success) return checkDeviceIds(parsedFile.data);
 
   const [firstIssue] = parsedFile.error.issues;
   const badField = firstIssue.path.join(".");

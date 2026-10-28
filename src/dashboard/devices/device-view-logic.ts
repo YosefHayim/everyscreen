@@ -19,7 +19,7 @@ export interface GridDeviceReply {
   name: string;
   browserName: BrowserName;
   frameShape: FrameShape;
-  origin: "catalog" | "custom";
+  isCustom: boolean;
   use: {
     viewport?: { width: number; height: number } | null;
     deviceScaleFactor?: number;
@@ -51,7 +51,7 @@ export const createDeviceView = (gridDevice: GridDeviceReply): DeviceView => {
     viewportHeight: viewport.height,
     pixelRatio: gridDevice.use.deviceScaleFactor ?? DEFAULT_PIXEL_RATIO,
     hasTouch: gridDevice.use.hasTouch === true,
-    isCustom: gridDevice.origin === "custom",
+    isCustom: gridDevice.isCustom,
   };
 };
 

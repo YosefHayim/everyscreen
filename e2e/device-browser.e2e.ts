@@ -16,7 +16,7 @@ const PHONE_USER_AGENT = "Mozilla/5.0 (Spike phone) Everyscreen";
 const PHONE_VIEWPORT = { width: 375, height: 667 };
 const PHONE_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
 const PHONE_FRAME = {
-  origin: "catalog",
+  isCustom: false,
   viewportMode: "full-screen",
   platform: "ios",
   maker: "apple",

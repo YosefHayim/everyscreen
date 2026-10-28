@@ -1,15 +1,15 @@
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, test } from "vitest";
-import { DEFAULT_GRID_DEVICES, DEVICE_CATALOG } from "@/devices/device-catalog";
-import type { CustomDevice } from "@/devices/device-schema";
+import { DEFAULT_GRID_IDS } from "@/devices/default-grid-ids";
+import { DEVICE_CATALOG } from "@/devices/device-catalog";
+import type { CustomDevice, DevicesFile } from "@/devices/device-schema";
 import {
-  type CatalogDevice,
+  checkDeviceIds,
   checkDeviceRemoval,
   checkNewDevice,
-  checkViewportModes,
-  createPresetFromCatalogDevice,
   createPresetFromCustomDevice,
   findCatalogPreset,
+  listCatalogReplies,
   pickDeviceId,
   pickDeviceScreen,
   pickDeviceViewport,
@@ -110,48 +110,35 @@ describe("createPresetFromCustomDevice", () => {
   });
 });
 
-describe("createPresetFromCatalogDevice", () => {
-  const phone: CatalogDevice = {
-    ...DEVICE_CATALOG[0],
-    fullScreen: { width: 393, height: 852 },
-    browserViewport: { width: 393, height: 659 },
-    userAgent: null,
-  };
-
+describe("findCatalogPreset", () => {
   test("uses the full screen as the viewport and the screen", () => {
-    const devicePreset = createPresetFromCatalogDevice(phone, "full-screen");
+    const devicePreset = findCatalogPreset("iphone-15", "full-screen");
 
     expect(devicePreset.viewportMode).toBe("full-screen");
     expect(devicePreset.use.viewport).toEqual({ width: 393, height: 852 });
     expect(devicePreset.use.screen).toEqual({ width: 393, height: 852 });
+    expect(devicePreset.isCustom).toBe(false);
   });
 
   test("uses the size inside the browser bars but keeps the full screen as the screen", () => {
-    const devicePreset = createPresetFromCatalogDevice(phone, "browser");
+    const devicePreset = findCatalogPreset("iphone-15", "browser");
 
     expect(devicePreset.use.viewport).toEqual({ width: 393, height: 659 });
     expect(devicePreset.use.screen).toEqual({ width: 393, height: 852 });
   });
 
-  test("leaves the user agent unset when the device has none", () => {
-    const devicePreset = createPresetFromCatalogDevice(phone, "full-screen");
+  test("falls back to the full screen when no browser size is published", () => {
+    const devicePreset = findCatalogPreset("ipad-mini", "browser");
 
-    expect(devicePreset.use.userAgent).toBeUndefined();
+    expect(devicePreset.use.viewport).toEqual({ width: 744, height: 1133 });
   });
 
-  test("passes the user agent on when the device has one", () => {
-    const agentPhone = { ...phone, userAgent: "Agent" };
+  test("sends the user agent of the device", () => {
+    const devicePreset = findCatalogPreset("macbook-air-13", "full-screen");
 
-    const devicePreset = createPresetFromCatalogDevice(
-      agentPhone,
-      "full-screen",
-    );
-
-    expect(devicePreset.use.userAgent).toBe("Agent");
+    expect(devicePreset.use.userAgent).toContain("Macintosh");
   });
-});
 
-describe("findCatalogPreset", () => {
   test("finds a catalog device by id", () => {
     const devicePreset = findCatalogPreset("iphone-se", "full-screen");
 
@@ -165,20 +152,27 @@ describe("findCatalogPreset", () => {
   });
 });
 
+const createDevicesFile = (changes: Partial<DevicesFile>): DevicesFile => ({
+  devices: [],
+  routes: [],
+  grid: DEFAULT_GRID_IDS,
+  viewportModes: {},
+  ...changes,
+});
+
 describe("pickGridDevices", () => {
-  test("shows only the default grid when there are no custom devices", () => {
-    const gridDevices = pickGridDevices({ devices: [], routes: [], viewportModes: {} });
+  test("shows the twelve default devices when the file sets no grid", () => {
+    const gridDevices = pickGridDevices(createDevicesFile({}));
 
     const gridIds = gridDevices.map((gridDevice) => gridDevice.id);
-    expect(gridIds).toEqual(DEFAULT_GRID_DEVICES.map(({ id }) => id));
-    expect(gridDevices.length).toBeLessThanOrEqual(12);
+    expect(gridIds).toEqual(DEFAULT_GRID_IDS);
+    expect(gridIds).toHaveLength(12);
   });
 
-  test("shows custom devices after the presets, in file order", () => {
-    const gridDevices = pickGridDevices({
-      devices: [TOUCH_KIOSK, MOUSE_SCREEN],
-      routes: [], viewportModes: {},
-    });
+  test("shows custom devices after the grid, in file order", () => {
+    const gridDevices = pickGridDevices(
+      createDevicesFile({ devices: [TOUCH_KIOSK, MOUSE_SCREEN] }),
+    );
 
     expect(gridDevices.slice(-2).map((gridDevice) => gridDevice.id)).toEqual([
       "shop-kiosk",
@@ -186,32 +180,58 @@ describe("pickGridDevices", () => {
     ]);
   });
 
-  test("uses the browser viewport for a device the file sets to browser", () => {
-    const [firstDevice] = DEFAULT_GRID_DEVICES;
+  test("puts a catalog device outside the default twelve on the grid", () => {
+    const isOutsideDefaults = !DEFAULT_GRID_IDS.includes("pixel-9");
 
-    const gridDevices = pickGridDevices({
-      devices: [],
-      routes: [],
-      viewportModes: { [firstDevice.id]: "browser" },
-    });
+    const gridDevices = pickGridDevices(
+      createDevicesFile({ grid: ["iphone-se", "pixel-9"] }),
+    );
 
-    expect(gridDevices[0].viewportMode).toBe("browser");
-    expect(gridDevices[0].use.viewport).toEqual(firstDevice.browserViewport);
-    expect(gridDevices[1].viewportMode).toBe("full-screen");
+    expect(isOutsideDefaults).toBe(true);
+    expect(gridDevices.map(({ id }) => id)).toEqual(["iphone-se", "pixel-9"]);
   });
 
-  test("lets a custom device replace a default device with the same id", () => {
-    const [firstDevice] = DEFAULT_GRID_DEVICES;
-    const sameIdDevice = { ...TOUCH_KIOSK, name: firstDevice.name };
+  test("applies the viewport mode to a device outside the default twelve", () => {
+    const gridDevices = pickGridDevices(
+      createDevicesFile({
+        grid: ["pixel-9", "iphone-se"],
+        viewportModes: { "pixel-9": "browser" },
+      }),
+    );
 
-    const gridDevices = pickGridDevices({
-      devices: [sameIdDevice],
-      routes: [], viewportModes: {},
-    });
+    const [pixelDevice, iphoneDevice] = gridDevices;
+    expect(pixelDevice.viewportMode).toBe("browser");
+    expect(pixelDevice.use.viewport).toEqual({ width: 360, height: 732 });
+    expect(iphoneDevice.viewportMode).toBe("full-screen");
+  });
 
-    const sameIds = gridDevices.filter(({ id }) => id === firstDevice.id);
+  test("lets a custom device replace a catalog device with the same id", () => {
+    const sameIdDevice = { ...TOUCH_KIOSK, name: "iPhone SE" };
+
+    const gridDevices = pickGridDevices(
+      createDevicesFile({ devices: [sameIdDevice] }),
+    );
+
+    const sameIds = gridDevices.filter(({ id }) => id === "iphone-se");
     expect(sameIds).toHaveLength(1);
+    expect(sameIds[0].isCustom).toBe(true);
     expect(sameIds[0].use.viewport).toEqual({ width: 800, height: 1280 });
+  });
+});
+
+describe("listCatalogReplies", () => {
+  test("marks a catalog device hidden by a custom device with the same id", () => {
+    const sameIdDevice = { ...TOUCH_KIOSK, name: "iPhone SE" };
+
+    const catalogReplies = listCatalogReplies(
+      createDevicesFile({ devices: [sameIdDevice] }),
+    );
+
+    const hiddenIds = catalogReplies
+      .filter(({ isHiddenByCustomDevice }) => isHiddenByCustomDevice)
+      .map(({ id }) => id);
+    expect(hiddenIds).toEqual(["iphone-se"]);
+    expect(catalogReplies).toHaveLength(DEVICE_CATALOG.length);
   });
 });
 
@@ -235,25 +255,46 @@ describe("checkNewDevice", () => {
 
 describe("checkDeviceRemoval", () => {
   test("returns the devices file without the removed custom device", () => {
-    const devicesFile = {
+    const devicesFile = createDevicesFile({
       devices: [TOUCH_KIOSK, MOUSE_SCREEN],
-      routes: [], viewportModes: {},
-    };
+      routes: ["/orders/123"],
+    });
 
     const keptFile = checkDeviceRemoval(devicesFile, "shop-kiosk");
 
-    expect(keptFile).toEqual({ devices: [MOUSE_SCREEN], routes: [], viewportModes: {} });
+    expect(keptFile.devices).toEqual([MOUSE_SCREEN]);
+    expect(keptFile.routes).toEqual(["/orders/123"]);
     expect(devicesFile.devices).toHaveLength(2);
   });
 
+  test("drops the removed custom device from the grid", () => {
+    const devicesFile = createDevicesFile({
+      devices: [TOUCH_KIOSK],
+      grid: ["iphone-se", "shop-kiosk"],
+    });
+
+    const keptFile = checkDeviceRemoval(devicesFile, "shop-kiosk");
+
+    expect(keptFile.grid).toEqual(["iphone-se"]);
+  });
+
+  test("keeps a catalog id on the grid when its custom twin is removed", () => {
+    const sameIdDevice = { ...TOUCH_KIOSK, name: "iPhone SE" };
+    const devicesFile = createDevicesFile({ devices: [sameIdDevice] });
+
+    const keptFile = checkDeviceRemoval(devicesFile, "iphone-se");
+
+    expect(keptFile.grid).toEqual(DEFAULT_GRID_IDS);
+  });
+
   test("rejects an id that is not a custom device with 404", () => {
-    const devicesFile = { devices: [TOUCH_KIOSK], routes: [], viewportModes: {} };
+    const devicesFile = createDevicesFile({ devices: [TOUCH_KIOSK] });
 
     const presetStatus = readStatus(() =>
       checkDeviceRemoval(devicesFile, "iphone-se"),
     );
     const emptyStatus = readStatus(() =>
-      checkDeviceRemoval({ devices: [], routes: [], viewportModes: {} }, "shop-kiosk"),
+      checkDeviceRemoval(createDevicesFile({}), "shop-kiosk"),
     );
 
     expect(presetStatus).toBe(404);
@@ -261,27 +302,37 @@ describe("checkDeviceRemoval", () => {
   });
 });
 
-describe("checkViewportModes", () => {
-  test("returns the file when every id is a catalog device", () => {
-    const devicesFile = {
-      devices: [],
-      viewportModes: { "iphone-se": "browser" as const },
-    };
+describe("checkDeviceIds", () => {
+  test("returns the file when every id is a catalog or custom device", () => {
+    const devicesFile = createDevicesFile({
+      devices: [TOUCH_KIOSK],
+      grid: ["pixel-9", "shop-kiosk"],
+      viewportModes: { "iphone-se": "browser" },
+    });
 
-    const checkedFile = checkViewportModes(devicesFile);
+    const checkedFile = checkDeviceIds(devicesFile);
 
     expect(checkedFile).toEqual(devicesFile);
   });
 
-  test("rejects an id that is not a catalog device with 422", () => {
-    const devicesFile = {
-      devices: [],
-      viewportModes: { nokia: "browser" as const },
-    };
+  test("rejects an unknown viewport mode id with 422 naming the id", () => {
+    const devicesFile = createDevicesFile({
+      viewportModes: { nokia: "browser" },
+    });
 
-    const status = readStatus(() => checkViewportModes(devicesFile));
+    const checkDevicesFile = () => checkDeviceIds(devicesFile);
 
-    expect(status).toBe(422);
+    expect(checkDevicesFile).toThrow("viewportModes: no device with id nokia");
+    expect(readStatus(checkDevicesFile)).toBe(422);
+  });
+
+  test("rejects an unknown grid id with 422 naming the id", () => {
+    const devicesFile = createDevicesFile({ grid: ["iphone-se", "nokia"] });
+
+    const checkDevicesFile = () => checkDeviceIds(devicesFile);
+
+    expect(checkDevicesFile).toThrow("grid: no device with id nokia");
+    expect(readStatus(checkDevicesFile)).toBe(422);
   });
 });
 

@@ -16,7 +16,7 @@ const createGridDevice = (
   name: "Pixel 8",
   browserName: "chromium",
   frameShape: "punch-hole",
-  origin: "catalog",
+  isCustom: false,
   use: {
     viewport: { width: 412, height: 915 },
     deviceScaleFactor: 2.6,
@@ -48,7 +48,7 @@ describe("createDeviceView", () => {
   test("marks a custom device as custom", () => {
     const customGridDevice = createGridDevice({
       id: "store-display",
-      origin: "custom",
+      isCustom: true,
     });
 
     const deviceView = createDeviceView(customGridDevice);

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { DEFAULT_GRID_IDS } from "@/devices/default-grid-ids";
 import { customDeviceSchema, devicesFileSchema } from "@/devices/device-schema";
 
 describe("customDeviceSchema", () => {
@@ -36,8 +37,15 @@ describe("customDeviceSchema", () => {
 });
 
 describe("devicesFileSchema", () => {
-  test("fills devices and routes with empty lists", () => {
-    expect(devicesFileSchema.parse({})).toEqual({ devices: [], routes: [] });
+  test("fills devices and routes with empty lists and the grid with the default ids", () => {
+    const devicesFile = devicesFileSchema.parse({});
+
+    expect(devicesFile).toEqual({
+      devices: [],
+      routes: [],
+      grid: DEFAULT_GRID_IDS,
+      viewportModes: {},
+    });
   });
 
   test("keeps routes that start with a slash", () => {

@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
-import type { DeviceBrowser } from "@/devices/device-browsers";
-import { startDeviceBrowser } from "@/devices/device-browsers";
+import {
+  type DeviceBrowser,
+  startDeviceBrowser,
+} from "@/devices/device-browsers";
 import { findCatalogPreset, type ViewportMode } from "@/devices/devices-logic";
 
 const PAGE_URL = `data:text/html,${encodeURIComponent('<meta name="viewport" content="width=device-width"><h1>Hollis Goods</h1>')}`;

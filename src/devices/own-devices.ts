@@ -1,4 +1,5 @@
 import { devices } from "playwright";
+import { createDesktopUserAgent } from "@/devices/desktop-user-agent-logic";
 import type {
   CatalogDevice,
   DeviceCutout,
@@ -10,7 +11,7 @@ import { FRAME_SHAPE_INSETS } from "@/devices/frame-shape-insets";
 import { CPU_TIERS } from "@/environment";
 
 // Devices Playwright's registry lacks. Each device has a source comment for its size.
-// A size is the full screen; with no published browser bar height, the browser viewport equals it.
+// A size is the full screen; no browser size is published, so browserViewport is null.
 type OwnBase = Omit<
   CatalogDevice,
   | "id"
@@ -43,7 +44,7 @@ const ANDROID_USER_AGENT = devices["Pixel 10"].userAgent.replace(
 );
 
 const IPAD_USER_AGENT = devices["iPad Pro 11"].userAgent;
-const WINDOWS_USER_AGENT = devices["Desktop Chrome"].userAgent;
+const REGISTRY_DESKTOP_USER_AGENT = devices["Desktop Chrome"].userAgent;
 
 const UNMEASURED_CUTOUT: DeviceCutout = {
   kind: "punch-hole-center",
@@ -88,7 +89,7 @@ const MAC_BASE: OwnBase = {
   cpuSlowdown: CPU_TIERS.desktop,
   platform: "macos",
   maker: "apple",
-  userAgent: null,
+  userAgent: createDesktopUserAgent("macos", REGISTRY_DESKTOP_USER_AGENT),
   isMobile: false,
   hasTouch: false,
 };
@@ -97,13 +98,14 @@ const WINDOWS_BASE: OwnBase = {
   ...MAC_BASE,
   platform: "windows",
   maker: "generic",
-  userAgent: WINDOWS_USER_AGENT,
+  userAgent: createDesktopUserAgent("windows", REGISTRY_DESKTOP_USER_AGENT),
 };
 
 const LINUX_BASE: OwnBase = {
   ...MAC_BASE,
   platform: "linux",
   maker: "generic",
+  userAgent: createDesktopUserAgent("linux", REGISTRY_DESKTOP_USER_AGENT),
 };
 
 const createOwnDevice = (
@@ -114,7 +116,7 @@ const createOwnDevice = (
   id: spec.id,
   name: spec.name,
   fullScreen: spec.size,
-  browserViewport: spec.size,
+  browserViewport: null,
   deviceScaleFactor: spec.deviceScaleFactor,
   cornerRadius: spec.cornerRadius,
   cutout: spec.cutout,

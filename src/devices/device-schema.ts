@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_GRID_IDS } from "@/devices/default-grid-ids";
 import type {
   BrowserName,
   FrameShape,
@@ -67,6 +68,7 @@ export const devicesFileSchema = z.object({
         ),
     )
     .default([]),
+  grid: z.array(z.string()).default(DEFAULT_GRID_IDS),
   viewportModes: z.record(z.string(), z.enum(VIEWPORT_MODES)).default({}),
 });
 

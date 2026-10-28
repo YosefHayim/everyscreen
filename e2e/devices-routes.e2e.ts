@@ -131,6 +131,64 @@ test.describe("devices routes", () => {
     expect(problemMessage).not.toContain("secret-device-name");
   });
 
+  test("puts a catalog device outside the default twelve on the grid from the yaml file", async () => {
+    const devicesRoutes = createDevicesRoutes(rootFolder);
+    await writeFile(
+      join(rootFolder, DEVICES_FILE_PATH),
+      "grid:\n  - iphone-se\n  - pixel-9\nviewportModes:\n  pixel-9: browser\n",
+    );
+
+    const listReply = await devicesRoutes.request("/");
+    const gridDevices = await listReply.json();
+
+    expect(listReply.status).toBe(200);
+    expect(
+      gridDevices.map((gridDevice: { id: string }) => gridDevice.id),
+    ).toEqual(["iphone-se", "pixel-9"]);
+    expect(gridDevices[1].viewportMode).toBe("browser");
+  });
+
+  test("answers 422 and names an unknown grid id", async () => {
+    const devicesRoutes = createDevicesRoutes(rootFolder);
+    await writeFile(
+      join(rootFolder, DEVICES_FILE_PATH),
+      "grid:\n  - iphone-se\n  - nokia-3310\n",
+    );
+
+    const listReply = await devicesRoutes.request("/");
+    const problemMessage = await listReply.text();
+
+    expect(listReply.status).toBe(422);
+    expect(problemMessage).toContain("nokia-3310");
+  });
+
+  test("loads a custom device with a catalog id, lets it win and marks the catalog device hidden", async () => {
+    const devicesRoutes = createDevicesRoutes(rootFolder);
+    await writeFile(
+      join(rootFolder, DEVICES_FILE_PATH),
+      "devices:\n  - name: iPhone SE\n    width: 800\n    height: 1280\n",
+    );
+
+    const listReply = await devicesRoutes.request("/");
+    const gridDevices = await listReply.json();
+    const catalogReply = await devicesRoutes.request("/catalog");
+    const catalogDevices = await catalogReply.json();
+
+    const sameIdDevices = gridDevices.filter(
+      (gridDevice: { id: string }) => gridDevice.id === "iphone-se",
+    );
+    const hiddenIds = catalogDevices
+      .filter(
+        (catalogDevice: { isHiddenByCustomDevice: boolean }) =>
+          catalogDevice.isHiddenByCustomDevice,
+      )
+      .map((catalogDevice: { id: string }) => catalogDevice.id);
+    expect(listReply.status).toBe(200);
+    expect(sameIdDevices).toHaveLength(1);
+    expect(sameIdDevices[0].isCustom).toBe(true);
+    expect(hiddenIds).toEqual(["iphone-se"]);
+  });
+
   test("rejects a preset id with 409", async () => {
     const devicesRoutes = createDevicesRoutes(rootFolder);
 

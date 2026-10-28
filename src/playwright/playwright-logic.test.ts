@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { DEFAULT_GRID_IDS } from "@/devices/default-grid-ids";
 import { pickGridDevices } from "@/devices/devices-logic";
 import {
   createDeviceProject,
@@ -18,7 +19,12 @@ import {
   STEP_TITLE_SEPARATOR,
 } from "@/playwright/playwright-logic";
 
-const DEVICE_PRESETS = pickGridDevices({ devices: [], viewportModes: {} });
+const DEVICE_PRESETS = pickGridDevices({
+  devices: [],
+  routes: [],
+  grid: DEFAULT_GRID_IDS,
+  viewportModes: {},
+});
 const [iphoneSe] = DEVICE_PRESETS;
 const ANSI_RED = "\u001b[31m";
 const ANSI_RESET = "\u001b[39m";
