@@ -1,13 +1,14 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import { DeviceFrame } from "@/dashboard/frames/device-frame";
+import { pickFrameLayout } from "@/dashboard/frames/frame-layout-logic";
 import type { CellStatus } from "@/dashboard/runs/run-report-logic";
 import { SweepCellCaption } from "@/dashboard/sweep/sweep-cell-caption";
 import {
-  pickThumbScreenWidth,
+  pickThumbScale,
   type SweepCell as SweepCellView,
 } from "@/dashboard/sweep/sweep-matrix-logic";
 import { cn } from "@/dashboard/ui/cn";
-import { DeviceFrame } from "@/dashboard/ui/device-frame";
 import { StatusChip } from "@/dashboard/ui/status-chip";
 
 const CELL_CLASS_NAMES = {
@@ -54,10 +55,8 @@ export const SweepCell = ({
       >
         <span className="flex min-h-0 flex-1 items-center justify-center">
           <DeviceFrame
-            frameShape={deviceView.frameShape}
-            viewportWidth={deviceView.viewportWidth}
-            viewportHeight={deviceView.viewportHeight}
-            screenWidth={pickThumbScreenWidth(deviceView)}
+            layout={pickFrameLayout(deviceView)}
+            scale={pickThumbScale(deviceView)}
           >
             {hasShot && (
               <img

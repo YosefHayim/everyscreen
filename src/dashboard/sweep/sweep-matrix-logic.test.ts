@@ -8,7 +8,7 @@ import {
   pickCellCaption,
   pickOpenedShot,
   pickSweepTotals,
-  pickThumbScreenWidth,
+  pickThumbScale,
   type SweepCell,
 } from "@/dashboard/sweep/sweep-matrix-logic";
 import type { Run, RunStep } from "@/runs/runs-logic";
@@ -18,6 +18,13 @@ const PHONE: DeviceView = {
   name: "iPhone SE",
   browserName: "webkit",
   frameShape: "home-button",
+  platform: "ios",
+  cutout: null,
+  cornerRadius: null,
+  safeAreaInsets: { top: 20, bottom: 0, left: 0, right: 0 },
+  viewportMode: "full-screen",
+  screenWidth: 375,
+  screenHeight: 667,
   viewportWidth: 375,
   viewportHeight: 667,
   pixelRatio: 2,
@@ -31,6 +38,8 @@ const LAPTOP: DeviceView = {
   frameShape: "laptop",
   viewportWidth: 1440,
   viewportHeight: 900,
+  screenWidth: 1440,
+  screenHeight: 900,
 };
 const REMOVED_DEVICE_ID = "removed-device";
 
@@ -277,18 +286,16 @@ describe("pickCellCaption", () => {
   });
 });
 
-describe("pickThumbScreenWidth", () => {
-  test("fits a tall phone frame inside the thumbnail height", () => {
-    const screenWidth = pickThumbScreenWidth(PHONE);
+describe("pickThumbScale", () => {
+  test("shrinks a tall phone frame to fit the thumbnail", () => {
+    const thumbScale = pickThumbScale(PHONE);
 
-    expect(screenWidth).toBeGreaterThan(0);
-    expect(screenWidth).toBeLessThan(PHONE.viewportWidth);
+    expect(thumbScale).toBeGreaterThan(0);
+    expect(thumbScale).toBeLessThan(1);
   });
 
-  test("gives a wide laptop a wider screen than a phone", () => {
-    expect(pickThumbScreenWidth(LAPTOP)).toBeGreaterThan(
-      pickThumbScreenWidth(PHONE),
-    );
+  test("scales a wide laptop down further than a phone", () => {
+    expect(pickThumbScale(LAPTOP)).toBeLessThan(pickThumbScale(PHONE));
   });
 });
 

@@ -2,12 +2,15 @@ import type { Finding, FindingKind } from "@/checks/checks-logic";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import {
+  pickFitScale,
+  pickFrameLayout,
+} from "@/dashboard/frames/frame-layout-logic";
+import {
   type CellStatus,
   listRunDeviceIds,
   pickCellStatus,
   pickShotUrl,
 } from "@/dashboard/runs/run-report-logic";
-import { pickFrameLayout } from "@/dashboard/ui/device-frame-logic";
 import type { Run, RunStep } from "@/runs/runs-logic";
 
 export interface SweepCell {
@@ -77,7 +80,6 @@ const SWEEP_TITLE_PREFIX = "sweep ";
 const CHIP_STATUSES = ["ok", "warn", "failed"] as const;
 const THUMB_BOX_WIDTH = 150;
 const THUMB_BOX_HEIGHT = 108;
-const PROBE_SCREEN_WIDTH = 100;
 
 const pickFailureMessage = (
   deviceAnswer: DeviceAnswer | undefined,
@@ -203,18 +205,12 @@ export const pickCellCaption = (cell: SweepCell): CellCaption => {
   return { kind: "status", status: cell.status };
 };
 
-export const pickThumbScreenWidth = (deviceView: DeviceView): number => {
-  const probeLayout = pickFrameLayout({
-    frameShape: deviceView.frameShape,
-    viewportWidth: deviceView.viewportWidth,
-    viewportHeight: deviceView.viewportHeight,
-    screenWidth: PROBE_SCREEN_WIDTH,
+export const pickThumbScale = (deviceView: DeviceView): number => {
+  const frameLayout = pickFrameLayout(deviceView);
+  return pickFitScale(frameLayout, {
+    width: THUMB_BOX_WIDTH,
+    height: THUMB_BOX_HEIGHT,
   });
-  const fitScale = Math.min(
-    THUMB_BOX_WIDTH / probeLayout.width,
-    THUMB_BOX_HEIGHT / probeLayout.height,
-  );
-  return Math.round(PROBE_SCREEN_WIDTH * fitScale);
 };
 
 export const pickOpenedShot = (
