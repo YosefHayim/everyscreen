@@ -34,3 +34,12 @@ export const pickSetupStepProgress = (
     { stepKey: "runTests", status: testsStatus },
   ];
 };
+
+export const isOpenAppCardShown = (
+  liveStatus: ConnectionStatus,
+  hasScreenImage: boolean,
+): boolean => {
+  const isHubOpen = liveStatus === "open";
+  const openStatus = pickOpenStatus(isHubOpen, hasScreenImage);
+  return openStatus !== "done";
+};

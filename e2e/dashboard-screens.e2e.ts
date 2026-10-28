@@ -5,7 +5,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { Hono } from "hono";
 import { createServer, type ViteDevServer } from "vite";
 import { WebSocketServer } from "ws";
-import { DEVICES_FILE_PATH, STORE_FOLDER } from "@/environment";
+import { DEVICES_FILE_PATH, LIVE_PATH, STORE_FOLDER } from "@/environment";
 import { createHubApp } from "@/hub/hub-app";
 import { type ListeningServer, listen } from "@/hub/hub-server";
 import { liveRoutes } from "@/live/live-routes";
@@ -30,6 +30,14 @@ const SCREENS = [
 ] as const;
 
 const SHOT_FOLDER_FOR_PICTURES = process.env.DASHBOARD_SHOTS_FOLDER ?? null;
+
+const isLiveSocketUrl = (socketUrl: URL): boolean =>
+  socketUrl.pathname === LIVE_PATH;
+const SCREEN_MESSAGE = {
+  kind: "screen",
+  deviceId: "iphone-se",
+  imageBase64: SHOT_PNG.toString("base64"),
+};
 
 const SAVED_RUN = {
   runId: "run-0001",
@@ -170,6 +178,34 @@ test.describe("dashboard screens", () => {
       .getByRole("listitem")
       .filter({ hasText: "Start the hub" });
     await expect(startHubStep).toContainText("Done");
+  });
+
+  test("the open-your-app card gives way to the grid once a screen image arrives", async ({
+    page,
+  }) => {
+    await page.routeWebSocket(isLiveSocketUrl, (liveSocket) => {
+      liveSocket.send(JSON.stringify(SCREEN_MESSAGE));
+    });
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.goto(dashboardUrl);
+
+    await expect(page.getByRole("img", { name: "iPhone SE" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Open your app to fill the grid" }),
+    ).toHaveCount(0);
+    await expect(page.getByText("Open your app").first()).toBeVisible();
+  });
+
+  test("the open-your-app card stays while no screen image has arrived", async ({
+    page,
+  }) => {
+    await page.routeWebSocket(isLiveSocketUrl, () => {});
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.goto(dashboardUrl);
+
+    await expect(
+      page.getByRole("heading", { name: "Open your app to fill the grid" }),
+    ).toBeVisible();
   });
 
   test("the focus screen shows one device and the others", async ({ page }) => {
