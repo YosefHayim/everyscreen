@@ -1,11 +1,8 @@
 import { glob } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { STORE_FOLDER } from "@/environment";
-import {
-  readStoredFile,
-  runWithFileLock,
-  writeStoredFile,
-} from "@/hub/stored-files";
+import { runOneAtATime } from "@/hub/run-one-at-a-time";
+import { readStoredFile, writeStoredFile } from "@/hub/stored-files";
 import { runSchema } from "@/runs/run-schema";
 import {
   checkRunEvent,
@@ -77,7 +74,7 @@ export const createRun = async (
   rootFolder: string,
   origin: RunOrigin,
 ): Promise<Run> => {
-  return runWithFileLock(pickRunsFolder(rootFolder), async () => {
+  return runOneAtATime(pickRunsFolder(rootFolder), async () => {
     const runIds = await listRunIds(rootFolder);
     const run: Run = {
       runId: pickNextRunId(runIds),
@@ -97,7 +94,7 @@ export const saveRunEvent = async (
   runEvent: RunEvent,
 ): Promise<Run> => {
   const runFilePath = pickRunFilePath(rootFolder, runId);
-  return runWithFileLock(runFilePath, async () => {
+  return runOneAtATime(runFilePath, async () => {
     const savedRun = await readRun(rootFolder, runId);
     const checkedRun = checkRunEvent(savedRun, runEvent);
     const mergedRun = mergeRunEvent(checkedRun, runEvent);
