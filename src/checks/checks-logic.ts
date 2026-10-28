@@ -22,9 +22,15 @@ export interface Finding {
   message: string;
 }
 
+export interface SafeAreaInsets {
+  top: number;
+  bottom: number;
+}
+
 export interface CheckDevice {
   id: string;
   hasTouch: boolean;
+  safeAreaInsets: SafeAreaInsets;
 }
 
 const findOverflow = (
@@ -63,7 +69,8 @@ const listSafeAreaFindings = (
   measurements: PageMeasurements,
   checkDevice: CheckDevice,
 ): Finding[] => {
-  const { pinnedBoxes, safeAreaInsets, viewportHeight } = measurements;
+  const { pinnedBoxes, viewportHeight } = measurements;
+  const { safeAreaInsets } = checkDevice;
   const homeBarTop = viewportHeight - safeAreaInsets.bottom;
   return pinnedBoxes
     .filter((pinnedBox) => {

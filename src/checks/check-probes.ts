@@ -14,7 +14,6 @@ export interface PageMeasurements {
   widestPastEdge: { selector: string; overflowPx: number } | null;
   clippedSelectors: string[];
   pinnedBoxes: PinnedBox[];
-  safeAreaInsets: { top: number; bottom: number };
   tapTargets: { selector: string; width: number; height: number }[];
 }
 
@@ -65,17 +64,6 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
       const hasLetters = (childNode.textContent ?? "").trim().length > 0;
       return isTextNode && hasLetters;
     });
-
-  const insetProbe = document.createElement("div");
-  insetProbe.style.cssText = `position:fixed;visibility:hidden;
-    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)`;
-  document.body.append(insetProbe);
-  const insetStyle = getComputedStyle(insetProbe);
-  const safeAreaInsets = {
-    top: Number.parseFloat(insetStyle.paddingTop),
-    bottom: Number.parseFloat(insetStyle.paddingBottom),
-  };
-  insetProbe.remove();
 
   const everyElement = [...document.querySelectorAll("body *")];
   const measured = everyElement.map((element) => ({
@@ -139,7 +127,6 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
     widestPastEdge: pastEdge[0] ?? null,
     clippedSelectors,
     pinnedBoxes,
-    safeAreaInsets,
     tapTargets,
   };
 };

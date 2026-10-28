@@ -62,16 +62,16 @@ const openAndCheck = async (viewing: Viewing) => {
     hasTouch,
   });
   const page = await context.newPage();
-  const cdpSession = await context.newCDPSession(page);
-  await cdpSession.send("Emulation.setSafeAreaInsetsOverride", {
-    insets: safeArea,
-  });
   await watchPage(page, deviceId);
 
   await page.goto(FIXTURE_URL);
   await expect.poll(() => watchedFindings.length).toBe(PAGE_FINDING_COUNT);
   const measurements = await measurePage(page);
-  const checkFindings = listFindings(measurements, { id: deviceId, hasTouch });
+  const checkFindings = listFindings(measurements, {
+    id: deviceId,
+    hasTouch,
+    safeAreaInsets: safeArea,
+  });
   return { page, checkFindings };
 };
 

@@ -8,8 +8,11 @@ import {
   listFindings,
 } from "@/checks/checks-logic";
 
-const PHONE = { id: "iphone-se", hasTouch: true };
-const LAPTOP = { id: "laptop", hasTouch: false };
+const NOTCH_INSETS = { top: 59, bottom: 34 };
+const NO_INSETS = { top: 0, bottom: 0 };
+const PHONE = { id: "iphone-se", hasTouch: true, safeAreaInsets: NO_INSETS };
+const NOTCH_PHONE = { ...PHONE, safeAreaInsets: NOTCH_INSETS };
+const LAPTOP = { id: "laptop", hasTouch: false, safeAreaInsets: NO_INSETS };
 const EMPTY_PAGE: PageMeasurements = {
   viewportWidth: 375,
   viewportHeight: 667,
@@ -17,9 +20,7 @@ const EMPTY_PAGE: PageMeasurements = {
   clippedSelectors: [],
   pinnedBoxes: [],
   tapTargets: [],
-  safeAreaInsets: { top: 0, bottom: 0 },
 };
-const NOTCH_INSETS = { top: 47, bottom: 34 };
 
 describe("listFindings", () => {
   test("returns no findings for an empty page", () => {
@@ -71,13 +72,9 @@ describe("listFindings", () => {
         paddingBottom: 0,
       },
     ];
-    const measurements = {
-      ...EMPTY_PAGE,
-      pinnedBoxes,
-      safeAreaInsets: NOTCH_INSETS,
-    };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
 
-    const findings = listFindings(measurements, PHONE);
+    const findings = listFindings(measurements, NOTCH_PHONE);
 
     expect(findings.map((finding) => finding.kind)).toEqual(["safe-area"]);
   });
@@ -92,13 +89,9 @@ describe("listFindings", () => {
         paddingBottom: 0,
       },
     ];
-    const measurements = {
-      ...EMPTY_PAGE,
-      pinnedBoxes,
-      safeAreaInsets: NOTCH_INSETS,
-    };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
 
-    const findings = listFindings(measurements, PHONE);
+    const findings = listFindings(measurements, NOTCH_PHONE);
 
     expect(findings.map((finding) => finding.selector)).toEqual([".bar"]);
   });
@@ -109,7 +102,7 @@ describe("listFindings", () => {
         selector: ".header",
         top: 0,
         bottom: 90,
-        paddingTop: 47,
+        paddingTop: 59,
         paddingBottom: 0,
       },
       {
@@ -120,13 +113,26 @@ describe("listFindings", () => {
         paddingBottom: 34,
       },
     ];
-    const measurements = {
-      ...EMPTY_PAGE,
-      pinnedBoxes,
-      safeAreaInsets: NOTCH_INSETS,
-    };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
 
-    const findings = listFindings(measurements, PHONE);
+    const findings = listFindings(measurements, NOTCH_PHONE);
+
+    expect(findings).toEqual([]);
+  });
+
+  test("accepts a pinned box at the screen edge when the device has no insets", () => {
+    const pinnedBoxes = [
+      {
+        selector: ".bar",
+        top: 600,
+        bottom: 667,
+        paddingTop: 0,
+        paddingBottom: 0,
+      },
+    ];
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
+
+    const findings = listFindings(measurements, LAPTOP);
 
     expect(findings).toEqual([]);
   });
@@ -141,13 +147,9 @@ describe("listFindings", () => {
         paddingBottom: 0,
       },
     ];
-    const measurements = {
-      ...EMPTY_PAGE,
-      pinnedBoxes,
-      safeAreaInsets: NOTCH_INSETS,
-    };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
 
-    const findings = listFindings(measurements, PHONE);
+    const findings = listFindings(measurements, NOTCH_PHONE);
 
     expect(findings).toEqual([]);
   });
