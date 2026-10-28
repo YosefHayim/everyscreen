@@ -20,16 +20,18 @@ export interface PageMeasurements {
   isViewportCover: boolean;
 }
 
+interface MeasureRequest {
+  tapTags: string;
+  deviceViewport: DeviceViewport;
+}
+
 const TAP_TAGS = "a[href], button, input, [role=button]";
 
 // Runs inside the page (page.evaluate): it can use nothing outside itself.
-const readMeasurements = (pageInputs: {
-  tapTags: string;
-  deviceViewport: { width: number; height: number };
-}): PageMeasurements => {
+const readMeasurements = (measureRequest: MeasureRequest): PageMeasurements => {
   const SELECTOR_DEPTH = 3;
   // Mobile emulation widens window.innerWidth to fit the content, so the device size comes from the caller.
-  const { tapTags, deviceViewport } = pageInputs;
+  const { tapTags, deviceViewport } = measureRequest;
   const { width: viewportWidth, height: viewportHeight } = deviceViewport;
 
   const describeNode = (element: Element) => {

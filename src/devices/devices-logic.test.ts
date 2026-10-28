@@ -189,7 +189,8 @@ describe("pickDeviceViewport", () => {
     const pixelPreset = DEVICE_PRESETS.find(
       (preset) => preset.id === "pixel-8",
     );
-    if (pixelPreset === undefined) throw new Error("No pixel-8 preset");
+    const isPixelPresetMissing = pixelPreset === undefined;
+    if (isPixelPresetMissing) throw new Error("No pixel-8 preset");
 
     const deviceViewport = pickDeviceViewport(pixelPreset);
 
@@ -198,7 +199,8 @@ describe("pickDeviceViewport", () => {
 
   test("throws when the preset has no viewport", () => {
     const [firstPreset] = DEVICE_PRESETS;
-    if (firstPreset === undefined) throw new Error("No presets");
+    const isFirstPresetMissing = firstPreset === undefined;
+    if (isFirstPresetMissing) throw new Error("No presets");
     const presetWithoutViewport = { ...firstPreset, use: {} };
 
     const pickMissingViewport = () => pickDeviceViewport(presetWithoutViewport);

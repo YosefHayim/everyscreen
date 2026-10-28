@@ -105,7 +105,8 @@ export const runStepOnDevice = async (
   const startedAt = Date.now();
 
   const actionErrorMessage = await tryCommand(devicePage, hubCommand);
-  const measurements = await measurePage(page, pickDeviceViewport(device));
+  const deviceViewport = pickDeviceViewport(device);
+  const measurements = await measurePage(page, deviceViewport);
   const checkDevice = pickCheckDevice(device);
   const findings = listFindings(measurements, checkDevice);
   const durationMs = Date.now() - startedAt;

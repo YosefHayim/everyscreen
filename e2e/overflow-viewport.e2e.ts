@@ -33,11 +33,11 @@ for (const { deviceId, engine, isEmulatedByCdp } of OVERFLOW_ENGINES) {
     const devicePreset = DEVICE_PRESETS.find(
       (preset) => preset.id === deviceId,
     );
-    if (devicePreset === undefined) throw new Error(`No preset ${deviceId}`);
+    const isPresetMissing = devicePreset === undefined;
+    if (isPresetMissing) throw new Error(`No preset ${deviceId}`);
     const engineBrowser = await engine.launch();
-    const browserContext = await engineBrowser.newContext(
-      isEmulatedByCdp ? {} : devicePreset.use,
-    );
+    const contextOptions = isEmulatedByCdp ? {} : devicePreset.use;
+    const browserContext = await engineBrowser.newContext(contextOptions);
     const page = await browserContext.newPage();
     if (isEmulatedByCdp) await emulateDevice(page, devicePreset);
     const deviceViewport = pickDeviceViewport(devicePreset);
@@ -45,10 +45,8 @@ for (const { deviceId, engine, isEmulatedByCdp } of OVERFLOW_ENGINES) {
     await page.goto(`${WIDE_BLOCK_PATH}#${blockWidth}`);
 
     const measurements = await measurePage(page, deviceViewport);
-    const checkFindings = listFindings(
-      measurements,
-      pickCheckDevice(devicePreset),
-    );
+    const checkDevice = pickCheckDevice(devicePreset);
+    const checkFindings = listFindings(measurements, checkDevice);
     await engineBrowser.close();
 
     const overflowMessages = checkFindings
