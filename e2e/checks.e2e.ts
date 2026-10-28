@@ -1,5 +1,12 @@
 import { pathToFileURL } from "node:url";
-import { type Browser, chromium, expect, test } from "@playwright/test";
+import {
+  type Browser,
+  type BrowserType,
+  chromium,
+  expect,
+  test,
+  webkit,
+} from "@playwright/test";
 import { measurePage } from "@/checks/check-probes";
 import { type Finding, listFindings } from "@/checks/checks-logic";
 import { watchPage } from "@/checks/page-watch";
@@ -7,6 +14,7 @@ import type { SafeAreaInsets } from "@/devices/devices-logic";
 import { subscribe } from "@/live/live-feed";
 
 const FIXTURE_URL = pathToFileURL("e2e/hollis-goods.html").href;
+const SAFE_AREA_HEADER_URL = pathToFileURL("e2e/safe-area-header.html").href;
 const PAGE_FINDING_COUNT = 2;
 const PAGE_MESSAGES = [
   "Cart total failed to load",
@@ -108,3 +116,37 @@ test("every selector, with its escaped Tailwind class, finds exactly one element
 
   expect(counts).toEqual([1, 1, 1, 1]);
 });
+
+const SAFE_AREA_ENGINES: { name: string; engine: BrowserType }[] = [
+  { name: "WebKit iphone-se", engine: webkit },
+  { name: "Chromium phone", engine: chromium },
+];
+
+for (const { name, engine } of SAFE_AREA_ENGINES) {
+  test(`a header padded by env(safe-area-inset-top) gets no safe-area finding on ${name}`, async () => {
+    const engineBrowser = await engine.launch();
+    const context = await engineBrowser.newContext({
+      viewport: { width: PHONE.width, height: PHONE.height },
+      hasTouch: true,
+    });
+    const page = await context.newPage();
+
+    await page.goto(SAFE_AREA_HEADER_URL);
+    const measurements = await measurePage(page);
+    const checkFindings = listFindings(measurements, {
+      id: PHONE.deviceId,
+      hasTouch: true,
+      safeAreaInsets: PHONE.safeArea,
+    });
+    await engineBrowser.close();
+
+    expect(measurements.isViewportCover).toBe(true);
+    expect(measurements.pinnedBoxes[0]?.cssSafeAreaSides).toEqual({
+      top: true,
+      bottom: false,
+    });
+    expect(checkFindings.map((finding) => finding.kind)).not.toContain(
+      "safe-area",
+    );
+  });
+}

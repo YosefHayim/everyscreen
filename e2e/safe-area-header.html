@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Safe area header</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  body { margin: 0; font: 16px sans-serif; }
+  .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: #0f766e; color: #fff; }
+  @media (min-width: 1px) {
+    @supports (padding: env(safe-area-inset-top)) {
+      .top-bar { padding-top: env(safe-area-inset-top); }
+    }
+  }
+</style>
+</head>
+<body>
+  <header class="top-bar">Hollis Goods</header>
+  <main style="padding-top: 80px">Welcome</main>
+</body>
+</html>

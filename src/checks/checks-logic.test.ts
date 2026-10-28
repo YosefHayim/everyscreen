@@ -13,6 +13,7 @@ const NO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
 const PHONE = { id: "iphone-se", hasTouch: true, safeAreaInsets: NO_INSETS };
 const NOTCH_PHONE = { ...PHONE, safeAreaInsets: NOTCH_INSETS };
 const LAPTOP = { id: "laptop", hasTouch: false, safeAreaInsets: NO_INSETS };
+const NO_CSS_SIDES = { top: false, bottom: false };
 const EMPTY_PAGE: PageMeasurements = {
   viewportWidth: 375,
   viewportHeight: 667,
@@ -71,6 +72,7 @@ describe("listFindings", () => {
         bottom: 60,
         paddingTop: 0,
         paddingBottom: 0,
+        cssSafeAreaSides: NO_CSS_SIDES,
       },
     ];
     const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
@@ -88,6 +90,7 @@ describe("listFindings", () => {
         bottom: 60,
         paddingTop: 0,
         paddingBottom: 0,
+        cssSafeAreaSides: NO_CSS_SIDES,
       },
     ];
     const measurements = { ...EMPTY_PAGE, pinnedBoxes };
@@ -105,6 +108,7 @@ describe("listFindings", () => {
         bottom: 667,
         paddingTop: 0,
         paddingBottom: 0,
+        cssSafeAreaSides: NO_CSS_SIDES,
       },
     ];
     const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
@@ -122,6 +126,7 @@ describe("listFindings", () => {
         bottom: 90,
         paddingTop: 59,
         paddingBottom: 0,
+        cssSafeAreaSides: NO_CSS_SIDES,
       },
       {
         selector: ".bar",
@@ -129,6 +134,7 @@ describe("listFindings", () => {
         bottom: 667,
         paddingTop: 0,
         paddingBottom: 34,
+        cssSafeAreaSides: NO_CSS_SIDES,
       },
     ];
     const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
@@ -146,6 +152,7 @@ describe("listFindings", () => {
         bottom: 667,
         paddingTop: 0,
         paddingBottom: 0,
+        cssSafeAreaSides: NO_CSS_SIDES,
       },
     ];
     const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
@@ -153,6 +160,50 @@ describe("listFindings", () => {
     const findings = listFindings(measurements, LAPTOP);
 
     expect(findings).toEqual([]);
+  });
+
+  test("accepts pinned boxes whose CSS ties both sides to the safe area", () => {
+    const pinnedBoxes = [
+      {
+        selector: ".header",
+        top: 0,
+        bottom: 60,
+        paddingTop: 0,
+        paddingBottom: 0,
+        cssSafeAreaSides: { top: true, bottom: false },
+      },
+      {
+        selector: ".bar",
+        top: 600,
+        bottom: 667,
+        paddingTop: 0,
+        paddingBottom: 0,
+        cssSafeAreaSides: { top: false, bottom: true },
+      },
+    ];
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
+
+    const findings = listFindings(measurements, NOTCH_PHONE);
+
+    expect(findings).toEqual([]);
+  });
+
+  test("still reports the side the CSS does not tie to the safe area", () => {
+    const pinnedBoxes = [
+      {
+        selector: ".header",
+        top: 0,
+        bottom: 667,
+        paddingTop: 0,
+        paddingBottom: 0,
+        cssSafeAreaSides: { top: true, bottom: false },
+      },
+    ];
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
+
+    const findings = listFindings(measurements, NOTCH_PHONE);
+
+    expect(findings.map((finding) => finding.selector)).toEqual([".header"]);
   });
 
   test("accepts pinned boxes clear of both insets", () => {
@@ -163,6 +214,7 @@ describe("listFindings", () => {
         bottom: 160,
         paddingTop: 0,
         paddingBottom: 0,
+        cssSafeAreaSides: NO_CSS_SIDES,
       },
     ];
     const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };

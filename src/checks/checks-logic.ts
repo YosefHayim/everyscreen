@@ -74,9 +74,12 @@ const listSafeAreaFindings = (
   return pinnedBoxes
     .filter((pinnedBox) => {
       const { top, bottom } = safeAreaInsets;
-      const isUnderNotch = pinnedBox.top < top && pinnedBox.paddingTop < top;
-      const isUnderHomeBar =
-        pinnedBox.bottom > homeBarTop && pinnedBox.paddingBottom < bottom;
+      const { cssSafeAreaSides } = pinnedBox;
+      const isTopCovered = pinnedBox.paddingTop >= top || cssSafeAreaSides.top;
+      const isBottomCovered =
+        pinnedBox.paddingBottom >= bottom || cssSafeAreaSides.bottom;
+      const isUnderNotch = pinnedBox.top < top && !isTopCovered;
+      const isUnderHomeBar = pinnedBox.bottom > homeBarTop && !isBottomCovered;
       return isUnderNotch || isUnderHomeBar;
     })
     .map((pinnedBox) => ({
