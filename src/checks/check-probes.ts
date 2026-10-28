@@ -6,6 +6,7 @@ interface PinnedBox {
   bottom: number;
   paddingTop: number;
   paddingBottom: number;
+  cssSafeAreaSides: { top: boolean; bottom: boolean };
 }
 
 export interface PageMeasurements {
@@ -66,6 +67,53 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
       return isTextNode && hasLetters;
     });
 
+  const readSheetRules = (sheet: CSSStyleSheet): CSSRule[] => {
+    try {
+      return [...sheet.cssRules];
+    } catch (error) {
+      // A cross-origin sheet hides its rules from the page, so it is skipped.
+      const isCrossOriginSheet =
+        error instanceof DOMException && error.name === "SecurityError";
+      if (isCrossOriginSheet) return [];
+      throw error;
+    }
+  };
+  const listStyleRules = (rules: CSSRule[]): CSSStyleRule[] =>
+    rules.flatMap((rule) => {
+      const isStyleRule = rule instanceof CSSStyleRule;
+      if (isStyleRule) return [rule];
+      const isGroupRule = rule instanceof CSSGroupingRule;
+      return isGroupRule ? listStyleRules([...rule.cssRules]) : [];
+    });
+  const isRuleMatching = (rule: CSSStyleRule, element: Element) => {
+    try {
+      return element.matches(rule.selectorText);
+    } catch (error) {
+      // A selector this browser cannot parse matches nothing.
+      const isUnparseableSelector =
+        error instanceof DOMException && error.name === "SyntaxError";
+      if (isUnparseableSelector) return false;
+      throw error;
+    }
+  };
+  const styleRules = listStyleRules(
+    [...document.styleSheets].flatMap(readSheetRules),
+  );
+  const listOwnDeclarations = (element: Element) => {
+    const inlineStyle = element.getAttribute("style");
+    const hasInlineStyle = inlineStyle !== null;
+    const ruleDeclarations = styleRules
+      .filter((rule) => isRuleMatching(rule, element))
+      .map((rule) => rule.style.cssText);
+    return hasInlineStyle
+      ? [inlineStyle, ...ruleDeclarations]
+      : ruleDeclarations;
+  };
+  const isTiedToSafeArea = (element: Element, side: "top" | "bottom") =>
+    listOwnDeclarations(element).some((declarations) =>
+      declarations.includes(`safe-area-inset-${side}`),
+    );
+
   const viewportMeta = document.querySelector('meta[name="viewport"]');
   const viewportContent = viewportMeta?.getAttribute("content") ?? null;
   const hasViewportContent = viewportContent !== null;
@@ -100,12 +148,16 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
 
   const pinnedBoxes = measured
     .filter(({ style }) => ["fixed", "sticky"].includes(style.position))
-    .map(({ selector, box, style }) => ({
+    .map(({ selector, box, style, element }) => ({
       selector,
       top: box.top,
       bottom: box.bottom,
       paddingTop: Number.parseFloat(style.paddingTop),
       paddingBottom: Number.parseFloat(style.paddingBottom),
+      cssSafeAreaSides: {
+        top: isTiedToSafeArea(element, "top"),
+        bottom: isTiedToSafeArea(element, "bottom"),
+      },
     }));
 
   const tapTargets = measured
