@@ -1,7 +1,7 @@
 import { setTimeout as waitFor } from "node:timers/promises";
 import type { CDPSession, Page } from "playwright";
 import { z } from "zod";
-import type { PageWatcher } from "@/devices/page-watcher";
+import type { PageWatcher } from "@/devices/device-browsers";
 import {
   estimateDeviceLoad,
   pickSampleWindow,

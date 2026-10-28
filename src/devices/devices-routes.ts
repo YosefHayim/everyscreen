@@ -8,7 +8,7 @@ import {
   pickGridDevices,
 } from "@/devices/devices-logic";
 import { readDevicesFile, updateDevicesFile } from "@/devices/devices-store";
-import { rejectInvalidRequest } from "@/hub/invalid-request";
+import { rejectInvalidRequest } from "@/hub/problem-reply";
 
 const CREATED_STATUS = 201;
 

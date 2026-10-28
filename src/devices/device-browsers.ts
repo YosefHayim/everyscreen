@@ -9,11 +9,17 @@ import type {
 import { chromium, firefox, webkit } from "playwright";
 import { emulateDevice } from "@/devices/device-emulation";
 import type { BrowserName, DevicePreset } from "@/devices/devices-logic";
-import type { PageWatcher, StopWatching } from "@/devices/page-watcher";
 import { HUB_HOST } from "@/environment";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { readStoredFile } from "@/hub/stored-files";
 import { startScreencast } from "@/live/screencast";
+
+export type StopWatching = () => Promise<void>;
+
+export type PageWatcher = (
+  page: Page,
+  deviceId: string,
+) => Promise<StopWatching>;
 
 export interface DeviceBrowser {
   deviceId: string;

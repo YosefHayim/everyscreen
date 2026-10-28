@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Run } from "@/runs/runs-logic";
+import type { Run, RunEvent } from "@/runs/runs-logic";
 
 export const runOriginSchema = z.enum(["cli", "flow", "playwright"]);
 
@@ -56,3 +56,12 @@ export const runSchema = z.object({
   startedAt: z.number(),
   steps: z.array(runStepSchema),
 }) satisfies z.ZodType<Run>;
+
+export const runEventSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("run-start"), origin: runOriginSchema }),
+  z.object({ kind: z.literal("step-end"), step: runStepSchema }),
+  z.object({
+    kind: z.literal("run-end"),
+    status: z.enum(["passed", "failed"]),
+  }),
+]) satisfies z.ZodType<RunEvent>;

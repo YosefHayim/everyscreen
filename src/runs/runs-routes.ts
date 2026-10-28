@@ -2,9 +2,8 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-import { rejectInvalidRequest } from "@/hub/invalid-request";
-import { runEventSchema } from "@/runs/run-event-schema";
-import { runOriginSchema } from "@/runs/run-schema";
+import { rejectInvalidRequest } from "@/hub/problem-reply";
+import { runEventSchema, runOriginSchema } from "@/runs/run-schema";
 import { RUN_ID_PATTERN } from "@/runs/runs-logic";
 import { createRun, listRuns, readRun, saveRunEvent } from "@/runs/runs-store";
 
