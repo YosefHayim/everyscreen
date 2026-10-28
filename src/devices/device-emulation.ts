@@ -1,21 +1,9 @@
 import type { Page } from "playwright";
 import {
   type DevicePreset,
-  type FrameShape,
+  pickDeviceScreen,
   pickDeviceViewport,
-  type SafeAreaInsets,
 } from "@/devices/devices-logic";
-
-const NO_INSETS: SafeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
-
-export const SAFE_AREA_INSETS = {
-  "home-button": NO_INSETS,
-  "dynamic-island": { top: 59, bottom: 34, left: 0, right: 0 },
-  "punch-hole": { top: 24, bottom: 0, left: 0, right: 0 },
-  tablet: NO_INSETS,
-  laptop: NO_INSETS,
-  kiosk: NO_INSETS,
-} as const satisfies Record<FrameShape, SafeAreaInsets>;
 
 export const emulateDevice = async (
   page: Page,
@@ -23,11 +11,14 @@ export const emulateDevice = async (
 ): Promise<void> => {
   const { deviceScaleFactor, isMobile, hasTouch, userAgent } = devicePreset.use;
   const viewport = pickDeviceViewport(devicePreset);
+  const screen = pickDeviceScreen(devicePreset);
 
   const cdpSession = await page.context().newCDPSession(page);
   await cdpSession.send("Emulation.setDeviceMetricsOverride", {
     width: viewport.width,
     height: viewport.height,
+    screenWidth: screen.width,
+    screenHeight: screen.height,
     deviceScaleFactor: deviceScaleFactor ?? 1,
     mobile: isMobile ?? false,
   });
@@ -35,7 +26,7 @@ export const emulateDevice = async (
     enabled: hasTouch ?? false,
   });
   await cdpSession.send("Emulation.setSafeAreaInsetsOverride", {
-    insets: SAFE_AREA_INSETS[devicePreset.frameShape],
+    insets: devicePreset.safeAreaInsets,
   });
   const hasUserAgent = userAgent !== undefined;
   if (hasUserAgent) {

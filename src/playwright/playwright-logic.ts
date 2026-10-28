@@ -58,7 +58,7 @@ export const createDeviceProject = (
   devicePreset: DevicePreset,
   hubDevice: HubDevice | null,
 ): DeviceProject => {
-  const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } =
+  const { viewport, screen, deviceScaleFactor, isMobile, hasTouch, userAgent } =
     devicePreset.use;
   const hasHubDevice = hubDevice !== null;
   const connectOptions = hasHubDevice
@@ -70,6 +70,7 @@ export const createDeviceProject = (
       everyscreenDeviceId: devicePreset.id,
       browserName: devicePreset.browserName,
       viewport,
+      screen,
       deviceScaleFactor,
       isMobile,
       hasTouch,

@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { DEVICE_CATALOG } from "@/devices/device-catalog";
 import { customDeviceSchema } from "@/devices/device-schema";
 import {
   checkDeviceRemoval,
@@ -18,6 +19,7 @@ export const createDevicesRoutes = (rootFolder: string) =>
       const devicesFile = await readDevicesFile(rootFolder);
       return c.json(pickGridDevices(devicesFile));
     })
+    .get("/catalog", (c) => c.json(DEVICE_CATALOG))
     .post(
       "/",
       zValidator("json", customDeviceSchema, rejectInvalidRequest),
@@ -25,7 +27,8 @@ export const createDevicesRoutes = (rootFolder: string) =>
         const customDevice = c.req.valid("json");
         await updateDevicesFile(rootFolder, (devicesFile) => {
           const gridDevices = pickGridDevices(devicesFile);
-          const checkedDevice = checkNewDevice(customDevice, gridDevices);
+          const takenDevices = [...DEVICE_CATALOG, ...gridDevices];
+          const checkedDevice = checkNewDevice(customDevice, takenDevices);
           return {
             ...devicesFile,
             devices: [...devicesFile.devices, checkedDevice],
