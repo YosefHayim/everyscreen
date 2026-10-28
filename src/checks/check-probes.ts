@@ -15,6 +15,7 @@ export interface PageMeasurements {
   clippedSelectors: string[];
   pinnedBoxes: PinnedBox[];
   tapTargets: { selector: string; width: number; height: number }[];
+  isViewportCover: boolean;
 }
 
 const TAP_TAGS = "a[href], button, input, [role=button]";
@@ -64,6 +65,12 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
       const hasLetters = (childNode.textContent ?? "").trim().length > 0;
       return isTextNode && hasLetters;
     });
+
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+  const viewportContent = viewportMeta?.getAttribute("content") ?? null;
+  const hasViewportContent = viewportContent !== null;
+  const isViewportCover =
+    hasViewportContent && /viewport-fit\s*=\s*cover/i.test(viewportContent);
 
   const everyElement = [...document.querySelectorAll("body *")];
   const measured = everyElement.map((element) => ({
@@ -128,6 +135,7 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
     clippedSelectors,
     pinnedBoxes,
     tapTargets,
+    isViewportCover,
   };
 };
 

@@ -20,6 +20,7 @@ const EMPTY_PAGE: PageMeasurements = {
   clippedSelectors: [],
   pinnedBoxes: [],
   tapTargets: [],
+  isViewportCover: false,
 };
 
 describe("listFindings", () => {
@@ -72,11 +73,28 @@ describe("listFindings", () => {
         paddingBottom: 0,
       },
     ];
-    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
 
     const findings = listFindings(measurements, NOTCH_PHONE);
 
     expect(findings.map((finding) => finding.kind)).toEqual(["safe-area"]);
+  });
+
+  test("reports no safe-area finding when the page does not use viewport-fit=cover", () => {
+    const pinnedBoxes = [
+      {
+        selector: ".header",
+        top: 0,
+        bottom: 60,
+        paddingTop: 0,
+        paddingBottom: 0,
+      },
+    ];
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
+
+    const findings = listFindings(measurements, NOTCH_PHONE);
+
+    expect(findings).toEqual([]);
   });
 
   test("reports a pinned box under the home bar", () => {
@@ -89,7 +107,7 @@ describe("listFindings", () => {
         paddingBottom: 0,
       },
     ];
-    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
 
     const findings = listFindings(measurements, NOTCH_PHONE);
 
@@ -113,7 +131,7 @@ describe("listFindings", () => {
         paddingBottom: 34,
       },
     ];
-    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
 
     const findings = listFindings(measurements, NOTCH_PHONE);
 
@@ -130,7 +148,7 @@ describe("listFindings", () => {
         paddingBottom: 0,
       },
     ];
-    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
 
     const findings = listFindings(measurements, LAPTOP);
 
@@ -147,7 +165,7 @@ describe("listFindings", () => {
         paddingBottom: 0,
       },
     ];
-    const measurements = { ...EMPTY_PAGE, pinnedBoxes };
+    const measurements = { ...EMPTY_PAGE, pinnedBoxes, isViewportCover: true };
 
     const findings = listFindings(measurements, NOTCH_PHONE);
 
