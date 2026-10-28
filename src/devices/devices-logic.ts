@@ -48,18 +48,20 @@ export const createPresetFromCustomDevice = (
   customDevice: CustomDevice,
 ): DevicePreset => {
   const isTouchDevice = customDevice.hasTouch;
+  const isFirefoxDevice = customDevice.browserName === "firefox";
+  const isMobile = isTouchDevice && !isFirefoxDevice;
   const cpuSlowdown = isTouchDevice ? CPU_TIERS.phone : CPU_TIERS.desktop;
 
   return {
     id: pickDeviceId(customDevice.name),
     name: customDevice.name,
-    browserName: "chromium",
+    browserName: customDevice.browserName,
     frameShape: customDevice.frameShape,
     cpuSlowdown,
     use: {
       viewport: { width: customDevice.width, height: customDevice.height },
       deviceScaleFactor: customDevice.pixelRatio,
-      isMobile: customDevice.hasTouch,
+      isMobile,
       hasTouch: customDevice.hasTouch,
     },
   };

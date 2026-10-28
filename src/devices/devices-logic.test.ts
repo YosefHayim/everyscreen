@@ -18,6 +18,7 @@ const TOUCH_KIOSK: CustomDevice = {
   pixelRatio: 2,
   hasTouch: true,
   frameShape: "kiosk",
+  browserName: "chromium",
 };
 
 const MOUSE_SCREEN: CustomDevice = {
@@ -75,6 +76,47 @@ describe("createPresetFromCustomDevice", () => {
 
     expect(devicePreset.cpuSlowdown).toBe(CPU_TIERS.desktop);
     expect(devicePreset.use.isMobile).toBe(false);
+  });
+
+  test("keeps webkit for a webkit custom device", () => {
+    const webkitDevice: CustomDevice = {
+      ...TOUCH_KIOSK,
+      browserName: "webkit",
+    };
+
+    const devicePreset = createPresetFromCustomDevice(webkitDevice);
+
+    expect(devicePreset.browserName).toBe("webkit");
+    expect(devicePreset.use.isMobile).toBe(true);
+  });
+
+  test("gives a firefox touch device no mobile mode but keeps touch", () => {
+    const firefoxDevice: CustomDevice = {
+      ...TOUCH_KIOSK,
+      browserName: "firefox",
+    };
+
+    const devicePreset = createPresetFromCustomDevice(firefoxDevice);
+
+    expect(devicePreset.browserName).toBe("firefox");
+    expect(devicePreset.use.isMobile).toBe(false);
+    expect(devicePreset.use.hasTouch).toBe(true);
+  });
+});
+
+describe("DEVICE_PRESETS", () => {
+  test("uses webkit for exactly the iPhone and iPad presets", () => {
+    const webkitIds = DEVICE_PRESETS.filter(
+      (devicePreset) => devicePreset.browserName === "webkit",
+    ).map((devicePreset) => devicePreset.id);
+
+    expect(webkitIds).toEqual([
+      "iphone-se",
+      "iphone-15",
+      "iphone-15-pro-max",
+      "ipad-mini",
+      "ipad-pro-11",
+    ]);
   });
 });
 

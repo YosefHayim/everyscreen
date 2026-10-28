@@ -27,7 +27,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   {
     id: "iphone-se",
     name: "iPhone SE",
-    browserName: "chromium",
+    browserName: "webkit",
     frameShape: "home-button",
     cpuSlowdown: CPU_TIERS.budgetPhone,
     use: pickEmulation(devices["iPhone SE (3rd gen)"], {
@@ -38,7 +38,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   {
     id: "iphone-15",
     name: "iPhone 15",
-    browserName: "chromium",
+    browserName: "webkit",
     frameShape: "dynamic-island",
     cpuSlowdown: CPU_TIERS.phone,
     use: pickEmulation(devices["iPhone 15"], {
@@ -49,7 +49,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   {
     id: "iphone-15-pro-max",
     name: "iPhone 15 Pro Max",
-    browserName: "chromium",
+    browserName: "webkit",
     frameShape: "dynamic-island",
     cpuSlowdown: CPU_TIERS.phone,
     use: pickEmulation(devices["iPhone 15 Pro Max"], {
@@ -82,7 +82,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   {
     id: "ipad-mini",
     name: "iPad mini",
-    browserName: "chromium",
+    browserName: "webkit",
     frameShape: "tablet",
     cpuSlowdown: CPU_TIERS.tablet,
     use: pickEmulation(devices["iPad Mini"], {
@@ -93,7 +93,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   {
     id: "ipad-pro-11",
     name: "iPad Pro 11",
-    browserName: "chromium",
+    browserName: "webkit",
     frameShape: "tablet",
     cpuSlowdown: CPU_TIERS.tablet,
     use: pickEmulation(devices["iPad Pro 11"], {

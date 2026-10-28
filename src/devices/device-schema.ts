@@ -1,5 +1,11 @@
 import { z } from "zod";
-import type { FrameShape } from "@/devices/devices-logic";
+import type { BrowserName, FrameShape } from "@/devices/devices-logic";
+
+const BROWSER_NAMES = [
+  "chromium",
+  "webkit",
+  "firefox",
+] as const satisfies readonly BrowserName[];
 
 const FRAME_SHAPES = [
   "home-button",
@@ -33,6 +39,7 @@ export const customDeviceSchema = z.object({
     .default(DEFAULT_PIXEL_RATIO),
   hasTouch: z.boolean().default(false),
   frameShape: z.enum(FRAME_SHAPES).default("kiosk"),
+  browserName: z.enum(BROWSER_NAMES).default("chromium"),
 });
 
 export const devicesFileSchema = z.object({

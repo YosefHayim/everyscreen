@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { customDeviceSchema } from "@/devices/device-schema";
 
 describe("customDeviceSchema", () => {
-  test("fills pixel ratio, touch and frame shape when the file leaves them out", () => {
+  test("fills pixel ratio, touch, frame shape and browser name when the file leaves them out", () => {
     const customDevice = { name: "Store kiosk", width: 1080, height: 1920 };
 
     const parsedDevice = customDeviceSchema.parse(customDevice);
@@ -14,6 +14,7 @@ describe("customDeviceSchema", () => {
       pixelRatio: 1,
       hasTouch: false,
       frameShape: "kiosk",
+      browserName: "chromium",
     });
   });
 
