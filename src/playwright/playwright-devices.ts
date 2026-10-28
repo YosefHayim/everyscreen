@@ -24,9 +24,10 @@ const readOptionalFile = (filePath: string): string | null => {
 const readGridDevices = () => {
   const devicesYaml = readOptionalFile(DEVICES_FILE_PATH);
   const isDevicesFileMissing = devicesYaml === null;
-  if (isDevicesFileMissing) return pickGridDevices(devicesFileSchema.parse({}));
-
-  return pickGridDevices(parseDevicesYaml(devicesYaml));
+  const devicesFile = isDevicesFileMissing
+    ? devicesFileSchema.parse({})
+    : parseDevicesYaml(devicesYaml);
+  return pickGridDevices(devicesFile);
 };
 
 const readHubDevices = () => {

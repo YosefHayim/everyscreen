@@ -159,8 +159,8 @@ export default class EveryscreenReporter implements Reporter {
 
       const isStepSaved = this.savedKeys.has(testKey);
       const isReadyToSave = isStepComplete(keyTests, expectedCount);
-      const isSaveNeeded = isReadyToSave && !isStepSaved;
-      if (!isSaveNeeded) return;
+      const isSaveSkipped = !isReadyToSave || isStepSaved;
+      if (isSaveSkipped) return;
 
       this.savedKeys.add(testKey);
       await this.saveStep(testKey);
