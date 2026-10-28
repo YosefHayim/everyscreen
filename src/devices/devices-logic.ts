@@ -110,7 +110,7 @@ export const checkDeviceRemoval = (
   const keptDevices = devicesFile.devices.filter(
     (customDevice) => !hasDeviceId(customDevice, deviceId),
   );
-  return { devices: keptDevices };
+  return { ...devicesFile, devices: keptDevices };
 };
 
 export const pickDeviceViewport = (

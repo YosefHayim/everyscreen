@@ -21,6 +21,8 @@ const ARIA_ROLES = [
   "textbox",
 ] as const;
 
+const DEFAULT_MAX_ROUTES = 50;
+
 // null means every device in the grid.
 const deviceIdsSchema = z.array(z.string()).nullable();
 
@@ -28,6 +30,13 @@ export const openCommandSchema = z.object({
   commandName: z.literal("open"),
   url: z.url(),
   deviceIds: deviceIdsSchema,
+});
+
+export const sweepCommandSchema = z.object({
+  commandName: z.literal("sweep"),
+  url: z.url(),
+  deviceIds: deviceIdsSchema.default(null),
+  maxRoutes: z.number().int().positive().default(DEFAULT_MAX_ROUTES),
 });
 
 export const tapCommandSchema = z.object({
@@ -69,6 +78,7 @@ export const expectCommandSchema = z.object({
 
 export const hubCommandSchema = z.discriminatedUnion("commandName", [
   openCommandSchema,
+  sweepCommandSchema,
   tapCommandSchema,
   fillCommandSchema,
   scrollCommandSchema,

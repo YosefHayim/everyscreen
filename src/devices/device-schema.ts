@@ -44,6 +44,7 @@ export const customDeviceSchema = z.object({
 
 export const devicesFileSchema = z.object({
   devices: z.array(customDeviceSchema).default([]),
+  routes: z.array(z.string().startsWith("/")).default([]),
 });
 
 export type CustomDevice = z.infer<typeof customDeviceSchema>;

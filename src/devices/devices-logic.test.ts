@@ -123,7 +123,7 @@ describe("DEVICE_PRESETS", () => {
 
 describe("pickGridDevices", () => {
   test("shows only the nine presets when there are no custom devices", () => {
-    const gridDevices = pickGridDevices({ devices: [] });
+    const gridDevices = pickGridDevices({ devices: [], routes: [] });
 
     expect(gridDevices).toEqual(DEVICE_PRESETS);
     expect(gridDevices).toHaveLength(9);
@@ -132,6 +132,7 @@ describe("pickGridDevices", () => {
   test("shows custom devices after the presets, in file order", () => {
     const gridDevices = pickGridDevices({
       devices: [TOUCH_KIOSK, MOUSE_SCREEN],
+      routes: [],
     });
 
     expect(gridDevices.slice(-2).map((gridDevice) => gridDevice.id)).toEqual([
@@ -161,22 +162,28 @@ describe("checkNewDevice", () => {
 
 describe("checkDeviceRemoval", () => {
   test("returns the devices file without the removed custom device", () => {
-    const devicesFile = { devices: [TOUCH_KIOSK, MOUSE_SCREEN] };
+    const devicesFile = {
+      devices: [TOUCH_KIOSK, MOUSE_SCREEN],
+      routes: ["/orders/123"],
+    };
 
     const keptFile = checkDeviceRemoval(devicesFile, "shop-kiosk");
 
-    expect(keptFile).toEqual({ devices: [MOUSE_SCREEN] });
+    expect(keptFile).toEqual({
+      devices: [MOUSE_SCREEN],
+      routes: ["/orders/123"],
+    });
     expect(devicesFile.devices).toHaveLength(2);
   });
 
   test("rejects an id that is not a custom device with 404", () => {
-    const devicesFile = { devices: [TOUCH_KIOSK] };
+    const devicesFile = { devices: [TOUCH_KIOSK], routes: [] };
 
     const presetStatus = readStatus(() =>
       checkDeviceRemoval(devicesFile, "iphone-se"),
     );
     const emptyStatus = readStatus(() =>
-      checkDeviceRemoval({ devices: [] }, "shop-kiosk"),
+      checkDeviceRemoval({ devices: [], routes: [] }, "shop-kiosk"),
     );
 
     expect(presetStatus).toBe(404);

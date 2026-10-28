@@ -1,10 +1,12 @@
 import { HTTPException } from "hono/http-exception";
 import type { CheckDevice, Finding } from "@/checks/checks-logic";
+import type { DeviceStep } from "@/commands/command-steps";
 import type { HubCommand } from "@/commands/commands-schema";
+import type { DevicePage } from "@/devices/device-browsers";
 import { SAFE_AREA_INSETS } from "@/devices/device-emulation";
 import type { DevicePreset } from "@/devices/devices-logic";
 import { STORE_FOLDER } from "@/environment";
-import type { StepProof } from "@/runs/runs-logic";
+import type { RunStep, StepProof } from "@/runs/runs-logic";
 
 const NO_DEVICE_STATUS = 404;
 const SHOTS_SUBFOLDER = "shots";
@@ -14,6 +16,7 @@ interface DeviceOk {
   status: "ok";
   deviceId: string;
   durationMs: number;
+  shotPath: string | null;
 }
 
 export interface DeviceFailure {
@@ -43,7 +46,7 @@ export interface ReplyTally {
 const isFailure = (deviceAnswer: DeviceAnswer): deviceAnswer is DeviceFailure =>
   deviceAnswer.status === "failed";
 
-const countUnits = (count: number, unit: ReplyTally["unit"]): string => {
+export const countUnits = (count: number, unit: string): string => {
   const isSingular = count === 1;
   const plural = isSingular ? unit : `${unit}s`;
   return `${count} ${plural}`;
@@ -157,6 +160,8 @@ export const createStepTitle = (hubCommand: HubCommand): string => {
   switch (hubCommand.commandName) {
     case "open":
       return `open ${hubCommand.url}`;
+    case "sweep":
+      return `sweep ${hubCommand.url}`;
     case "tap":
       return `tap ${hubCommand.role} "${hubCommand.name}"`;
     case "fill":
@@ -170,4 +175,34 @@ export const createStepTitle = (hubCommand: HubCommand): string => {
     case "expect":
       return `expect "${hubCommand.text}"`;
   }
+};
+
+export const pickChosenPages = (
+  devicePages: DevicePage[],
+  deviceIds: string[] | null,
+): DevicePage[] => {
+  const runningDeviceIds = devicePages.map(({ device }) => device.id);
+  const chosenIds = pickDeviceIds(runningDeviceIds, deviceIds);
+  return devicePages.filter(({ device }) => chosenIds.includes(device.id));
+};
+
+export interface RunStepStart {
+  stepId: string;
+  title: string;
+  startedAt: number;
+  deviceSteps: DeviceStep[];
+}
+
+export const createRunStep = (runStepStart: RunStepStart): RunStep => {
+  const { stepId, title, startedAt, deviceSteps } = runStepStart;
+  const deviceAnswers = deviceSteps.map(({ deviceAnswer }) => deviceAnswer);
+  const findings = deviceSteps.flatMap((deviceStep) => deviceStep.findings);
+  return {
+    stepId,
+    title,
+    startedAt,
+    deviceAnswers,
+    findings,
+    proof: pickStepProof(deviceAnswers),
+  };
 };

@@ -13,9 +13,9 @@ import type { HubCommand } from "@/commands/commands-schema";
 import type { DevicePage } from "@/devices/device-browsers";
 import { pickDeviceViewport } from "@/devices/devices-logic";
 import { writeStoredFile } from "@/hub/stored-files";
-import { sendStepScreen } from "@/live/screencast";
+import { sendStepScreen, waitForPaintedPage } from "@/live/screencast";
 
-const ACTION_TIMEOUT_MS = 10_000;
+export const ACTION_TIMEOUT_MS = 10_000;
 
 export interface StepTarget {
   rootFolder: string;
@@ -38,6 +38,10 @@ const performCommand = async (
   switch (hubCommand.commandName) {
     case "open":
       await page.goto(hubCommand.url, actionTimeout);
+      return;
+    case "sweep":
+      await page.goto(hubCommand.url, actionTimeout);
+      await waitForPaintedPage(page);
       return;
     case "tap": {
       const target = page.getByRole(hubCommand.role, { name: hubCommand.name });
@@ -114,7 +118,8 @@ export const runStepOnDevice = async (
   const failureMessage = pickFailureMessage(actionErrorMessage, findings);
   const isStepFailed = failureMessage !== null;
   const isShotCommand = hubCommand.commandName === "shot";
-  const shouldSaveShot = isStepFailed || isShotCommand;
+  const isSweepCommand = hubCommand.commandName === "sweep";
+  const shouldSaveShot = isStepFailed || isShotCommand || isSweepCommand;
   const shotPath = shouldSaveShot
     ? await saveShot(devicePage, stepTarget)
     : null;
@@ -135,6 +140,7 @@ export const runStepOnDevice = async (
     status: "ok",
     deviceId: device.id,
     durationMs,
+    shotPath,
   };
   return { deviceAnswer, findings };
 };

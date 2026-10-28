@@ -6,7 +6,7 @@ import { broadcast } from "@/live/live-feed";
 const PAINT_TIMEOUT_MS = 3000;
 
 // A single-page app paints after the load event, so a screen image taken right after goto is white.
-const waitForPaintedPage = async (page: Page): Promise<void> => {
+export const waitForPaintedPage = async (page: Page): Promise<void> => {
   try {
     await page.waitForFunction(
       () => {

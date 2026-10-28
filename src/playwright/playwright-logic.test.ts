@@ -167,8 +167,8 @@ describe("createRunStep", () => {
       title: "shop.spec.ts › cart › adds a tote",
       startedAt: 100,
       deviceAnswers: [
-        { status: "ok", deviceId: "pixel-8", durationMs: 50 },
-        { status: "ok", deviceId: "iphone-se", durationMs: 50 },
+        { status: "ok", deviceId: "pixel-8", durationMs: 50, shotPath: null },
+        { status: "ok", deviceId: "iphone-se", durationMs: 50, shotPath: null },
       ],
       findings: [],
       proof: null,

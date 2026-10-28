@@ -9,6 +9,7 @@ const deviceAnswerSchema = z.discriminatedUnion("status", [
     status: z.literal("ok"),
     deviceId: z.string(),
     durationMs: z.number(),
+    shotPath: z.string().nullable().default(null),
   }),
   z.object({
     status: z.literal("failed"),

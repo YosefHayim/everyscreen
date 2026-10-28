@@ -17,8 +17,8 @@ const createStep = (overrides: Partial<RunStep> = {}): RunStep => ({
   title: "tap Checkout",
   startedAt: 1,
   deviceAnswers: [
-    { status: "ok", deviceId: "pixel-8", durationMs: 400 },
-    { status: "ok", deviceId: "iphone-se", durationMs: 900 },
+    { status: "ok", deviceId: "pixel-8", durationMs: 400, shotPath: null },
+    { status: "ok", deviceId: "iphone-se", durationMs: 900, shotPath: null },
   ],
   findings: [],
   proof: null,
@@ -131,7 +131,7 @@ describe("pickFirstFailedDeviceId", () => {
   test("returns the device of the first failed answer", () => {
     const failedStep = createStep({
       deviceAnswers: [
-        { status: "ok", deviceId: "pixel-8", durationMs: 1 },
+        { status: "ok", deviceId: "pixel-8", durationMs: 1, shotPath: null },
         {
           status: "failed",
           deviceId: "iphone-se",

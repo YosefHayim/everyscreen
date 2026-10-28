@@ -14,7 +14,7 @@ const createStep = (stepId: string) => ({
   title: "tap Checkout",
   startedAt: 5,
   deviceAnswers: [
-    { status: "ok", deviceId: "pixel-8", durationMs: 90 },
+    { status: "ok", deviceId: "pixel-8", durationMs: 90, shotPath: null },
     {
       status: "failed",
       deviceId: "iphone-se",

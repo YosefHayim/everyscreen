@@ -2,17 +2,21 @@ import { HTTPException } from "hono/http-exception";
 import { describe, expect, test } from "vitest";
 import type { Finding } from "@/checks/checks-logic";
 import {
+  countUnits,
   createReplyLine,
+  createRunStep,
   createShotPath,
   createStepTitle,
   type DeviceAnswer,
   pickCheckDevice,
+  pickChosenPages,
   pickDeviceIds,
   pickErrorMessage,
   pickFailureMessage,
   pickStepProof,
   summarizeCommand,
 } from "@/commands/commands-logic";
+import type { DevicePage } from "@/devices/device-browsers";
 import { DEVICE_PRESETS } from "@/devices/device-presets";
 import type { DevicePreset } from "@/devices/devices-logic";
 
@@ -34,6 +38,7 @@ const createOkAnswer = (deviceId: string): DeviceAnswer => ({
   status: "ok",
   deviceId,
   durationMs: 180,
+  shotPath: null,
 });
 
 const createFailedAnswer = (deviceId: string): DeviceAnswer => ({
@@ -288,6 +293,15 @@ describe("createStepTitle", () => {
       { commandName: "scroll", to: "bottom", ...everyDevice },
       "scroll to bottom",
     ],
+    [
+      {
+        commandName: "sweep",
+        url: "http://a.test/",
+        maxRoutes: 50,
+        ...everyDevice,
+      },
+      "sweep http://a.test/",
+    ],
     [{ commandName: "check", ...everyDevice }, "check"],
     [{ commandName: "shot", ...everyDevice }, "shot"],
     [
@@ -296,5 +310,57 @@ describe("createStepTitle", () => {
     ],
   ] as const)("titles %j", (hubCommand, expectedTitle) => {
     expect(createStepTitle(hubCommand)).toBe(expectedTitle);
+  });
+});
+
+describe("countUnits", () => {
+  test("keeps the unit singular for one and adds s otherwise", () => {
+    expect(countUnits(1, "route")).toBe("1 route");
+    expect(countUnits(0, "route")).toBe("0 routes");
+    expect(countUnits(24, "route")).toBe("24 routes");
+  });
+});
+
+describe("pickChosenPages", () => {
+  const devicePages = ["pixel-8", "iphone-se"].map(
+    (deviceId): DevicePage => ({
+      device: findPreset(deviceId),
+      page: null as never,
+      hasLiveScreen: false,
+    }),
+  );
+
+  test("keeps every page when no device ids are given", () => {
+    const chosenPages = pickChosenPages(devicePages, null);
+
+    expect(chosenPages).toEqual(devicePages);
+  });
+
+  test("keeps only the pages of the given device ids", () => {
+    const chosenPages = pickChosenPages(devicePages, ["iphone-se"]);
+
+    expect(chosenPages.map(({ device }) => device.id)).toEqual(["iphone-se"]);
+  });
+});
+
+describe("createRunStep", () => {
+  test("joins the answers and findings of every device and picks the first failure as proof", () => {
+    const failedAnswer = createFailedAnswer("pixel-8");
+    const finding = createFinding("warn");
+
+    const runStep = createRunStep({
+      stepId: "step-2",
+      title: "sweep /about",
+      startedAt: 5,
+      deviceSteps: [
+        { deviceAnswer: createOkAnswer("iphone-se"), findings: [finding] },
+        { deviceAnswer: failedAnswer, findings: [] },
+      ],
+    });
+
+    expect(runStep.deviceAnswers).toHaveLength(2);
+    expect(runStep.findings).toEqual([finding]);
+    expect(runStep.proof?.errorMessage).toBe('cookie bar covers "Checkout"');
+    expect(runStep.title).toBe("sweep /about");
   });
 });
