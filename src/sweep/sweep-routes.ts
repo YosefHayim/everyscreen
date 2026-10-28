@@ -3,6 +3,7 @@ import { ACTION_TIMEOUT_MS } from "@/commands/command-steps";
 import { waitForPaintedPage } from "@/live/screencast";
 import {
   createRouteUrl,
+  hasLeftOrigin,
   mergeRoutes,
   type PageLink,
   parseSitemapLocs,
@@ -14,7 +15,7 @@ import {
 const SITEMAP_PATH = "/sitemap.xml";
 const LINK_SELECTOR = "a[href]";
 
-export interface RouteSources {
+interface RouteSources {
   startUrl: string;
   maxRoutes: number;
   configuredRoutes: string[];
@@ -42,6 +43,8 @@ const readRouteLinks = async (
   try {
     await page.goto(routeUrl, { timeout: ACTION_TIMEOUT_MS });
     await waitForPaintedPage(page);
+    const hasLeftApp = hasLeftOrigin(page.url(), startUrl);
+    if (hasLeftApp) return [];
     const pageLinks = await readPageLinks(page);
     return pickLinkRoutes(pageLinks, startUrl);
   } catch (error) {
@@ -77,7 +80,8 @@ const readSitemapRoutes = async (startUrl: string): Promise<string[]> => {
     const isSitemapMissing = !sitemapReply.ok;
     if (isSitemapMissing) return [];
     const sitemapXml = await sitemapReply.text();
-    return pickRoutes(parseSitemapLocs(sitemapXml), startUrl);
+    const sitemapLocs = parseSitemapLocs(sitemapXml);
+    return pickRoutes(sitemapLocs, startUrl);
   } catch (error) {
     console.error({ sitemapUrl, error });
     return [];

@@ -46,7 +46,9 @@ export interface ReplyTally {
 const isFailure = (deviceAnswer: DeviceAnswer): deviceAnswer is DeviceFailure =>
   deviceAnswer.status === "failed";
 
-export const countUnits = (count: number, unit: string): string => {
+type CountedUnit = "device" | "flow" | "route" | "shot" | "finding";
+
+export const countUnits = (count: number, unit: CountedUnit): string => {
   const isSingular = count === 1;
   const plural = isSingular ? unit : `${unit}s`;
   return `${count} ${plural}`;
@@ -186,14 +188,14 @@ export const pickChosenPages = (
   return devicePages.filter(({ device }) => chosenIds.includes(device.id));
 };
 
-export interface RunStepStart {
+interface RunStepStart {
   stepId: string;
   title: string;
   startedAt: number;
   deviceSteps: DeviceStep[];
 }
 
-export const createRunStep = (runStepStart: RunStepStart): RunStep => {
+export const createCommandRunStep = (runStepStart: RunStepStart): RunStep => {
   const { stepId, title, startedAt, deviceSteps } = runStepStart;
   const deviceAnswers = deviceSteps.map(({ deviceAnswer }) => deviceAnswer);
   const findings = deviceSteps.flatMap((deviceStep) => deviceStep.findings);

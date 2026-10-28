@@ -3,8 +3,8 @@ import { describe, expect, test } from "vitest";
 import type { Finding } from "@/checks/checks-logic";
 import {
   countUnits,
+  createCommandRunStep,
   createReplyLine,
-  createRunStep,
   createShotPath,
   createStepTitle,
   type DeviceAnswer,
@@ -343,12 +343,12 @@ describe("pickChosenPages", () => {
   });
 });
 
-describe("createRunStep", () => {
+describe("createCommandRunStep", () => {
   test("joins the answers and findings of every device and picks the first failure as proof", () => {
     const failedAnswer = createFailedAnswer("pixel-8");
     const finding = createFinding("warn");
 
-    const runStep = createRunStep({
+    const runStep = createCommandRunStep({
       stepId: "step-2",
       title: "sweep /about",
       startedAt: 5,

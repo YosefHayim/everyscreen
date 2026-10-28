@@ -3,8 +3,9 @@ import type { DeviceStep } from "@/commands/command-steps";
 import {
   type CommandReply,
   countUnits,
-  createRunStep,
+  createCommandRunStep,
   type DeviceFailure,
+  pickErrorMessage,
 } from "@/commands/commands-logic";
 import { createStepId, type RunStep } from "@/runs/runs-logic";
 
@@ -61,10 +62,7 @@ const XML_ENTITIES: Record<string, string> = {
 };
 
 // The route is pathname plus search: the hash never changes which page loads.
-export const createRoutePath = (
-  href: string,
-  baseUrl: string,
-): string | null => {
+const createRoutePath = (href: string, baseUrl: string): string | null => {
   const isHrefMalformed = !URL.canParse(href, baseUrl);
   if (isHrefMalformed) return null;
 
@@ -75,7 +73,10 @@ export const createRoutePath = (
   const isFileDownload = DOWNLOAD_EXTENSIONS.some((extension) =>
     pathname.endsWith(extension),
   );
-  const isRouteSkipped = isNotWebPage || isOtherOrigin || isFileDownload;
+  // //host/path would point at another host once joined to the origin.
+  const isHostPath = linkUrl.pathname.startsWith("//");
+  const isRouteSkipped =
+    isNotWebPage || isOtherOrigin || isFileDownload || isHostPath;
   if (isRouteSkipped) return null;
   return `${linkUrl.pathname}${linkUrl.search}`;
 };
@@ -92,10 +93,8 @@ export const pickLinkRoutes = (
   const followedLinks = pageLinks.filter(
     ({ rel, isDownload }) => !isDownload && !NOFOLLOW_PATTERN.test(rel),
   );
-  return pickRoutes(
-    followedLinks.map(({ href }) => href),
-    startUrl,
-  );
+  const followedHrefs = followedLinks.map(({ href }) => href);
+  return pickRoutes(followedHrefs, startUrl);
 };
 
 export const parseSitemapLocs = (sitemapXml: string): string[] =>
@@ -119,10 +118,43 @@ export const pickStartRoute = (startUrl: string): string => {
   return startRoute;
 };
 
-export const createRouteUrl = (route: string, startUrl: string): string =>
-  new URL(route, startUrl).href;
+export const createRouteUrl = (route: string, startUrl: string): string => {
+  const startOrigin = new URL(startUrl).origin;
+  return `${startOrigin}${route}`;
+};
 
-const createSweepStepTitle = (route: string): string => `sweep ${route}`;
+export const hasLeftOrigin = (pageUrl: string, startUrl: string): boolean => {
+  const pageOrigin = new URL(pageUrl).origin;
+  const startOrigin = new URL(startUrl).origin;
+  return pageOrigin !== startOrigin;
+};
+
+export const createLeftOriginStep = (deviceStep: DeviceStep): DeviceStep => {
+  const { deviceId, durationMs, shotPath } = deviceStep.deviceAnswer;
+  const deviceAnswer: DeviceFailure = {
+    status: "failed",
+    deviceId,
+    durationMs,
+    message: "left the app origin",
+    shotPath,
+  };
+  return { deviceAnswer, findings: deviceStep.findings };
+};
+
+export const createCrashedStep = (
+  deviceId: string,
+  durationMs: number,
+  error: unknown,
+): DeviceStep => ({
+  deviceAnswer: {
+    status: "failed",
+    deviceId,
+    durationMs,
+    message: pickErrorMessage(error),
+    shotPath: null,
+  },
+  findings: [],
+});
 
 // Each device lists its route steps in route order, so one route is the same index on every device.
 export const createSweepSteps = (
@@ -134,9 +166,9 @@ export const createSweepSteps = (
       (deviceRouteSteps) => deviceRouteSteps[routeIndex],
     );
     const startTimes = routeSteps.map(({ startedAt }) => startedAt);
-    const runStep = createRunStep({
+    const runStep = createCommandRunStep({
       stepId: createStepId(routeIndex + 1),
-      title: createSweepStepTitle(route),
+      title: `sweep ${route}`,
       startedAt: Math.min(...startTimes),
       deviceSteps: routeSteps.map(({ deviceStep }) => deviceStep),
     });
@@ -168,14 +200,15 @@ export const summarizeSweep = (
   );
 
   const hasFailure = failures.length > 0;
+  const failedParts = hasFailure ? [`${failures.length} failed`] : [];
   const lineParts = [
     countUnits(sweepSteps.length, "route"),
     countUnits(deviceIds.size, "device"),
     countUnits(shotCount, "shot"),
     countUnits(findingCount, "finding"),
+    ...failedParts,
+    `report ${runId}`,
   ];
-  if (hasFailure) lineParts.push(`${failures.length} failed`);
-  lineParts.push(`report ${runId}`);
   const status = hasFailure ? "failed" : "ok";
   return { status, line: lineParts.join(" · "), runId, failures };
 };

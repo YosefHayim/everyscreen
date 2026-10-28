@@ -25,6 +25,10 @@ const MIN_PIXEL_RATIO = 1;
 const MAX_PIXEL_RATIO = 4;
 const DEFAULT_PIXEL_RATIO = 1;
 
+// A route like //evil.com/x would point at another host.
+const isOriginRelativeRoute = (route: string): boolean =>
+  route.startsWith("/") && !route.startsWith("//");
+
 export const customDeviceSchema = z.object({
   name: z
     .string()
@@ -44,7 +48,16 @@ export const customDeviceSchema = z.object({
 
 export const devicesFileSchema = z.object({
   devices: z.array(customDeviceSchema).default([]),
-  routes: z.array(z.string().startsWith("/")).default([]),
+  routes: z
+    .array(
+      z
+        .string()
+        .refine(
+          isOriginRelativeRoute,
+          "Use a path that starts with a single /",
+        ),
+    )
+    .default([]),
 });
 
 export type CustomDevice = z.infer<typeof customDeviceSchema>;

@@ -153,8 +153,10 @@ test.describe("sweep command", () => {
 
     expect(shotPaths).toHaveLength(EXPECTED_ROUTES.length * DEVICE_IDS.length);
     for (const shotPath of shotPaths) {
-      expect(shotPath).not.toBeNull();
-      await access(join(rootFolder, shotPath ?? ""));
+      const isShotPathMissing = shotPath === null;
+      if (isShotPathMissing) throw new Error("A sweep answer has no shot path");
+      const shotFile = join(rootFolder, shotPath);
+      await access(shotFile);
     }
   });
 

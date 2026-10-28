@@ -46,6 +46,12 @@ describe("devicesFileSchema", () => {
     expect(devicesFile.routes).toEqual(["/orders/123"]);
   });
 
+  test("rejects a route that starts with two slashes", () => {
+    const parsing = devicesFileSchema.safeParse({ routes: ["//evil.com/x"] });
+
+    expect(parsing.success).toBe(false);
+  });
+
   test("rejects a route that does not start with a slash", () => {
     const parsing = devicesFileSchema.safeParse({ routes: ["orders/123"] });
 

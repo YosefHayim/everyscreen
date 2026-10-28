@@ -3,9 +3,11 @@ import { describe, expect, test } from "vitest";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import type { RunStep } from "@/runs/runs-logic";
 import {
-  createRoutePath,
+  createCrashedStep,
+  createLeftOriginStep,
   createRouteUrl,
   createSweepSteps,
+  hasLeftOrigin,
   mergeRoutes,
   type PageLink,
   parseSitemapLocs,
@@ -24,15 +26,20 @@ const createLink = (href: string, overrides: Partial<PageLink> = {}) => ({
   ...overrides,
 });
 
-describe("createRoutePath", () => {
+const pickFirstRoute = (href: string, startUrl: string): string | null => {
+  const [firstRoute = null] = pickRoutes([href], startUrl);
+  return firstRoute;
+};
+
+describe("pickRoutes for one href", () => {
   test("keeps the pathname and search and drops the hash", () => {
-    const route = createRoutePath("/shop?page=2#reviews", START_URL);
+    const route = pickFirstRoute("/shop?page=2#reviews", START_URL);
 
     expect(route).toBe("/shop?page=2");
   });
 
   test("reads a full same-origin url", () => {
-    const route = createRoutePath("http://127.0.0.1:3000/about", START_URL);
+    const route = pickFirstRoute("http://127.0.0.1:3000/about", START_URL);
 
     expect(route).toBe("/about");
   });
@@ -45,12 +52,16 @@ describe("createRoutePath", () => {
     ["javascript", "javascript:void(0)"],
     ["a pdf download", "/menu.PDF"],
     ["a zip download", "/files/site.zip?v=2"],
+    [
+      "a path that starts with two slashes",
+      "http://127.0.0.1:3000//evil.com/x",
+    ],
   ])("skips %s", (_name, href) => {
-    expect(createRoutePath(href, START_URL)).toBeNull();
+    expect(pickFirstRoute(href, START_URL)).toBeNull();
   });
 
   test("skips a link that is not a valid url", () => {
-    expect(createRoutePath("http://", START_URL)).toBeNull();
+    expect(pickFirstRoute("http://", START_URL)).toBeNull();
   });
 });
 
@@ -153,6 +164,12 @@ describe("pickStartRoute", () => {
 });
 
 describe("createRouteUrl", () => {
+  test("keeps the start origin for a route made of one slash", () => {
+    expect(createRouteUrl("/x", "http://127.0.0.1:3000/")).toBe(
+      "http://127.0.0.1:3000/x",
+    );
+  });
+
   test("joins a route to the start url origin", () => {
     expect(createRouteUrl("/a?b=1", "http://127.0.0.1:3000/start")).toBe(
       "http://127.0.0.1:3000/a?b=1",
@@ -303,5 +320,49 @@ describe("summarizeSweep", () => {
     const reply = summarizeSweep(sweepSteps, "run-0009");
 
     expect(reply.line).toContain("0 shots");
+  });
+});
+
+describe("hasLeftOrigin", () => {
+  test("is false on the start origin", () => {
+    expect(hasLeftOrigin("http://127.0.0.1:3000/a", START_URL)).toBe(false);
+  });
+
+  test("is true on another origin", () => {
+    expect(hasLeftOrigin("https://example.com/a", START_URL)).toBe(true);
+  });
+});
+
+describe("createLeftOriginStep", () => {
+  test("turns an ok answer into a failed one and keeps the findings", () => {
+    const deviceStep = {
+      deviceAnswer: createOkAnswer("pixel-8", "shots/a.png"),
+      findings: [],
+    };
+
+    const leftStep = createLeftOriginStep(deviceStep);
+
+    expect(leftStep.deviceAnswer).toEqual({
+      status: "failed",
+      deviceId: "pixel-8",
+      durationMs: 10,
+      message: "left the app origin",
+      shotPath: "shots/a.png",
+    });
+    expect(leftStep.findings).toEqual([]);
+  });
+});
+
+describe("createCrashedStep", () => {
+  test("makes a failed answer with the error message", () => {
+    const crashedStep = createCrashedStep("pixel-8", 5, new Error("boom"));
+
+    expect(crashedStep.deviceAnswer).toMatchObject({
+      status: "failed",
+      deviceId: "pixel-8",
+      durationMs: 5,
+      shotPath: null,
+    });
+    expect(crashedStep.findings).toEqual([]);
   });
 });

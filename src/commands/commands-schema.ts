@@ -22,6 +22,7 @@ const ARIA_ROLES = [
 ] as const;
 
 const DEFAULT_MAX_ROUTES = 50;
+const MAX_SWEEP_ROUTES = 500;
 
 // null means every device in the grid.
 const deviceIdsSchema = z.array(z.string()).nullable();
@@ -35,8 +36,13 @@ export const openCommandSchema = z.object({
 export const sweepCommandSchema = z.object({
   commandName: z.literal("sweep"),
   url: z.url(),
-  deviceIds: deviceIdsSchema.default(null),
-  maxRoutes: z.number().int().positive().default(DEFAULT_MAX_ROUTES),
+  deviceIds: z.array(z.string()).min(1).nullable().default(null),
+  maxRoutes: z
+    .number()
+    .int()
+    .positive()
+    .max(MAX_SWEEP_ROUTES)
+    .default(DEFAULT_MAX_ROUTES),
 });
 
 export const tapCommandSchema = z.object({

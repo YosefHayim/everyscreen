@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { runStepOnDevice, type StepTarget } from "@/commands/command-steps";
 import {
   type CommandReply,
-  createRunStep,
+  createCommandRunStep,
   createStepTitle,
   pickChosenPages,
   summarizeCommand,
@@ -45,7 +45,7 @@ const runCommand = async (
     chosenPages.map((devicePage) => runStepOnDevice(devicePage, stepTarget)),
   );
 
-  const runStep = createRunStep({
+  const runStep = createCommandRunStep({
     stepId: stepTarget.stepId,
     title: createStepTitle(hubCommand),
     startedAt,
