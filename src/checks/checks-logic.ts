@@ -8,7 +8,7 @@ export type FindingKind =
   | "console-error"
   | "failed-request";
 
-export type Severity = "fail" | "warn";
+export type Severity = "failed" | "warn";
 
 export interface Finding {
   kind: FindingKind;
