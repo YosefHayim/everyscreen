@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 import { readCommandLine } from "@/cli/cli-flags";
-import { type CliPlan, createReply, planCli } from "@/cli/cli-logic";
+import {
+  type CliPlan,
+  createReply,
+  mustWriteFinalReply,
+  planCli,
+} from "@/cli/cli-logic";
 import { writeReply } from "@/cli/cli-reply";
 import { runCliRequest } from "@/cli/cli-requests";
 import type { CommandReply } from "@/commands/commands-logic";
@@ -34,7 +39,13 @@ const runPlan = async (
         process.cwd(),
         writeStartedReply,
       );
-      writeReply(commandReply, isJsonWanted);
+      const isTerminal = process.stdout.isTTY === true;
+      const isFinalReplyWritten = mustWriteFinalReply(
+        cliPlan.cliRequest,
+        isJsonWanted,
+        isTerminal,
+      );
+      if (isFinalReplyWritten) writeReply(commandReply, isJsonWanted);
       return EXIT_CODES[commandReply.status];
     }
   }

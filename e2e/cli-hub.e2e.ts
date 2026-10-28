@@ -66,7 +66,9 @@ const isExecFailure = (error: unknown): error is ExecFailure =>
 
 const waitForExit = async (processId: number): Promise<void> => {
   const deadline = Date.now() + EXIT_TIMEOUT_MS;
-  while (isProcessAlive(processId) && Date.now() < deadline) {
+  const isWaitingForExit = () =>
+    isProcessAlive(processId) && Date.now() < deadline;
+  while (isWaitingForExit()) {
     await new Promise((done) => setTimeout(done, EXIT_POLL_MS));
   }
 };

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  type CliRequest,
   createDeviceListLine,
   createHelpPage,
   createHubDownReply,
@@ -10,6 +11,7 @@ import {
   createReply,
   createRunningLine,
   isPortConflict,
+  mustWriteFinalReply,
   pickCommandName,
   planCli,
 } from "@/cli/cli-logic";
@@ -97,6 +99,39 @@ describe("createDeviceListLine", () => {
     const deviceListLine = createDeviceListLine(["iphone-se", "pixel-8"]);
 
     expect(deviceListLine).toBe("2 devices · iphone-se, pixel-8");
+  });
+});
+
+describe("mustWriteFinalReply", () => {
+  const foregroundStart: CliRequest = {
+    kind: "start",
+    port: null,
+    isForeground: true,
+  };
+  const backgroundStart: CliRequest = {
+    kind: "start",
+    port: null,
+    isForeground: false,
+  };
+
+  test("skips the stopped reply of a foreground start with --json", () => {
+    expect(mustWriteFinalReply(foregroundStart, true, true)).toBe(false);
+  });
+
+  test("skips the stopped reply of a foreground start without a terminal", () => {
+    expect(mustWriteFinalReply(foregroundStart, false, false)).toBe(false);
+  });
+
+  test("writes the stopped reply of a foreground start in a terminal", () => {
+    expect(mustWriteFinalReply(foregroundStart, false, true)).toBe(true);
+  });
+
+  test("writes the reply of a background start with --json", () => {
+    expect(mustWriteFinalReply(backgroundStart, true, true)).toBe(true);
+  });
+
+  test("writes the reply of another command with --json", () => {
+    expect(mustWriteFinalReply({ kind: "stop" }, true, true)).toBe(true);
   });
 });
 

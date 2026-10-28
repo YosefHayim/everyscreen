@@ -94,6 +94,18 @@ export const isPortConflict = (
 export const createPortConflictReply = (hubUrl: string): CommandReply =>
   createReply("failed", `hub already running at ${hubUrl} · stop it first`);
 
+export const mustWriteFinalReply = (
+  cliRequest: CliRequest,
+  isJsonWanted: boolean,
+  isTerminal: boolean,
+): boolean => {
+  const isForegroundStart =
+    cliRequest.kind === "start" && cliRequest.isForeground;
+  const mustWriteJson = isJsonWanted || !isTerminal;
+  const isFinalReplySkipped = isForegroundStart && mustWriteJson;
+  return !isFinalReplySkipped;
+};
+
 export const createPrintedReply = (
   commandReply: CommandReply,
   isJsonWanted: boolean,
