@@ -1,4 +1,7 @@
+import type { PageMeasurements } from "@/checks/check-probes";
+
 export const MIN_TAP_SIZE = 44;
+const REQUEST_FAILURE_ECHO = "Failed to load resource";
 
 export type FindingKind =
   | "overflow"
@@ -22,3 +25,118 @@ export interface CheckDevice {
   id: string;
   hasTouch: boolean;
 }
+
+const findOverflow = (
+  measurements: PageMeasurements,
+  checkDevice: CheckDevice,
+): Finding[] => {
+  const { widestPastEdge } = measurements;
+  const isNothingPastEdge = widestPastEdge === null;
+  if (isNothingPastEdge) return [];
+
+  const { selector, overflowPx } = widestPastEdge;
+  return [
+    {
+      kind: "overflow",
+      severity: "fail",
+      deviceId: checkDevice.id,
+      selector,
+      message: `${selector} is ${overflowPx}px past the edge`,
+    },
+  ];
+};
+
+const findClippedLabels = (
+  measurements: PageMeasurements,
+  checkDevice: CheckDevice,
+): Finding[] =>
+  measurements.clippedSelectors.map((selector) => ({
+    kind: "clipped-text",
+    severity: "warn",
+    deviceId: checkDevice.id,
+    selector,
+    message: `${selector} cuts its text off`,
+  }));
+
+const findSafeAreaProblems = (
+  measurements: PageMeasurements,
+  checkDevice: CheckDevice,
+): Finding[] => {
+  const { pinnedBoxes, safeAreaInsets, viewportHeight } = measurements;
+  const homeBarTop = viewportHeight - safeAreaInsets.bottom;
+  return pinnedBoxes
+    .filter((pinnedBox) => {
+      const { top, bottom } = safeAreaInsets;
+      const isUnderNotch = pinnedBox.top < top && pinnedBox.paddingTop < top;
+      const isUnderHomeBar =
+        pinnedBox.bottom > homeBarTop && pinnedBox.paddingBottom < bottom;
+      return isUnderNotch || isUnderHomeBar;
+    })
+    .map((pinnedBox) => ({
+      kind: "safe-area",
+      severity: "warn",
+      deviceId: checkDevice.id,
+      selector: pinnedBox.selector,
+      message: `${pinnedBox.selector} sits under the notch or home bar`,
+    }));
+};
+
+const findSmallTapTargets = (
+  measurements: PageMeasurements,
+  checkDevice: CheckDevice,
+): Finding[] => {
+  const isMouseOnly = !checkDevice.hasTouch;
+  if (isMouseOnly) return [];
+
+  return measurements.tapTargets
+    .filter(({ width, height }) => Math.min(width, height) < MIN_TAP_SIZE)
+    .map(({ selector, width, height }) => ({
+      kind: "tap-target",
+      severity: "warn",
+      deviceId: checkDevice.id,
+      selector,
+      message:
+        `${selector} is ${Math.round(width)}x${Math.round(height)}, ` +
+        `under ${MIN_TAP_SIZE}x${MIN_TAP_SIZE}`,
+    }));
+};
+
+export const listFindings = (
+  measurements: PageMeasurements,
+  checkDevice: CheckDevice,
+): Finding[] => [
+  ...findOverflow(measurements, checkDevice),
+  ...findClippedLabels(measurements, checkDevice),
+  ...findSafeAreaProblems(measurements, checkDevice),
+  ...findSmallTapTargets(measurements, checkDevice),
+];
+
+// The browser also logs every failed request as a console error.
+export const isRequestFailureEcho = (consoleMessage: string): boolean =>
+  consoleMessage.startsWith(REQUEST_FAILURE_ECHO);
+
+export const createConsoleFinding = (
+  deviceId: string,
+  consoleMessage: string,
+): Finding => ({
+  kind: "console-error",
+  severity: "fail",
+  deviceId,
+  selector: null,
+  message: consoleMessage,
+});
+
+export const createRequestFinding = (
+  deviceId: string,
+  requestUrl: string,
+  failureText: string | null,
+): Finding => {
+  const { pathname } = new URL(requestUrl);
+  return {
+    kind: "failed-request",
+    severity: "fail",
+    deviceId,
+    selector: null,
+    message: `${pathname} ${failureText ?? "failed"}`,
+  };
+};
