@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { estimateDeviceLoad, type Sample } from "@/estimates/estimates-logic";
+import {
+  estimateDeviceLoad,
+  pickSampleWindow,
+  type Sample,
+} from "@/estimates/estimates-logic";
 
 const createSample = (overrides: Partial<Sample>): Sample => ({
   takenAt: 0,
@@ -113,5 +117,35 @@ describe("estimateDeviceLoad", () => {
     const deviceLoad = estimateDeviceLoad(samples);
 
     expect(deviceLoad.cpuPercent).toBe(100);
+  });
+});
+
+describe("pickSampleWindow", () => {
+  test("starts a window from the first sample", () => {
+    const firstSample = createSample({ takenAt: 1 });
+
+    const sampleWindow = pickSampleWindow([], firstSample, 3);
+
+    expect(sampleWindow).toEqual([firstSample]);
+  });
+
+  test("keeps only the newest samples up to the window size", () => {
+    const recentSamples = [1, 2, 3].map((takenAt) =>
+      createSample({ takenAt, frames: takenAt }),
+    );
+    const newSample = createSample({ takenAt: 4, frames: 4 });
+
+    const sampleWindow = pickSampleWindow(recentSamples, newSample, 3);
+
+    expect(sampleWindow.map((sample) => sample.takenAt)).toEqual([2, 3, 4]);
+  });
+
+  test("clears the window when the frame counter goes down", () => {
+    const recentSamples = [createSample({ takenAt: 1, frames: 90 })];
+    const newSample = createSample({ takenAt: 2, frames: 3 });
+
+    const sampleWindow = pickSampleWindow(recentSamples, newSample, 5);
+
+    expect(sampleWindow).toEqual([newSample]);
   });
 });

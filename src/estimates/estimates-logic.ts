@@ -19,18 +19,19 @@ export interface DeviceLoad {
 const MIN_FPS = 30;
 const MAX_CPU_PERCENT = 80;
 const MAX_LAYOUT_SHIFT = 0.1;
-const MAX_CPU_PERCENT_CAP = 100;
+const FULL_CPU_PERCENT = 100;
+const PERCENT_SCALE = 100;
 const BYTES_PER_MEGABYTE = 1_000_000;
 const MILLISECONDS_PER_SECOND = 1000;
 
-const IDLE_DEVICE_LOAD: DeviceLoad = {
+const createIdleDeviceLoad = (): DeviceLoad => ({
   label: "est.",
   fps: 0,
   cpuPercent: 0,
   memoryMegabytes: 0,
   layoutShift: 0,
   status: "ok",
-};
+});
 
 export const estimateDeviceLoad = (samples: Sample[]): DeviceLoad => {
   const firstSample = samples.at(0);
@@ -39,17 +40,18 @@ export const estimateDeviceLoad = (samples: Sample[]): DeviceLoad => {
     firstSample === undefined ||
     lastSample === undefined ||
     firstSample === lastSample;
-  if (hasNoWindow) return IDLE_DEVICE_LOAD;
+  if (hasNoWindow) return createIdleDeviceLoad();
 
   const wallSeconds =
     (lastSample.takenAt - firstSample.takenAt) / MILLISECONDS_PER_SECOND;
   const isWallTimeEmpty = wallSeconds <= 0;
-  if (isWallTimeEmpty) return IDLE_DEVICE_LOAD;
+  if (isWallTimeEmpty) return createIdleDeviceLoad();
 
   const fps = (lastSample.frames - firstSample.frames) / wallSeconds;
   const busyPercent =
-    ((lastSample.taskSeconds - firstSample.taskSeconds) / wallSeconds) * 100;
-  const cpuPercent = Math.min(MAX_CPU_PERCENT_CAP, busyPercent);
+    ((lastSample.taskSeconds - firstSample.taskSeconds) / wallSeconds) *
+    PERCENT_SCALE;
+  const cpuPercent = Math.min(FULL_CPU_PERCENT, busyPercent);
   const memoryMegabytes = lastSample.heapBytes / BYTES_PER_MEGABYTE;
   const isSmooth =
     fps >= MIN_FPS &&
@@ -64,4 +66,17 @@ export const estimateDeviceLoad = (samples: Sample[]): DeviceLoad => {
     layoutShift: lastSample.layoutShift,
     status: isSmooth ? "ok" : "warn",
   };
+};
+
+export const pickSampleWindow = (
+  recentSamples: Sample[],
+  newSample: Sample,
+  windowSize: number,
+): Sample[] => {
+  const lastSample = recentSamples.at(-1);
+  const hasFrameCounterReset =
+    lastSample !== undefined && newSample.frames < lastSample.frames;
+  if (hasFrameCounterReset) return [newSample];
+
+  return [...recentSamples.slice(-(windowSize - 1)), newSample];
 };
