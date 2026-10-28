@@ -78,7 +78,7 @@ export const ShopPreview = (): ReactElement => {
                   {t(`checks.toasts.${toastId}.title`)}
                 </p>
                 <p className="m-0 text-[13px] leading-[18px] text-ink-2">
-                  {t(`checks.toasts.${toastId}.body`)}
+                  {t(`checks.toasts.${toastId}.detail`)}
                 </p>
               </div>
             </li>

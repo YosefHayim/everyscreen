@@ -20,12 +20,18 @@ export const CloudPlanCard = ({
 }: CloudPlanCardProps): ReactElement => {
   const { t } = useTranslation();
   const isHosted = plan.id === "hosted";
+  const cardToneClassName = isHosted
+    ? "border-cobalt bg-cobalt text-card"
+    : "border-line bg-card";
+  const noteToneClassName = isHosted
+    ? "border-card/25 text-card/85"
+    : "border-line text-ink-2";
 
   return (
     <div
       className={cn(
         "flex flex-col gap-5 rounded-2xl border p-8",
-        isHosted ? "border-cobalt bg-cobalt text-card" : "border-line bg-card",
+        cardToneClassName,
       )}
     >
       <div className="flex items-center justify-between">
@@ -41,12 +47,7 @@ export const CloudPlanCard = ({
       <p className="m-0 text-[44px] leading-none font-medium tracking-[-0.03em]">
         {t(`cloud.${plan.id}.price`)}
       </p>
-      <p
-        className={cn(
-          "m-0 border-b pb-5 text-[15px]",
-          isHosted ? "border-card/25 text-card/85" : "border-line text-ink-2",
-        )}
-      >
+      <p className={cn("m-0 border-b pb-5 text-[15px]", noteToneClassName)}>
         {t(`cloud.${plan.id}.note`)}
       </p>
       <ul className="m-0 flex list-none flex-col gap-3 p-0">

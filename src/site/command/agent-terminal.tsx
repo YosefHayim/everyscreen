@@ -1,7 +1,9 @@
-import type { CSSProperties, ReactElement } from "react";
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/dashboard/ui/cn";
 import { SiteIcon } from "@/site/ui/site-icon";
+
+const LINE_DELAY_MS = 260;
 
 type AnswerStatus = "ok" | "warn";
 
@@ -36,6 +38,8 @@ export const AgentTerminal = (): ReactElement => {
         </p>
         {DEVICE_ANSWERS.map((answer, index) => {
           const isWarning = answer.status === "warn";
+          const statusClassName = isWarning ? "text-warn" : "text-ok";
+          const lineDelay = { animationDelay: `${index * LINE_DELAY_MS}ms` };
           return (
             <div
               key={answer.deviceId}
@@ -43,10 +47,10 @@ export const AgentTerminal = (): ReactElement => {
                 "loop-line grid grid-cols-[1fr_auto_auto] gap-x-3 rounded-md px-2 md:grid-cols-[104px_48px_1fr_auto]",
                 isWarning && "bg-warn-soft",
               )}
-              style={{ "--step": index } as CSSProperties}
+              style={lineDelay}
             >
               <span>{answer.deviceId}</span>
-              <span className={isWarning ? "text-warn" : "text-ok"}>
+              <span className={statusClassName}>
                 {t(`command-section.answers.${answer.deviceId}.status`)}
               </span>
               <span className="order-last col-span-3 min-w-0 break-words text-ink-2 md:order-none md:col-span-1 md:text-ink">

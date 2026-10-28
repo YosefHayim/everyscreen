@@ -25,7 +25,7 @@ export const CheckRow = ({ check }: CheckRowProps): ReactElement => {
           {t(`checks.cards.${check.id}.title`)}
         </h3>
         <p className="m-0 text-sm leading-[21px] text-ink-2">
-          {t(`checks.cards.${check.id}.body`)}
+          {t(`checks.cards.${check.id}.detail`)}
         </p>
       </div>
       <span className="flex-none rounded-full border border-line bg-card px-2.5 py-0.5 font-mono text-xs text-ink-2">

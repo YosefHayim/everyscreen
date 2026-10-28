@@ -15,7 +15,7 @@ export const PreviewToast = (): ReactElement => {
           {t("preview.toastTitle")}
         </p>
         <p className="m-0 text-[13px] leading-[18px] text-ink-2">
-          {t("preview.toastBody")}
+          {t("preview.toastMessage")}
         </p>
         <p className="m-0 font-mono text-[11px] text-ink-3">
           {t("preview.toastFoot")}

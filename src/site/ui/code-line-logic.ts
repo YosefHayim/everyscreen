@@ -31,7 +31,8 @@ export const splitCodeLine = (line: string): CodeSegment[] => {
   if (isComment) return [{ kind: "comment", code: line, start: 0 }];
 
   const hasPrompt = line.startsWith(PROMPT);
-  if (!hasPrompt) return splitQuotedStrings(line, 0);
+  const isPlainLine = !hasPrompt;
+  if (isPlainLine) return splitQuotedStrings(line, 0);
 
   const promptSegment: CodeSegment = { kind: "prompt", code: PROMPT, start: 0 };
   const commandSegments = splitQuotedStrings(

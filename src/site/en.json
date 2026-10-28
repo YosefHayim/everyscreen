@@ -66,7 +66,7 @@
     "oneFinding": "One finding",
     "overflowAmount": "+24px",
     "toastTitle": "Overflow on iPhone SE",
-    "toastBody": "div.coupon-row runs 24px past the right edge of the screen.",
+    "toastMessage": "div.coupon-row runs 24px past the right edge of the screen.",
     "toastFoot": "step 4 · added to the run report",
     "closeToast": "Close"
   },
@@ -176,32 +176,32 @@
     "cards": {
       "edge": {
         "title": "Past the screen edge",
-        "body": "Any element wider than the screen, and by how much.",
+        "detail": "Any element wider than the screen, and by how much.",
         "example": "+24px"
       },
       "clipped": {
         "title": "Clipped text",
-        "body": "Text cut off by its box, an ellipsis or a fixed height.",
+        "detail": "Text cut off by its box, an ellipsis or a fixed height.",
         "example": "“to…”"
       },
       "notch": {
         "title": "Under the notch or home bar",
-        "body": "Text and buttons inside the safe-area insets.",
+        "detail": "Text and buttons inside the safe-area insets.",
         "example": "12px"
       },
       "tap": {
         "title": "Small tap targets",
-        "body": "Buttons and links smaller than 44 by 44.",
+        "detail": "Buttons and links smaller than 44 by 44.",
         "example": "32×32"
       },
       "console": {
         "title": "Console errors",
-        "body": "Errors and unhandled promise rejections from the page.",
+        "detail": "Errors and unhandled promise rejections from the page.",
         "example": "TypeError"
       },
       "request": {
         "title": "Failed requests",
-        "body": "Any 4xx or 5xx response during the step.",
+        "detail": "Any 4xx or 5xx response during the step.",
         "example": "500"
       }
     },
@@ -223,15 +223,15 @@
     "toasts": {
       "notch": {
         "title": "Under the safe area",
-        "body": "h1.store-name sits 12px inside the top inset."
+        "detail": "h1.store-name sits 12px inside the top inset."
       },
       "tap": {
         "title": "Small tap target",
-        "body": "button.close-promo is 32×32. Aim for 44."
+        "detail": "button.close-promo is 32×32. Aim for 44."
       },
       "clipped": {
         "title": "Clipped text",
-        "body": ".shipping-note is cut off after “to…”."
+        "detail": ".shipping-note is cut off after “to…”."
       }
     }
   },
@@ -266,15 +266,15 @@
     "cards": {
       "agent": {
         "title": "Step by step from your agent",
-        "body": "Each command runs on every frame and answers in one line."
+        "detail": "Each command runs on every frame and answers in one line."
       },
       "flows": {
         "title": "Many flows in parallel",
-        "body": "Write a flow once. Run a folder of them side by side."
+        "detail": "Write a flow once. Run a folder of them side by side."
       },
       "suite": {
         "title": "Your suite, on every device",
-        "body": "Add the devices and the reporter. Your tests stay as they are."
+        "detail": "Add the devices and the reporter. Your tests stay as they are."
       }
     }
   },
@@ -319,17 +319,17 @@
     "cards": {
       "start": {
         "title": "Start the hub",
-        "body": "One command starts the dashboard on 127.0.0.1 and opens it.",
+        "detail": "One command starts the dashboard on 127.0.0.1 and opens it.",
         "time": "About 10 seconds"
       },
       "open": {
         "title": "Open your app",
-        "body": "Point it at your dev server. Every frame loads it at its own size.",
+        "detail": "Point it at your dev server. Every frame loads it at its own size.",
         "time": "About 30 seconds"
       },
       "run": {
         "title": "Run your tests",
-        "body": "Send steps from your agent, run YAML flows, or run your Playwright suite.",
+        "detail": "Send steps from your agent, run YAML flows, or run your Playwright suite.",
         "time": "As long as your tests"
       }
     }

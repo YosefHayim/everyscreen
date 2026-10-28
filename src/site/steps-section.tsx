@@ -44,7 +44,7 @@ export const StepsSection = (): ReactElement => {
               {t(`steps.cards.${step.id}.title`)}
             </h3>
             <p className="m-0 text-sm leading-[21px] text-ink-2">
-              {t(`steps.cards.${step.id}.body`)}
+              {t(`steps.cards.${step.id}.detail`)}
             </p>
             <p className="m-0 mt-auto break-words rounded-lg bg-soft px-3 py-2.5 font-mono text-xs">
               {step.commandLine}

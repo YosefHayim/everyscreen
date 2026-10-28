@@ -9,7 +9,8 @@ export const useCopyCommand = (command: string) => {
 
   useEffect(() => {
     const isCopied = copyStatus === "copied";
-    if (!isCopied) return;
+    const isNothingCopied = !isCopied;
+    if (isNothingCopied) return;
     const timerId = window.setTimeout(
       () => setCopyStatus("idle"),
       COPIED_LABEL_MS,

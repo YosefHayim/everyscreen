@@ -19,6 +19,8 @@ export const SectionHeading = ({
   const isCentered = alignment === "centered";
   const isSplit = alignment === "split";
 
+  const subtitleToneClassName = isOnCobalt ? "text-card/80" : "text-ink-2";
+
   return (
     <div
       className={cn(
@@ -33,7 +35,7 @@ export const SectionHeading = ({
       <p
         className={cn(
           "m-0 max-w-[640px] text-pretty text-base leading-6",
-          isOnCobalt ? "text-card/80" : "text-ink-2",
+          subtitleToneClassName,
         )}
       >
         {subtitle}

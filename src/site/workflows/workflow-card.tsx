@@ -21,7 +21,7 @@ export const WorkflowCard = ({ workflow }: WorkflowCardProps): ReactElement => {
           {t(`workflows.cards.${workflow.id}.title`)}
         </h3>
         <p className="m-0 text-sm leading-[21px] text-ink-2">
-          {t(`workflows.cards.${workflow.id}.body`)}
+          {t(`workflows.cards.${workflow.id}.detail`)}
         </p>
       </div>
       <div className="scroll-sideways rounded-lg bg-[#0f1220] p-4">
