@@ -8,8 +8,8 @@ import {
   listFindings,
 } from "@/checks/checks-logic";
 
-const NOTCH_INSETS = { top: 59, bottom: 34 };
-const NO_INSETS = { top: 0, bottom: 0 };
+const NOTCH_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+const NO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
 const PHONE = { id: "iphone-se", hasTouch: true, safeAreaInsets: NO_INSETS };
 const NOTCH_PHONE = { ...PHONE, safeAreaInsets: NOTCH_INSETS };
 const LAPTOP = { id: "laptop", hasTouch: false, safeAreaInsets: NO_INSETS };

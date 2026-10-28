@@ -3,6 +3,7 @@ import { type Browser, chromium, expect, test } from "@playwright/test";
 import { measurePage } from "@/checks/check-probes";
 import { type Finding, listFindings } from "@/checks/checks-logic";
 import { watchPage } from "@/checks/page-watch";
+import type { SafeAreaInsets } from "@/devices/devices-logic";
 import { subscribe } from "@/live/live-feed";
 
 const FIXTURE_URL = pathToFileURL("e2e/hollis-goods.html").href;
@@ -19,7 +20,7 @@ interface Viewing {
   width: number;
   height: number;
   hasTouch: boolean;
-  safeArea: { top: number; bottom: number };
+  safeArea: SafeAreaInsets;
 }
 
 const PHONE: Viewing = {
@@ -27,14 +28,14 @@ const PHONE: Viewing = {
   width: 375,
   height: 667,
   hasTouch: true,
-  safeArea: { top: 59, bottom: 34 },
+  safeArea: { top: 59, bottom: 34, left: 0, right: 0 },
 };
 const LAPTOP: Viewing = {
   deviceId: "laptop",
   width: 1280,
   height: 800,
   hasTouch: false,
-  safeArea: { top: 0, bottom: 0 },
+  safeArea: { top: 0, bottom: 0, left: 0, right: 0 },
 };
 
 let browser: Browser;

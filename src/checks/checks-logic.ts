@@ -1,4 +1,5 @@
 import type { PageMeasurements } from "@/checks/check-probes";
+import type { SafeAreaInsets } from "@/devices/devices-logic";
 
 export const MIN_TAP_SIZE = 44;
 const REQUEST_FAILURE_ECHO = "Failed to load resource";
@@ -20,11 +21,6 @@ export interface Finding {
   deviceId: string;
   selector: string | null;
   message: string;
-}
-
-export interface SafeAreaInsets {
-  top: number;
-  bottom: number;
 }
 
 export interface CheckDevice {
