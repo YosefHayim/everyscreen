@@ -64,8 +64,8 @@ test.describe("startHub", () => {
 
     const liveUrl = `${runningHub.url.replace("http", "ws")}/api/live`;
     liveSocket = new WebSocket(liveUrl);
-    liveSocket.on("message", (rawMessage) => {
-      liveMessages.push(JSON.parse(rawMessage.toString()));
+    liveSocket.on("message", (messageBytes) => {
+      liveMessages.push(JSON.parse(messageBytes.toString()));
     });
     await once(liveSocket, "open");
   });

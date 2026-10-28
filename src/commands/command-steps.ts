@@ -33,24 +33,24 @@ const performCommand = async (
   hubCommand: HubCommand,
 ): Promise<void> => {
   const { page, device } = devicePage;
-  const actionOptions = { timeout: ACTION_TIMEOUT_MS };
+  const actionTimeout = { timeout: ACTION_TIMEOUT_MS };
   switch (hubCommand.commandName) {
     case "open":
-      await page.goto(hubCommand.url, actionOptions);
+      await page.goto(hubCommand.url, actionTimeout);
       return;
     case "tap": {
       const target = page.getByRole(hubCommand.role, { name: hubCommand.name });
       const canTouch = device.use.hasTouch === true;
       if (canTouch) {
-        await target.tap(actionOptions);
+        await target.tap(actionTimeout);
         return;
       }
-      await target.click(actionOptions);
+      await target.click(actionTimeout);
       return;
     }
     case "fill": {
       const target = page.getByRole(hubCommand.role, { name: hubCommand.name });
-      await target.fill(hubCommand.with, actionOptions);
+      await target.fill(hubCommand.with, actionTimeout);
       return;
     }
     case "scroll": {
@@ -63,7 +63,7 @@ const performCommand = async (
     }
     case "expect": {
       const target = page.getByText(hubCommand.text).first();
-      await target.waitFor({ state: "visible", ...actionOptions });
+      await target.waitFor({ state: "visible", ...actionTimeout });
       return;
     }
     case "check":
@@ -105,7 +105,8 @@ export const runStepOnDevice = async (
 
   const actionErrorMessage = await tryCommand(devicePage, hubCommand);
   const measurements = await measurePage(page);
-  const findings = listFindings(measurements, pickCheckDevice(device));
+  const checkDevice = pickCheckDevice(device);
+  const findings = listFindings(measurements, checkDevice);
   const durationMs = Date.now() - startedAt;
 
   const failureMessage = pickFailureMessage(actionErrorMessage, findings);
@@ -115,7 +116,8 @@ export const runStepOnDevice = async (
   const shotPath = shouldSaveShot
     ? await saveShot(devicePage, stepTarget)
     : null;
-  if (!hasLiveScreen) await sendStepScreen(page, device.id);
+  const isThereNoLiveScreen = !hasLiveScreen;
+  if (isThereNoLiveScreen) await sendStepScreen(page, device.id);
 
   if (isStepFailed) {
     const deviceAnswer: DeviceAnswer = {
