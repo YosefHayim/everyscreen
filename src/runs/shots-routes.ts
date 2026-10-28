@@ -35,7 +35,7 @@ export const createShotsRoutes = (rootFolder: string) =>
           message: `No shot ${fileName}`,
         });
       }
-      const shotReply = new Uint8Array(shotBytes);
-      return c.body(shotReply, 200, { "Content-Type": SHOT_CONTENT_TYPE });
+      const shotImage = new Uint8Array(shotBytes);
+      return c.body(shotImage, 200, { "Content-Type": SHOT_CONTENT_TYPE });
     },
   );
