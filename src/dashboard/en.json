@@ -1,0 +1,62 @@
+{
+  "shell": {
+    "name": "Everyscreen"
+  },
+  "grid": {
+    "tilesLabel": "Devices in the grid",
+    "copy": { "idle": "Copy", "copied": "Copied", "failed": "Copy failed" },
+    "empty": {
+      "title": "Open your app to fill the grid",
+      "hubRunning": "Hub running on {{hubUrl}}",
+      "urlLabel": "App URL",
+      "open": "Open",
+      "openFailed": "The hub could not open that URL.",
+      "terminalHint": "Same thing from the terminal",
+      "copyOpenCommand": "Copy the open command",
+      "copySkillCommand": "Copy the skill install command",
+      "agentTitle": "Or let your agent drive it",
+      "agentHint": "Works with Claude Code, Codex, Cursor or any agent that can run a shell command.",
+      "stepsLabel": "{{count}} steps",
+      "steps": {
+        "startHub": "Start the hub",
+        "openApp": "Open your app",
+        "runTests": "Run your tests"
+      },
+      "stepStates": { "done": "Done", "now": "Now" }
+    }
+  },
+  "tile": {
+    "live": "live",
+    "perStep": "per step",
+    "waiting": "Waiting for the first screen image",
+    "estimate": "{{fps}} fps · {{cpuPercent}}% CPU est.",
+    "noEstimate": "No estimate yet",
+    "status": {
+      "ok": "No findings",
+      "warn": "Has findings",
+      "failed": "Failed"
+    },
+    "engines": {
+      "chromium": "Chromium",
+      "webkit": "WebKit",
+      "firefox": "Firefox"
+    }
+  },
+  "findings": {
+    "dismiss": "Dismiss",
+    "addedToReport": "Added to the run report",
+    "kinds": {
+      "overflow": "Overflow on {{deviceName}}",
+      "clipped-text": "Clipped text on {{deviceName}}",
+      "safe-area": "Under the notch or home bar on {{deviceName}}",
+      "tap-target": "Small tap target on {{deviceName}}",
+      "console-error": "Console error on {{deviceName}}",
+      "failed-request": "Failed request on {{deviceName}}"
+    }
+  },
+  "boundary": {
+    "loading": "Loading",
+    "empty": "Nothing here yet",
+    "failed": "Something went wrong"
+  }
+}
