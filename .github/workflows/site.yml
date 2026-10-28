@@ -1,0 +1,35 @@
+name: Site
+"on":
+  push:
+    branches:
+      - main
+    paths:
+      - src/site/**
+      - src/dashboard/ui/**
+      - vite.site.config.ts
+      - wrangler.jsonc
+      - .github/workflows/site.yml
+  workflow_dispatch: null
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+      - name: Build site
+        run: pnpm build:site
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: pnpm
+          wranglerVersion: 4.154.0

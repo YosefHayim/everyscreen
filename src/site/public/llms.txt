@@ -1,0 +1,19 @@
+# Everyscreen
+
+> Everyscreen opens your web app in real device frames at their true size, runs your tests on all of them at once, and gives your agent one short line per device. It is open source (MIT) and runs on your machine.
+
+Start it with `npx everyscreen start`; the dashboard is on 127.0.0.1:4100. Every command accepts `--json`, prints one JSON object, and exits 0 (ok), 1 (failed) or 2 (bad usage). Cloud runs are not part of v1.
+
+## Docs
+
+- [README](https://github.com/YosefHayim/everyscreen/blob/main/README.md): quick start, commands, YAML flows, Playwright, devices, checks, estimates and limits
+- [Agent skill](https://github.com/YosefHayim/everyscreen/blob/main/src/skill/SKILL.md): the rules an agent follows to run the CLI
+
+## Install
+
+- [npm package](https://www.npmjs.com/package/everyscreen): the `everyscreen` package and its versions
+- [Source code](https://github.com/YosefHayim/everyscreen): MIT licensed, issues and pull requests
+
+## Optional
+
+- [Releases](https://github.com/YosefHayim/everyscreen/releases): release notes for every version

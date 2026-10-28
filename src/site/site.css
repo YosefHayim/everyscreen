@@ -1,0 +1,711 @@
+@import "tailwindcss";
+@import "../dashboard/ui/theme.css";
+@source "../dashboard/ui";
+
+@theme {
+  --color-amber: #f29a00;
+  --color-line-soft: #e4e7ef;
+  --color-code-string: #a9b4ff;
+  --color-code-line-number: #ff9a85;
+  --color-code-rule: #22273d;
+  --color-code-muted: #a9afc4;
+  --color-shirt-bg: #ede3d3;
+  --color-shirt-ink: #6b5b45;
+  --color-mug-bg: #dce6da;
+  --color-mug-ink: #4d6450;
+  --breakpoint-md: 47.5rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 24px;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  summary {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cobalt);
+    outline-offset: 3px;
+  }
+
+  .on-cobalt :focus-visible {
+    outline-color: var(--color-card);
+  }
+}
+
+@property --ok-count {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 4;
+}
+
+@property --find-count {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 1;
+}
+
+.count-ok {
+  counter-reset: ok-count var(--ok-count);
+}
+
+.count-ok::before {
+  content: counter(ok-count);
+}
+
+.count-find {
+  counter-reset: find-count var(--find-count);
+}
+
+.count-find::before {
+  content: counter(find-count);
+}
+
+.faq-plus {
+  transition: rotate 0.2s ease;
+}
+
+details[open] .faq-plus {
+  rotate: 45deg;
+}
+
+.loop-scan,
+.loop-spin {
+  display: none;
+}
+
+.scroll-sideways {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+}
+@keyframes line-in {
+  0% {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  5%,
+  80% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  88%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+@keyframes progress {
+  from {
+    scale: 0.04 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes toast-in {
+  0%,
+  49% {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  54%,
+  90% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  95%,
+  100% {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+@keyframes outline-in {
+  0%,
+  45% {
+    opacity: 0;
+  }
+  48%,
+  90% {
+    opacity: 1;
+  }
+  95%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes count-ok {
+  0%,
+  35% {
+    --ok-count: 0;
+  }
+  62%,
+  96% {
+    --ok-count: 4;
+  }
+  96.5%,
+  100% {
+    --ok-count: 0;
+  }
+}
+@keyframes count-find {
+  0%,
+  44% {
+    --find-count: 0;
+  }
+  48%,
+  96% {
+    --find-count: 1;
+  }
+  96.5%,
+  100% {
+    --find-count: 0;
+  }
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes frame-in-0 {
+  0%,
+  3% {
+    opacity: 0;
+    translate: 0 18px;
+    scale: 0.96;
+  }
+  9%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes tap-0 {
+  0%,
+  10% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  12.5% {
+    opacity: 1;
+    scale: 1;
+  }
+  18%,
+  100% {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+@keyframes scan-0 {
+  0%,
+  19% {
+    opacity: 0;
+    top: -46px;
+  }
+  20.5% {
+    opacity: 1;
+    top: -30px;
+  }
+  33% {
+    opacity: 1;
+    top: 100%;
+  }
+  35%,
+  100% {
+    opacity: 0;
+    top: 100%;
+  }
+}
+@keyframes badge-0 {
+  0%,
+  35% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  37.5% {
+    opacity: 1;
+    scale: 1.4;
+  }
+  40%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+@keyframes spin-fade-0 {
+  0%,
+  3% {
+    opacity: 0;
+  }
+  7%,
+  35% {
+    opacity: 1;
+  }
+  37%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes frame-in-1 {
+  0%,
+  12% {
+    opacity: 0;
+    translate: 0 18px;
+    scale: 0.96;
+  }
+  18%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes tap-1 {
+  0%,
+  19% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  21.5% {
+    opacity: 1;
+    scale: 1;
+  }
+  27%,
+  100% {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+@keyframes scan-1 {
+  0%,
+  28% {
+    opacity: 0;
+    top: -46px;
+  }
+  29.5% {
+    opacity: 1;
+    top: -30px;
+  }
+  42% {
+    opacity: 1;
+    top: 100%;
+  }
+  44%,
+  100% {
+    opacity: 0;
+    top: 100%;
+  }
+}
+@keyframes badge-1 {
+  0%,
+  44% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  46.5% {
+    opacity: 1;
+    scale: 1.4;
+  }
+  49%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+@keyframes spin-fade-1 {
+  0%,
+  12% {
+    opacity: 0;
+  }
+  16%,
+  44% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes frame-in-2 {
+  0%,
+  21% {
+    opacity: 0;
+    translate: 0 18px;
+    scale: 0.96;
+  }
+  27%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes tap-2 {
+  0%,
+  28% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  30.5% {
+    opacity: 1;
+    scale: 1;
+  }
+  36%,
+  100% {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+@keyframes scan-2 {
+  0%,
+  37% {
+    opacity: 0;
+    top: -46px;
+  }
+  38.5% {
+    opacity: 1;
+    top: -30px;
+  }
+  51% {
+    opacity: 1;
+    top: 100%;
+  }
+  53%,
+  100% {
+    opacity: 0;
+    top: 100%;
+  }
+}
+@keyframes badge-2 {
+  0%,
+  53% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  55.5% {
+    opacity: 1;
+    scale: 1.4;
+  }
+  58%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+@keyframes spin-fade-2 {
+  0%,
+  21% {
+    opacity: 0;
+  }
+  25%,
+  53% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes frame-in-3 {
+  0%,
+  30% {
+    opacity: 0;
+    translate: 0 18px;
+    scale: 0.96;
+  }
+  36%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes tap-3 {
+  0%,
+  37% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  39.5% {
+    opacity: 1;
+    scale: 1;
+  }
+  45%,
+  100% {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+@keyframes scan-3 {
+  0%,
+  46% {
+    opacity: 0;
+    top: -46px;
+  }
+  47.5% {
+    opacity: 1;
+    top: -30px;
+  }
+  60% {
+    opacity: 1;
+    top: 100%;
+  }
+  62%,
+  100% {
+    opacity: 0;
+    top: 100%;
+  }
+}
+@keyframes badge-3 {
+  0%,
+  62% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  64.5% {
+    opacity: 1;
+    scale: 1.4;
+  }
+  67%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+@keyframes spin-fade-3 {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  34%,
+  62% {
+    opacity: 1;
+  }
+  64%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--step) * 80ms);
+  }
+
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 30%;
+    }
+  }
+
+  .loop-line {
+    animation: line-in 9s ease infinite both;
+    animation-delay: calc(var(--step) * 260ms);
+  }
+
+  .live-dot {
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .loop-progress {
+    animation: progress 10s linear infinite both;
+    transform-origin: left center;
+  }
+  .count-ok {
+    animation: count-ok 10s linear infinite both;
+  }
+  .count-find {
+    animation: count-find 10s linear infinite both;
+  }
+
+  .loop-frame {
+    animation-duration: 10s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    animation-iteration-count: infinite;
+    animation-fill-mode: both;
+  }
+
+  .loop-tap,
+  .loop-outline,
+  .loop-toast,
+  .loop-badge,
+  .loop-scan {
+    animation-duration: 10s;
+    animation-iteration-count: infinite;
+    animation-fill-mode: both;
+  }
+
+  .loop-outline {
+    animation-name: outline-in;
+    animation-timing-function: ease;
+  }
+  .loop-toast {
+    animation-name: toast-in;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .loop-badge {
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .loop-scan {
+    display: block;
+    animation-timing-function: ease-in-out;
+  }
+
+  .loop-spin {
+    display: block;
+    animation-iteration-count: infinite;
+    animation-fill-mode: both;
+  }
+
+  .loop-frame[data-index="0"] {
+    animation-name: frame-in-0;
+  }
+  .loop-frame[data-index="0"] .loop-tap {
+    animation-name: tap-0;
+  }
+  .loop-frame[data-index="0"] .loop-scan {
+    animation-name: scan-0;
+  }
+  .loop-badge[data-index="0"] {
+    animation-name: badge-0;
+  }
+  .loop-rail[data-index="0"] .loop-spin {
+    animation-name: spin, spin-fade-0;
+    animation-duration: 0.8s, 10s;
+    animation-timing-function: linear, linear;
+  }
+  .loop-frame[data-index="1"] {
+    animation-name: frame-in-1;
+  }
+  .loop-frame[data-index="1"] .loop-tap {
+    animation-name: tap-1;
+  }
+  .loop-frame[data-index="1"] .loop-scan {
+    animation-name: scan-1;
+  }
+  .loop-badge[data-index="1"] {
+    animation-name: badge-1;
+  }
+  .loop-rail[data-index="1"] .loop-spin {
+    animation-name: spin, spin-fade-1;
+    animation-duration: 0.8s, 10s;
+    animation-timing-function: linear, linear;
+  }
+  .loop-frame[data-index="2"] {
+    animation-name: frame-in-2;
+  }
+  .loop-frame[data-index="2"] .loop-tap {
+    animation-name: tap-2;
+  }
+  .loop-frame[data-index="2"] .loop-scan {
+    animation-name: scan-2;
+  }
+  .loop-badge[data-index="2"] {
+    animation-name: badge-2;
+  }
+  .loop-rail[data-index="2"] .loop-spin {
+    animation-name: spin, spin-fade-2;
+    animation-duration: 0.8s, 10s;
+    animation-timing-function: linear, linear;
+  }
+  .loop-frame[data-index="3"] {
+    animation-name: frame-in-3;
+  }
+  .loop-frame[data-index="3"] .loop-tap {
+    animation-name: tap-3;
+  }
+  .loop-frame[data-index="3"] .loop-scan {
+    animation-name: scan-3;
+  }
+  .loop-badge[data-index="3"] {
+    animation-name: badge-3;
+  }
+  .loop-rail[data-index="3"] .loop-spin {
+    animation-name: spin, spin-fade-3;
+    animation-duration: 0.8s, 10s;
+    animation-timing-function: linear, linear;
+  }
+}

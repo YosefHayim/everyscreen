@@ -1,0 +1,411 @@
+{
+  "meta": {
+    "title": "Everyscreen: see every screen while your agent tests it",
+    "description": "Everyscreen opens your web app in real device frames at their true size, runs your tests on all of them at once, and gives your agent one short line per device."
+  },
+  "header": {
+    "mainNavigation": "Main",
+    "home": "Everyscreen home",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "star": "Star on GitHub",
+    "links": {
+      "how": "How it works",
+      "checks": "Checks",
+      "cloud": "Cloud",
+      "faq": "FAQ",
+      "docs": "Docs"
+    }
+  },
+  "hero": {
+    "title": "See every screen while your agent tests it.",
+    "subtitle": "Everyscreen is open source and runs on your machine. It opens your app in real device frames at their true size, runs your tests on all of them at once, and gives your agent one short line per device."
+  },
+  "command": {
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyLabel": "Copy install command"
+  },
+  "preview": {
+    "label": "The Everyscreen dashboard running a checkout flow on four devices",
+    "address": "127.0.0.1:4100",
+    "runName": "checkout.yaml",
+    "runStep": "Step 4 of 7 · tap “Apply”",
+    "okLabel": "ok",
+    "findingLabel": "finding",
+    "addDevice": "Add device",
+    "runsHeading": "Runs",
+    "queueHeading": "Queue",
+    "runs": {
+      "checkout": {
+        "name": "checkout.yaml",
+        "status": "Running · step 4 of 7"
+      },
+      "signup": {
+        "name": "signup.spec.ts",
+        "status": "Passed · 5 devices · 0:38"
+      },
+      "cart": {
+        "name": "add-to-cart.spec.ts",
+        "status": "Failed on iPhone SE · 0:51"
+      },
+      "search": {
+        "name": "search.yaml",
+        "status": "Passed · 5 devices · 0:44"
+      },
+      "settings": {
+        "name": "settings.yaml",
+        "status": "Waiting"
+      },
+      "profile": {
+        "name": "profile.spec.ts",
+        "status": "Waiting"
+      }
+    },
+    "stepPassed": "Step passed",
+    "oneFinding": "One finding",
+    "overflowAmount": "+24px",
+    "toastTitle": "Overflow on iPhone SE",
+    "toastBody": "div.coupon-row runs 24px past the right edge of the screen.",
+    "toastFoot": "step 4 · added to the run report",
+    "closeToast": "Close"
+  },
+  "cart": {
+    "title": "Cart",
+    "count": "2 items",
+    "shirt": "Linen shirt",
+    "shirtDetail": "Size M",
+    "shirtPrice": "$48",
+    "mug": "Stone mug",
+    "mugDetail": "Qty 1",
+    "mugPrice": "$18",
+    "coupon": "Coupon code",
+    "apply": "Apply",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "shippingFree": "Free",
+    "total": "Total",
+    "totalPrice": "$66",
+    "pay": "Pay $66"
+  },
+  "devices": {
+    "iphone-15": {
+      "name": "iPhone 15"
+    },
+    "iphone-se": {
+      "name": "iPhone SE"
+    },
+    "pixel-8": {
+      "name": "Pixel 8"
+    },
+    "ipad-mini": {
+      "name": "iPad mini"
+    },
+    "iphone-15-pro-max": {
+      "name": "iPhone 15 Pro Max"
+    },
+    "galaxy-s24": {
+      "name": "Galaxy S24"
+    },
+    "ipad-pro-11": {
+      "name": "iPad Pro 11"
+    },
+    "laptop-1440": {
+      "name": "Laptop"
+    },
+    "store-kiosk": {
+      "name": "Store kiosk"
+    },
+    "size": "{{width}}×{{height}}",
+    "sizeAndFrameRate": "{{width}}×{{height}} · {{fps}} fps est."
+  },
+  "tools": {
+    "intro": "Works with the agents and test tools you already use.",
+    "claude-code": "Claude Code",
+    "codex": "Codex",
+    "cursor": "Cursor",
+    "playwright": "Playwright",
+    "chromium": "Chromium",
+    "webkit": "WebKit",
+    "firefox": "Firefox",
+    "github-actions": "GitHub Actions",
+    "yaml": "YAML"
+  },
+  "command-section": {
+    "title": "One command. Every screen answers.",
+    "subtitle": "Your agent sends one step. Every device runs it at once and answers in one line, so a full sweep costs a few lines of context, not a stack of screenshots.",
+    "points": {
+      "role": "Finds elements by role and name, the way a person sees them",
+      "device": "Talks to one frame or all of them with --device",
+      "shot": "Sends a screenshot back only when a step fails"
+    },
+    "windowTitle": "agent session · my-shop",
+    "command": "everyscreen tap --role button --name \"Apply\"",
+    "answers": {
+      "iphone-15": {
+        "status": "ok",
+        "line": "tapped button \"Apply\"",
+        "time": "212ms"
+      },
+      "iphone-se": {
+        "status": "warn",
+        "line": "overflow .coupon-row +24px",
+        "time": "230ms"
+      },
+      "pixel-8": {
+        "status": "ok",
+        "line": "tapped button \"Apply\"",
+        "time": "198ms"
+      },
+      "ipad-mini": {
+        "status": "ok",
+        "line": "tapped button \"Apply\"",
+        "time": "205ms"
+      },
+      "laptop-1440": {
+        "status": "ok",
+        "line": "tapped button \"Apply\"",
+        "time": "176ms"
+      }
+    },
+    "summary": "5 devices · 4 ok · 1 failed · report run-0412"
+  },
+  "checks": {
+    "title": "It flags what breaks before you go looking.",
+    "subtitle": "Every step runs six checks on every device. Each finding pops a toast in the dashboard and lands in the run report.",
+    "cards": {
+      "edge": {
+        "title": "Past the screen edge",
+        "body": "Any element wider than the screen, and by how much.",
+        "example": "+24px"
+      },
+      "clipped": {
+        "title": "Clipped text",
+        "body": "Text cut off by its box, an ellipsis or a fixed height.",
+        "example": "“to…”"
+      },
+      "notch": {
+        "title": "Under the notch or home bar",
+        "body": "Text and buttons inside the safe-area insets.",
+        "example": "12px"
+      },
+      "tap": {
+        "title": "Small tap targets",
+        "body": "Buttons and links smaller than 44 by 44.",
+        "example": "32×32"
+      },
+      "console": {
+        "title": "Console errors",
+        "body": "Errors and unhandled promise rejections from the page.",
+        "example": "TypeError"
+      },
+      "request": {
+        "title": "Failed requests",
+        "body": "Any 4xx or 5xx response during the step.",
+        "example": "500"
+      }
+    },
+    "shop": {
+      "label": "A shop page on an iPhone 15 with three findings marked",
+      "name": "HOLLIS GOODS",
+      "promo": "10% off your first order",
+      "product": "Linen shirt",
+      "price": "$48",
+      "shipping": "Free shipping on orders over $50 to most countries",
+      "sizes": {
+        "small": "S",
+        "medium": "M",
+        "large": "L"
+      },
+      "add": "Add to cart",
+      "caption": "iPhone 15 · 393×852 · 3 findings"
+    },
+    "toasts": {
+      "notch": {
+        "title": "Under the safe area",
+        "body": "h1.store-name sits 12px inside the top inset."
+      },
+      "tap": {
+        "title": "Small tap target",
+        "body": "button.close-promo is 32×32. Aim for 44."
+      },
+      "clipped": {
+        "title": "Clipped text",
+        "body": ".shipping-note is cut off after “to…”."
+      }
+    }
+  },
+  "proof": {
+    "title": "Every failure comes with proof.",
+    "subtitle": "The screen at the moment it broke, the step that failed, and the line of code that ran it. Your agent reads the line. You look at the picture.",
+    "testName": "adds the linen shirt to the cart",
+    "testFile": "tests/add-to-cart.spec.ts",
+    "failedOn": "Failed on iPhone SE",
+    "stepTime": "step 3 of 4 · 0:51",
+    "shotLabel": "The iPhone SE screen when the step failed, with a cookie bar covering the Add to cart button",
+    "covered": "covered",
+    "cookies": "We use cookies to run the shop and remember your cart.",
+    "accept": "Accept",
+    "settings": "Settings",
+    "caption": "Captured at step 3 · iPhone SE · 375×667",
+    "codeLine": "line 4",
+    "errorTitle": "locator.click: Timeout 5000ms exceeded.",
+    "errorWaiting": "waiting for getByRole('button', { name: 'Add to cart' })",
+    "errorIntercept": "<div class=\"cookie-bar\">…</div> intercepts pointer events",
+    "elsewhere": "Same test elsewhere",
+    "passedOn": {
+      "iphone-15": "iPhone 15",
+      "pixel-8": "Pixel 8",
+      "ipad-mini": "iPad mini",
+      "laptop-1440": "Laptop"
+    }
+  },
+  "workflows": {
+    "title": "Bring the tests you already have.",
+    "subtitle": "Drive it live from an agent, write short YAML flows, or keep your Playwright suite. All three fill the same grid and the same report.",
+    "cards": {
+      "agent": {
+        "title": "Step by step from your agent",
+        "body": "Each command runs on every frame and answers in one line."
+      },
+      "flows": {
+        "title": "Many flows in parallel",
+        "body": "Write a flow once. Run a folder of them side by side."
+      },
+      "suite": {
+        "title": "Your suite, on every device",
+        "body": "Add the devices and the reporter. Your tests stay as they are."
+      }
+    }
+  },
+  "device-sizes": {
+    "title": "Any device, at its true size.",
+    "subtitle": "Frames are drawn from each device's real numbers: screen size, pixel ratio, corner radius, cutout and safe areas. Add your own from the dashboard or the CLI.",
+    "justAdded": "just added",
+    "form": {
+      "title": "Add a device",
+      "name": "Name",
+      "nameExample": "Store kiosk",
+      "width": "Width",
+      "widthExample": "1080",
+      "height": "Height",
+      "heightExample": "1920",
+      "pixelRatio": "Pixel ratio",
+      "pixelRatioExample": "1",
+      "touch": "Touch screen",
+      "touchHint": "Taps instead of clicks, no hover",
+      "submit": "Add to grid"
+    },
+    "agent": {
+      "title": "Or let your agent add it",
+      "subtitle": "The same device from the CLI, or in everyscreen.yaml so the whole team gets it.",
+      "reply": "added store-kiosk · 6 devices in the grid"
+    }
+  },
+  "estimates": {
+    "title": "See how hard each screen works.",
+    "subtitle": "Frame rate, CPU, memory and layout shift for every device while the test runs. They are estimates, and the dashboard labels them that way.",
+    "est": "est.",
+    "fps": "fps",
+    "cpuSlower": "CPU · {{slowdown}}× slower",
+    "memory": "Memory",
+    "layoutShift": "Layout shift",
+    "megabytes": "{{amount}} MB",
+    "note": "Numbers come from Chromium on your machine, with the CPU slowed down to match each device. Use them to spot a slow screen, not as a benchmark."
+  },
+  "steps": {
+    "title": "From install to a full sweep in three steps.",
+    "subtitle": "No account and no config file to start.",
+    "cards": {
+      "start": {
+        "title": "Start the hub",
+        "body": "One command starts the dashboard on 127.0.0.1 and opens it.",
+        "time": "About 10 seconds"
+      },
+      "open": {
+        "title": "Open your app",
+        "body": "Point it at your dev server. Every frame loads it at its own size.",
+        "time": "About 30 seconds"
+      },
+      "run": {
+        "title": "Run your tests",
+        "body": "Send steps from your agent, run YAML flows, or run your Playwright suite.",
+        "time": "As long as your tests"
+      }
+    }
+  },
+  "cloud": {
+    "title": "Free on your machine. Cloud for every pull request.",
+    "subtitle": "The local tool is open source and stays free. Cloud is for teams who want the grid in CI.",
+    "local": {
+      "name": "Local",
+      "price": "Free",
+      "note": "Open source under the MIT license",
+      "points": {
+        "grid": "Live device grid on 127.0.0.1",
+        "tools": "Agent CLI, YAML flows and Playwright suites",
+        "checks": "Every check, toast and run report",
+        "limits": "As many devices and runs as your machine can hold"
+      },
+      "npm": "View on npm"
+    },
+    "hosted": {
+      "name": "Cloud",
+      "badge": "In the works",
+      "price": "No price yet",
+      "note": "Runs on every pull request in its own environment",
+      "points": {
+        "environment": "A clean environment for each pull request",
+        "preview": "A live preview link on the PR with every device frame",
+        "proof": "Failure screenshots and code posted on the PR",
+        "history": "Run history for the whole team"
+      },
+      "follow": "Star on GitHub to follow"
+    }
+  },
+  "faq": {
+    "title": "Questions",
+    "subtitle": "Something missing? Open an issue on GitHub.",
+    "questions": {
+      "frameworks": {
+        "question": "Which frameworks does it work with?",
+        "answer": "Any web app that runs at a URL: React, Vue, Svelte, Next.js, Expo web or plain HTML. Each frame opens your dev server at its own size."
+      },
+      "safari": {
+        "question": "Is the iPhone frame running real Safari?",
+        "answer": "No. It runs WebKit through Playwright with the iPhone's screen size, pixel ratio and touch, and the safe-area check uses the iPhone's notch and home bar. That is close to Safari, not the same. Live video is Chromium only; WebKit and Firefox frames update after each step."
+      },
+      "numbers": {
+        "question": "Are the FPS and CPU numbers real?",
+        "answer": "They are estimates from the browser on your machine, with the CPU slowed down per device. Good for spotting a slow screen, not for a lab benchmark."
+      },
+      "privacy": {
+        "question": "Does my code leave my machine?",
+        "answer": "Not with the free tool. The hub and the dashboard run on 127.0.0.1. Cloud only runs what your CI sends it."
+      },
+      "agents": {
+        "question": "Which agents can drive it?",
+        "answer": "Any agent that can run a shell command, such as Claude Code, Codex or Cursor. A Claude Code skill ships with it."
+      },
+      "cloud": {
+        "question": "What does Cloud add?",
+        "answer": "A run on every pull request in a separate environment, a live preview link with every device frame, and the failure proof posted on the PR."
+      }
+    }
+  },
+  "closing": {
+    "title": "Open every screen at once.",
+    "subtitle": "One command starts the grid on your machine. Your agent does the rest."
+  },
+  "footer": {
+    "links": {
+      "github": "GitHub",
+      "npm": "npm",
+      "docs": "Docs",
+      "issues": "Issues",
+      "license": "License"
+    },
+    "legal": "© 2026 Everyscreen. Open source under the MIT license.",
+    "navigation": "Footer"
+  }
+}

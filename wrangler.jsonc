@@ -1,0 +1,13 @@
+{
+  "name": "everyscreen-site",
+  "compatibility_date": "2026-10-28",
+  "assets": {
+    "directory": "./dist/site"
+  },
+  "routes": [
+    {
+      "pattern": "everyscreen.jtslabs.dev",
+      "custom_domain": true
+    }
+  ]
+}
