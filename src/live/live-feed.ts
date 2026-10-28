@@ -103,7 +103,9 @@ export const broadcast = (
       break;
     }
     case "command":
-      recentCommands = [...recentCommands, message].slice(-MAX_REPLAYED_COMMANDS);
+      recentCommands = [...recentCommands, message].slice(
+        -MAX_REPLAYED_COMMANDS,
+      );
       break;
     case "estimate":
     case "finding":

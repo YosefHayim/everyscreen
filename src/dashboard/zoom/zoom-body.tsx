@@ -1,7 +1,6 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeviceLoad } from "@/dashboard/device-feed/use-device-load";
-import { useDeviceTest } from "@/dashboard/device-feed/use-device-test";
 import { useScreenImage } from "@/dashboard/device-feed/use-screen-image";
 import { DeviceFrame } from "@/dashboard/frames/device-frame";
 import { TileEstimate } from "@/dashboard/grid/tile-estimate";
@@ -39,7 +38,6 @@ export const ZoomBody = ({
   const { deviceId, name, browserName } = device;
   const screenImageUrl = useScreenImage(deviceId);
   const deviceLoad = useDeviceLoad(deviceId);
-  const deviceTest = useDeviceTest(deviceId);
   const hasScreenImage = screenImageUrl !== null;
   const waitingFontSize = Math.round(WAITING_FONT_PX / frameScale);
   const zoomModeSegments: Segment<ZoomMode>[] = ZOOM_MODE_SEGMENTS.map(
@@ -92,7 +90,7 @@ export const ZoomBody = ({
         </div>
       </div>
       <footer className="border-t border-line px-4 py-2 font-mono text-[11px] leading-4 text-ink-2">
-        <TileTest deviceTest={deviceTest} />
+        <TileTest deviceId={deviceId} />
         <TileEstimate deviceLoad={deviceLoad} />
       </footer>
     </div>
