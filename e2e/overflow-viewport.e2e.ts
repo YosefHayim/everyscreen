@@ -62,7 +62,7 @@ for (const { deviceId, engine, isEmulatedByCdp } of OVERFLOW_ENGINES) {
 interface OverflowCase {
   name: string;
   caseName: string;
-  blockWidth: number | null;
+  blockWidth: number;
   expectedMessages: string[];
 }
 

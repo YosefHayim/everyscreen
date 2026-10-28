@@ -25,8 +25,10 @@
       rtl: wideBlock,
     };
     document.documentElement.style.setProperty("--block-width", `${blockWidth}px`);
-    if (caseName === "rtl") document.documentElement.dir = "rtl";
-    if (caseName === "body-hidden") document.body.classList.add("body-hidden");
+    const isRightToLeftCase = caseName === "rtl";
+    const isBodyHiddenCase = caseName === "body-hidden";
+    if (isRightToLeftCase) document.documentElement.dir = "rtl";
+    if (isBodyHiddenCase) document.body.classList.add("body-hidden");
     document.body.innerHTML = CASES[caseName];
   </script>
 </body>

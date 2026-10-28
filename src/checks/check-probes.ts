@@ -138,16 +138,15 @@ const readMeasurements = (measureRequest: MeasureRequest): PageMeasurements => {
 
   const rootDirection = getComputedStyle(document.documentElement).direction;
   const isRightToLeft = rootDirection === "rtl";
-  // A right-to-left page grows sideways past the left edge; a left-to-right page past the right edge.
-  // The browser may already have scrolled a right-to-left page to its left end, so scrollX is added back.
-  const measurePastStartEdge = (box: DOMRect) =>
+  // A right-to-left page overflows past the left edge; scrollX is added back because the browser may have scrolled it there.
+  const measureOverflowPx = (box: DOMRect) =>
     isRightToLeft ? -(box.left + window.scrollX) : box.right - viewportWidth;
 
   const pastEdge = measured
     .filter(({ element }) => !isInsideClippingBox(element))
     .map(({ selector, box }) => ({
       selector,
-      overflowPx: Math.round(measurePastStartEdge(box)),
+      overflowPx: Math.round(measureOverflowPx(box)),
     }))
     .filter((pastEdgeBox) => pastEdgeBox.overflowPx > 0)
     .sort((first, second) => second.overflowPx - first.overflowPx);
