@@ -40,6 +40,7 @@
     "prod": "pnpm build && node dist/cli.mjs start",
     "build": "tsdown && vite build",
     "build:site": "vite build --config vite.site.config.ts",
+    "deploy:site": "pnpm build:site && wrangler deploy",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -94,6 +95,7 @@
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "wrangler": "4.154.0"
   }
 }
