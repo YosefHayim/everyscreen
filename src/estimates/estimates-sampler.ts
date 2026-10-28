@@ -27,12 +27,12 @@ interface LayoutShiftEntry extends PerformanceEntry {
   value: number;
 }
 
-const isLayoutShift = (
-  performanceEntry: PerformanceEntry,
-): performanceEntry is LayoutShiftEntry =>
-  performanceEntry.entryType === "layout-shift";
-
+// Runs inside the page (addInitScript, evaluate): it can use nothing outside itself.
 const watchFrames = (countersKey: string) => {
+  const isLayoutShift = (
+    performanceEntry: PerformanceEntry,
+  ): performanceEntry is LayoutShiftEntry =>
+    performanceEntry.entryType === "layout-shift";
   const isAlreadyWatching = countersKey in window;
   if (isAlreadyWatching) return;
 

@@ -6,7 +6,15 @@ const ANIMATED_PAGE = `data:text/html,<style>
 @keyframes slide { from { transform: translateX(0) } to { transform: translateX(200px) } }
 .box { width: 50px; height: 50px; background: tomato; animation: slide 1s infinite alternate linear }
 </style><div class="box"></div>`;
+const SHIFTING_PAGE = `data:text/html,<p>content</p><script>
+setTimeout(() => {
+  const block = document.createElement("div");
+  block.style.height = "300px";
+  document.body.prepend(block);
+}, 300);
+</script>`;
 const SECOND_PAGE = `${ANIMATED_PAGE}<p>second page</p>`;
+const COUNTERS_KEY = "everyscreenCounters";
 const NAVIGATION_POLL_TIMEOUT_MS = 10_000;
 
 type EstimateMessage = Extract<LiveMessage, { kind: "estimate" }>;
@@ -70,5 +78,22 @@ test.describe("startSampling", () => {
       .filter(isEstimateMessage)
       .filter((estimateMessage) => estimateMessage.deviceLoad.fps < 0);
     expect(negativeEstimates).toEqual([]);
+  });
+
+  test("counts a layout shift without throwing inside the page", async () => {
+    browser = await chromium.launch();
+    const page = await browser.newPage();
+    const pageErrors: Error[] = [];
+    page.on("pageerror", (pageError) => pageErrors.push(pageError));
+
+    await page.goto(SHIFTING_PAGE);
+    const stopSampling = await startSampling(page, "pixel-8");
+    await page.waitForFunction(
+      (countersKey) => Reflect.get(window, countersKey).layoutShift > 0,
+      COUNTERS_KEY,
+    );
+    await stopSampling();
+
+    expect(pageErrors).toEqual([]);
   });
 });
