@@ -104,8 +104,8 @@ test.describe("startDeviceBrowser", () => {
       "spike-phone",
       watchedPages,
     );
-    const context = await otherClient.newContext();
-    const page = await context.newPage();
+    const browserContext = await otherClient.newContext();
+    const page = await browserContext.newPage();
 
     await page.goto(PAGE_URL);
     await expect.poll(() => watchedPages.length).toBe(1);

@@ -187,23 +187,23 @@ export const startDeviceBrowser = async (
       });
     };
 
-    const watchBrowserContext = (context: BrowserContext): void => {
-      context.on("page", (page) => runSafely(() => trackPage(page)));
-      for (const page of context.pages()) {
+    const watchBrowserContext = (browserContext: BrowserContext): void => {
+      browserContext.on("page", (page) => runSafely(() => trackPage(page)));
+      for (const page of browserContext.pages()) {
         runSafely(() => trackPage(page));
       }
     };
 
     // WebKit and Firefox servers hide pages that other processes open, so only the hub's own pages are watched.
     if (isChromium) {
-      for (const context of hubBrowser.contexts()) {
-        watchBrowserContext(context);
+      for (const browserContext of hubBrowser.contexts()) {
+        watchBrowserContext(browserContext);
       }
     }
 
     const openPage = async (): Promise<Page> => {
-      const context = await hubBrowser.newContext(devicePreset.use);
-      const page = await context.newPage();
+      const browserContext = await hubBrowser.newContext(devicePreset.use);
+      const page = await browserContext.newPage();
       await runOneAtATime(wsEndpoint, () => trackPage(page));
       return page;
     };
