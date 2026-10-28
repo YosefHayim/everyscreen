@@ -7,8 +7,10 @@ export const isRunLive = (runTotals: RunTotals): boolean =>
   runTotals.outcome === null;
 
 // A run killed with Ctrl-C never sends its end, so silence ends it as failed.
+// Each test it left running is failed too, so the counts match the tiles.
 export const pickSilentRunEnd = (
   lastRunTotals: RunTotals | null,
+  stoppedTestCount: number,
   nowMs: number,
 ): RunTotals | null => {
   const isRunUnknown = lastRunTotals === null;
@@ -19,6 +21,7 @@ export const pickSilentRunEnd = (
 
   return {
     ...lastRunTotals,
+    failedCount: lastRunTotals.failedCount + stoppedTestCount,
     phase: "update",
     endedAt: nowMs,
     outcome: "failed",
