@@ -1,18 +1,13 @@
 {
   "shell": {
-    "name": "Everyscreen",
-    "appUrlLabel": "App URL",
-    "appUrlPlaceholder": "No app open",
-    "navLabel": "Views",
-    "nav": { "grid": "Grid" }
+    "name": "Everyscreen"
   },
   "grid": {
-    "waiting": "Waiting for a URL",
-    "framesLabel": "Default grid, waiting for a URL",
+    "tilesLabel": "Devices in the grid",
     "copy": { "idle": "Copy", "copied": "Copied", "failed": "Copy failed" },
     "empty": {
       "title": "Open your app to fill the grid",
-      "hubRunning": "Hub running on {{hubAddress}}",
+      "hubRunning": "Hub running on {{hubUrl}}",
       "urlLabel": "App URL",
       "open": "Open",
       "openFailed": "The hub could not open that URL.",
@@ -33,9 +28,13 @@
   "tile": {
     "live": "live",
     "waiting": "Waiting for the first screen image",
-    "estimate": "{{fps}} fps · {{cpuPercent}}% CPU",
+    "estimate": "{{fps}} fps · {{cpuPercent}}% CPU est.",
     "noEstimate": "No estimate yet",
-    "status": { "pass": "Passed", "warn": "Has findings", "fail": "Failed" },
+    "status": {
+      "ok": "No findings",
+      "warn": "Has findings",
+      "failed": "Failed"
+    },
     "engines": {
       "chromium": "Chromium",
       "webkit": "WebKit",

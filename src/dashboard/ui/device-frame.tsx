@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
   type FramePaint,
   type FrameSize,
@@ -15,7 +15,10 @@ interface DeviceFrameProps extends FrameSize {
   children: ReactNode;
 }
 
-export const DeviceFrame = ({ children, ...frameSize }: DeviceFrameProps) => {
+export const DeviceFrame = ({
+  children,
+  ...frameSize
+}: DeviceFrameProps): ReactElement => {
   const layout = pickFrameLayout(frameSize);
   const { width, height, screenLeft, screenTop, screenWidth, screenHeight } =
     layout;

@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { ICON_PATHS, type IconName } from "@/dashboard/ui/icon-paths";
 
 const DEFAULT_ICON_SIZE = 16;
@@ -13,7 +14,7 @@ export const Icon = ({
   name,
   size = DEFAULT_ICON_SIZE,
   strokeWidth = DEFAULT_STROKE_WIDTH,
-}: IconProps) => (
+}: IconProps): ReactElement => (
   <svg
     width={size}
     height={size}

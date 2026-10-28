@@ -1,26 +1,33 @@
-import { type MutationStatus, useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
 const COPIED_LABEL_MS = 1500;
 
 type CopyStatus = "idle" | "copied" | "failed";
 
-const COPY_STATUSES = {
-  idle: "idle",
-  pending: "idle",
-  success: "copied",
-  error: "failed",
-} satisfies Record<MutationStatus, CopyStatus>;
+interface CopyTextControl {
+  copyStatus: CopyStatus;
+  copyText: () => Promise<void>;
+}
 
-export const useCopyText = (text: string) => {
-  const copyMutation = useMutation({
-    mutationFn: () => navigator.clipboard.writeText(text),
-    onSuccess: () => {
-      setTimeout(() => copyMutation.reset(), COPIED_LABEL_MS);
-    },
-  });
+export const useCopyText = (copiedLine: string): CopyTextControl => {
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
 
-  return {
-    copyStatus: COPY_STATUSES[copyMutation.status],
-    copyText: () => copyMutation.mutate(),
+  useEffect(() => {
+    const isIdle = copyStatus === "idle";
+    if (isIdle) return;
+    const resetTimer = setTimeout(() => setCopyStatus("idle"), COPIED_LABEL_MS);
+    return () => clearTimeout(resetTimer);
+  }, [copyStatus]);
+
+  const copyText = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(copiedLine);
+      setCopyStatus("copied");
+    } catch (error) {
+      console.error({ error });
+      setCopyStatus("failed");
+    }
   };
+
+  return { copyStatus, copyText };
 };

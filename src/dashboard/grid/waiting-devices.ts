@@ -1,53 +1,62 @@
+import type { BrowserName, FrameShape } from "@/devices/devices-logic";
+
 export interface WaitingDevice {
   deviceId: string;
   name: string;
+  browserName: BrowserName;
+  frameShape: FrameShape;
   viewportWidth: number;
   viewportHeight: number;
-  cornerRadius: number;
 }
 
-// The default grid, drawn before any app is open. The device list hook replaces it in wave 2.
+// The device presets the grid shows before an app is open. GET /api/devices replaces it in wave 2.
 export const WAITING_DEVICES: WaitingDevice[] = [
   {
     deviceId: "iphone-se",
     name: "iPhone SE",
+    browserName: "chromium",
+    frameShape: "home-button",
     viewportWidth: 375,
     viewportHeight: 667,
-    cornerRadius: 12,
   },
   {
     deviceId: "iphone-15",
     name: "iPhone 15",
+    browserName: "chromium",
+    frameShape: "dynamic-island",
     viewportWidth: 393,
     viewportHeight: 852,
-    cornerRadius: 16,
   },
   {
     deviceId: "galaxy-s24",
     name: "Galaxy S24",
+    browserName: "chromium",
+    frameShape: "punch-hole",
     viewportWidth: 360,
     viewportHeight: 780,
-    cornerRadius: 14,
   },
   {
     deviceId: "pixel-8",
     name: "Pixel 8",
+    browserName: "chromium",
+    frameShape: "punch-hole",
     viewportWidth: 412,
     viewportHeight: 915,
-    cornerRadius: 14,
   },
   {
     deviceId: "ipad-mini",
-    name: "iPad mini",
+    name: "iPad Mini",
+    browserName: "chromium",
+    frameShape: "tablet",
     viewportWidth: 744,
     viewportHeight: 1133,
-    cornerRadius: 12,
   },
   {
     deviceId: "laptop-1440",
     name: "Laptop 1440",
+    browserName: "chromium",
+    frameShape: "laptop",
     viewportWidth: 1440,
     viewportHeight: 900,
-    cornerRadius: 8,
   },
 ];

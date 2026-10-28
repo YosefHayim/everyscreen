@@ -1,31 +1,29 @@
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { SetupStep, type SetupStepStatus } from "@/dashboard/grid/setup-step";
+import { SetupStep } from "@/dashboard/grid/setup-step";
+import { pickSetupStepProgress } from "@/dashboard/grid/setup-steps-logic";
+import { useHasScreenImage } from "@/dashboard/live/use-has-screen-image";
+import { useLiveStatus } from "@/dashboard/live/use-live-status";
 
-interface SetupStepDefinition {
-  stepKey: string;
-  status: SetupStepStatus;
-}
-
-const SETUP_STEPS: SetupStepDefinition[] = [
-  { stepKey: "startHub", status: "done" },
-  { stepKey: "openApp", status: "now" },
-  { stepKey: "runTests", status: "later" },
-];
-
-export const SetupSteps = () => {
+export const SetupSteps = (): ReactElement => {
   const { t } = useTranslation();
-  const stepsLabel = t("grid.empty.stepsLabel", { count: SETUP_STEPS.length });
+  const liveStatus = useLiveStatus();
+  const hasScreenImage = useHasScreenImage();
+  const setupStepProgress = pickSetupStepProgress(liveStatus, hasScreenImage);
+  const stepsLabel = t("grid.empty.stepsLabel", {
+    count: setupStepProgress.length,
+  });
 
   return (
-    <nav
+    <section
       aria-label={stepsLabel}
-      className="flex flex-wrap items-center justify-start gap-x-1 rounded-2xl border border-line bg-card px-2 py-1 md:justify-center md:rounded-full md:py-0 md:pr-2 md:pl-4"
+      className="flex flex-wrap items-center justify-start gap-x-1 rounded-2xl border border-line bg-card px-2 py-1 md:justify-center md:rounded-full md:py-0 md:ps-4 md:pe-2"
     >
-      <span className="w-full px-1.5 pt-2 font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase md:w-auto md:p-0 md:pr-2">
+      <span className="w-full px-1.5 pt-2 font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase md:w-auto md:p-0 md:pe-2">
         {stepsLabel}
       </span>
       <ol className="m-0 flex flex-wrap list-none p-0">
-        {SETUP_STEPS.map((setupStep, stepIndex) => (
+        {setupStepProgress.map((setupStep, stepIndex) => (
           <SetupStep
             key={setupStep.stepKey}
             stepKey={setupStep.stepKey}
@@ -34,6 +32,6 @@ export const SetupSteps = () => {
           />
         ))}
       </ol>
-    </nav>
+    </section>
   );
 };

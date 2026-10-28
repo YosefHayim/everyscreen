@@ -10,7 +10,7 @@ const SHAPES_WITH_CUTOUTS = [
   { frameShape: "laptop", partCount: 3 },
 ] satisfies { frameShape: FrameShape; partCount: number }[];
 
-// 360px wide viewport at the frame's reference scale of 0.36: bezel sizes stay as drawn.
+// 360px wide viewport at the frame's reference scale of 0.36: frame side and top sizes stay as drawn.
 const REFERENCE_SCREEN_WIDTH = 129.6;
 
 const pickPhoneLayout = (frameShape: FrameShape) =>

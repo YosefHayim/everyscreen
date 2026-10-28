@@ -29,53 +29,53 @@ export interface FrameSize {
 }
 
 interface FrameLook {
-  bezelSide: number;
-  bezelTop: number;
-  bezelBottom: number;
+  frameSideWidth: number;
+  frameTopHeight: number;
+  frameBottomHeight: number;
   radius: number;
   screenRadius: number;
 }
 
 const FRAME_LOOKS = {
   "home-button": {
-    bezelSide: 7,
-    bezelTop: 30,
-    bezelBottom: 30,
+    frameSideWidth: 7,
+    frameTopHeight: 30,
+    frameBottomHeight: 30,
     radius: 22,
     screenRadius: 0,
   },
   "dynamic-island": {
-    bezelSide: 5,
-    bezelTop: 5,
-    bezelBottom: 5,
+    frameSideWidth: 5,
+    frameTopHeight: 5,
+    frameBottomHeight: 5,
     radius: 25,
     screenRadius: 20,
   },
   "punch-hole": {
-    bezelSide: 5,
-    bezelTop: 5,
-    bezelBottom: 5,
+    frameSideWidth: 5,
+    frameTopHeight: 5,
+    frameBottomHeight: 5,
     radius: 23,
     screenRadius: 18,
   },
   tablet: {
-    bezelSide: 10,
-    bezelTop: 10,
-    bezelBottom: 10,
+    frameSideWidth: 10,
+    frameTopHeight: 10,
+    frameBottomHeight: 10,
     radius: 17,
     screenRadius: 7,
   },
   laptop: {
-    bezelSide: 9,
-    bezelTop: 9,
-    bezelBottom: 0,
+    frameSideWidth: 9,
+    frameTopHeight: 9,
+    frameBottomHeight: 0,
     radius: 14,
     screenRadius: 4,
   },
   kiosk: {
-    bezelSide: 14,
-    bezelTop: 14,
-    bezelBottom: 14,
+    frameSideWidth: 14,
+    frameTopHeight: 14,
+    frameBottomHeight: 14,
     radius: 6,
     screenRadius: 2,
   },
@@ -245,16 +245,16 @@ export const pickFrameLayout = (frameSize: FrameSize): FrameLayout => {
   const sized = (size: number) => roundNumber(size * scale);
 
   const screenHeight = roundNumber(viewportHeight * screenScale);
-  const bezelSide = sized(look.bezelSide);
-  const bezelTop = sized(look.bezelTop);
-  const bezelBottom = sized(look.bezelBottom);
-  const lidWidth = screenWidth + bezelSide * 2;
-  const lidHeight = bezelTop + screenHeight + bezelBottom;
+  const frameSideWidth = sized(look.frameSideWidth);
+  const frameTopHeight = sized(look.frameTopHeight);
+  const frameBottomHeight = sized(look.frameBottomHeight);
+  const lidWidth = screenWidth + frameSideWidth * 2;
+  const lidHeight = frameTopHeight + screenHeight + frameBottomHeight;
   const baseOverhang = isLaptop ? sized(LAPTOP_BASE_OVERHANG) : 0;
   const baseHeight = isLaptop ? sized(LAPTOP_BASE_HEIGHT) : 0;
   const width = lidWidth + baseOverhang * 2;
   const height = lidHeight + baseHeight;
-  const screenLeft = baseOverhang + bezelSide;
+  const screenLeft = baseOverhang + frameSideWidth;
   const radius = sized(look.radius);
   const screenRadius = sized(look.screenRadius);
   const lidBottomRadius = isLaptop ? 0 : radius;
@@ -273,7 +273,7 @@ export const pickFrameLayout = (frameSize: FrameSize): FrameLayout => {
   };
   const screenBox = {
     left: screenLeft,
-    top: bezelTop,
+    top: frameTopHeight,
     width: screenWidth,
     height: screenHeight,
   };
@@ -304,7 +304,7 @@ export const pickFrameLayout = (frameSize: FrameSize): FrameLayout => {
     width: roundNumber(width),
     height: roundNumber(height),
     screenLeft: roundNumber(screenLeft),
-    screenTop: bezelTop,
+    screenTop: frameTopHeight,
     screenWidth,
     screenHeight,
     screenCornerRadius: `${screenRadius}px ${screenRadius}px ${screenBottomRadius}px ${screenBottomRadius}px`,

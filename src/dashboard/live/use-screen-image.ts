@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { getScreenImage, subscribe } from "@/dashboard/live/live-socket";
+import { getScreenImageUrl, subscribe } from "@/dashboard/live/live-store";
 
-export const useScreenImage = (deviceId: string) =>
-  useSyncExternalStore(subscribe, () => getScreenImage(deviceId));
+export const useScreenImage = (deviceId: string): string | null =>
+  useSyncExternalStore(subscribe, () => getScreenImageUrl(deviceId));

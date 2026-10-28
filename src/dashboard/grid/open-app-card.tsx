@@ -1,26 +1,24 @@
-import type { FormEvent } from "react";
+import { type FormEvent, type ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CommandLine } from "@/dashboard/grid/command-line";
 import { useOpenApp } from "@/dashboard/grid/use-open-app";
-import { HUB_ADDRESS } from "@/dashboard/hub-address";
 import { Button } from "@/dashboard/ui/button";
 import { Icon } from "@/dashboard/ui/icon";
+import { HUB_URL } from "@/environment";
 
 const DEFAULT_APP_URL = "http://localhost:5173";
 const SKILL_INSTALL_COMMAND = "npx everyscreen skill install";
 
-export const OpenAppCard = () => {
+export const OpenAppCard = (): ReactElement => {
   const { t } = useTranslation();
   const openApp = useOpenApp();
-  const openCommand = `everyscreen open --url ${DEFAULT_APP_URL}`;
+  const [appUrl, setAppUrl] = useState(DEFAULT_APP_URL);
+  const openCommand = `everyscreen open --url ${appUrl}`;
   const hasOpenFailed = openApp.isError;
 
   const openTypedUrl = (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
-    const urlField = new FormData(submitEvent.currentTarget).get("url");
-    const isUrlMissing = typeof urlField !== "string";
-    if (isUrlMissing) return;
-    openApp.mutate(urlField);
+    openApp.mutate(appUrl);
   };
 
   return (
@@ -33,7 +31,7 @@ export const OpenAppCard = () => {
           {t("grid.empty.title")}
         </h1>
         <p className="m-0 text-sm leading-5 text-ink-2">
-          {t("grid.empty.hubRunning", { hubAddress: HUB_ADDRESS })}
+          {t("grid.empty.hubRunning", { hubUrl: HUB_URL })}
         </p>
       </div>
       <form onSubmit={openTypedUrl} className="flex flex-col gap-2 md:flex-row">
@@ -43,7 +41,8 @@ export const OpenAppCard = () => {
             name="url"
             type="url"
             required
-            defaultValue={DEFAULT_APP_URL}
+            value={appUrl}
+            onChange={(changeEvent) => setAppUrl(changeEvent.target.value)}
             aria-label={t("grid.empty.urlLabel")}
             className="min-w-0 flex-1 border-0 bg-transparent font-mono text-sm text-ink outline-offset-4"
           />
@@ -59,7 +58,7 @@ export const OpenAppCard = () => {
         </Button>
       </form>
       {hasOpenFailed && (
-        <p role="alert" className="m-0 text-[13px] text-fail">
+        <p role="alert" className="m-0 text-[13px] text-failed">
           {t("grid.empty.openFailed")}
         </p>
       )}
@@ -72,7 +71,7 @@ export const OpenAppCard = () => {
           copyLabel={t("grid.empty.copyOpenCommand")}
         />
       </div>
-      <hr className="m-0 h-px border-0 bg-line-soft" />
+      <hr className="m-0 h-px border-0 bg-line" />
       <div className="flex flex-col gap-2">
         <h2 className="m-0 text-lg leading-[25px] font-semibold">
           {t("grid.empty.agentTitle")}

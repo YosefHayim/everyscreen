@@ -1,15 +1,19 @@
 import { cva } from "class-variance-authority";
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import type {
+  SetupStepKey,
+  SetupStepStatus,
+} from "@/dashboard/grid/setup-steps-logic";
+import { cn } from "@/dashboard/ui/cn";
 import { Icon } from "@/dashboard/ui/icon";
-
-export type SetupStepStatus = "done" | "now" | "later";
 
 const markVariants = cva(
   "grid size-6 flex-none place-items-center rounded-full text-xs",
   {
     variants: {
       status: {
-        done: "bg-pass text-card",
+        done: "bg-ok text-card",
         now: "bg-cobalt font-semibold text-card",
         later: "border-[1.5px] border-muted font-medium text-ink-2",
       },
@@ -27,34 +31,47 @@ const nameVariants = cva("text-[13.5px] whitespace-nowrap", {
   },
 });
 
-const stateVariants = cva("font-mono text-[11px]", {
-  variants: { status: { done: "text-pass", now: "text-cobalt", later: "" } },
-});
+const STATE_LABEL_KEYS = {
+  done: "grid.empty.stepStates.done",
+  now: "grid.empty.stepStates.now",
+} as const;
+
+const STATE_CLASS_NAMES = {
+  done: "text-ok",
+  now: "text-cobalt",
+} as const;
 
 interface SetupStepProps {
-  stepKey: string;
+  stepKey: SetupStepKey;
   stepNumber: number;
   status: SetupStepStatus;
 }
 
-export const SetupStep = ({ stepKey, stepNumber, status }: SetupStepProps) => {
+export const SetupStep = ({
+  stepKey,
+  stepNumber,
+  status,
+}: SetupStepProps): ReactElement => {
   const { t } = useTranslation();
   const isDone = status === "done";
-  const isNotDone = status !== "done";
   const hasStateLabel = status !== "later";
+  const markContent = isDone ? (
+    <Icon name="tick" size={14} strokeWidth={2.6} />
+  ) : (
+    stepNumber
+  );
 
   return (
-    <li className="flex min-h-11 items-center gap-2 pr-3 pl-2.5">
-      <span className={markVariants({ status })}>
-        {isDone && <Icon name="tick" size={14} strokeWidth={2.6} />}
-        {isNotDone && stepNumber}
-      </span>
+    <li className="flex min-h-11 items-center gap-2 pe-3 ps-2.5">
+      <span className={markVariants({ status })}>{markContent}</span>
       <span className={nameVariants({ status })}>
         {t(`grid.empty.steps.${stepKey}`)}
       </span>
       {hasStateLabel && (
-        <span className={stateVariants({ status })}>
-          {t(`grid.empty.stepStates.${status}`)}
+        <span
+          className={cn("font-mono text-[11px]", STATE_CLASS_NAMES[status])}
+        >
+          {t(STATE_LABEL_KEYS[status])}
         </span>
       )}
     </li>

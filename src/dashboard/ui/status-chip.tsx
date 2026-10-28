@@ -1,13 +1,14 @@
 import { cva } from "class-variance-authority";
+import type { ReactElement } from "react";
 import { Icon } from "@/dashboard/ui/icon";
 import type { IconName } from "@/dashboard/ui/icon-paths";
 
-export type ChipStatus = "pass" | "warn" | "fail";
+export type ChipStatus = "ok" | "warn" | "failed";
 
 const CHIP_ICONS = {
-  pass: "tick",
+  ok: "tick",
   warn: "finding",
-  fail: "close",
+  failed: "close",
 } satisfies Record<ChipStatus, IconName>;
 
 const CHIP_ICON_SIZE = 13;
@@ -19,9 +20,9 @@ const chipVariants = cva(
   {
     variants: {
       status: {
-        pass: "text-pass",
+        ok: "text-ok",
         warn: "text-warn",
-        fail: "text-fail",
+        failed: "text-failed",
       },
       isLabelHidden: {
         true: "w-7 justify-center",
@@ -29,9 +30,9 @@ const chipVariants = cva(
       },
     },
     compoundVariants: [
-      { status: "pass", isLabelHidden: false, className: "bg-pass-soft" },
+      { status: "ok", isLabelHidden: false, className: "bg-ok-soft" },
       { status: "warn", isLabelHidden: false, className: "bg-warn-soft" },
-      { status: "fail", isLabelHidden: false, className: "bg-fail-soft" },
+      { status: "failed", isLabelHidden: false, className: "bg-failed-soft" },
     ],
   },
 );
@@ -46,7 +47,7 @@ export const StatusChip = ({
   status,
   label,
   isLabelHidden = false,
-}: StatusChipProps) => {
+}: StatusChipProps): ReactElement => {
   const labelClassName = isLabelHidden ? "sr-only" : undefined;
 
   return (

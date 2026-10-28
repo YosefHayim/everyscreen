@@ -8,7 +8,10 @@ interface ScreenBoundaryProps {
   children: ReactNode;
 }
 
-export const ScreenBoundary = ({ status, children }: ScreenBoundaryProps) => {
+export const ScreenBoundary = ({
+  status,
+  children,
+}: ScreenBoundaryProps): ReactNode => {
   const { t } = useTranslation();
   const isScreenReady = status === "ready";
   if (isScreenReady) return children;

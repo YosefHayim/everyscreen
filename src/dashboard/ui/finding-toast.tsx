@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import type { Finding } from "@/checks/checks-logic";
 import { cn } from "@/dashboard/ui/cn";
@@ -6,12 +7,17 @@ import type { IconName } from "@/dashboard/ui/icon-paths";
 
 const SEVERITY_ICONS = {
   warn: "finding",
-  fail: "close",
+  failed: "close",
 } satisfies Record<Finding["severity"], IconName>;
 
 const SEVERITY_BADGE_CLASS_NAMES = {
   warn: "bg-warn-soft text-warn",
-  fail: "bg-fail-soft text-fail",
+  failed: "bg-failed-soft text-failed",
+} satisfies Record<Finding["severity"], string>;
+
+const SEVERITY_ROLES = {
+  warn: "status",
+  failed: "alert",
 } satisfies Record<Finding["severity"], string>;
 
 interface FindingToastProps {
@@ -24,14 +30,14 @@ export const FindingToast = ({
   finding,
   deviceName,
   onDismiss,
-}: FindingToastProps) => {
+}: FindingToastProps): ReactElement => {
   const { t } = useTranslation();
   const { severity, kind, message } = finding;
 
   return (
     <div
-      role="status"
-      className="flex gap-3 rounded-xl border border-line-soft bg-card p-3.5 shadow-lift"
+      role={SEVERITY_ROLES[severity]}
+      className="flex gap-3 rounded-xl border border-line bg-card p-3.5 shadow-lift"
     >
       <span
         className={cn(
@@ -54,7 +60,7 @@ export const FindingToast = ({
         type="button"
         aria-label={t("findings.dismiss")}
         onClick={onDismiss}
-        className="-mr-2.5 -mt-2.5 grid size-11 flex-none cursor-pointer place-items-center rounded-full text-ink-3 hover:bg-soft"
+        className="-me-2.5 -mt-2.5 grid size-11 flex-none cursor-pointer place-items-center rounded-full text-ink-3 hover:bg-soft"
       >
         <Icon name="close" size={14} strokeWidth={2} />
       </button>

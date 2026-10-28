@@ -14,6 +14,9 @@ await i18next.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+document.documentElement.lang = i18next.language;
+document.documentElement.dir = i18next.dir();
+
 const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
