@@ -45,7 +45,7 @@ export const WAITING_DEVICES: WaitingDevice[] = [
   },
   {
     deviceId: "ipad-mini",
-    name: "iPad Mini",
+    name: "iPad mini",
     browserName: "chromium",
     frameShape: "tablet",
     viewportWidth: 744,
