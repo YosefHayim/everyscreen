@@ -10,6 +10,14 @@ export const ICON_PATHS = {
     "M11 9h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z",
     "M5 15V6a2 2 0 0 1 2-2h8",
   ],
+  "chevron-left": ["M15 5l-7 7 7 7"],
+  "chevron-right": ["M9 5l7 7-7 7"],
+  plus: ["M12 5v14M5 12h14"],
+  trash: ["M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13"],
+  "device-add": [
+    "M12 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5",
+    "M18 3v6M15 6h6",
+  ],
 } satisfies Record<string, string[]>;
 
 export type IconName = keyof typeof ICON_PATHS;

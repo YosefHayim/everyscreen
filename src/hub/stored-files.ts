@@ -5,16 +5,25 @@ import { dirname } from "node:path";
 const isMissingFileError = (error: unknown): boolean =>
   error instanceof Error && "code" in error && error.code === "ENOENT";
 
-export const readStoredFile = async (
+export const readStoredBytes = async (
   filePath: string,
-): Promise<string | null> => {
+): Promise<Buffer | null> => {
   try {
-    return await readFile(filePath, "utf8");
+    return await readFile(filePath);
   } catch (error) {
     const isFileMissing = isMissingFileError(error);
     if (isFileMissing) return null;
     throw error;
   }
+};
+
+export const readStoredFile = async (
+  filePath: string,
+): Promise<string | null> => {
+  const fileBytes = await readStoredBytes(filePath);
+  const isFileMissing = fileBytes === null;
+  if (isFileMissing) return null;
+  return fileBytes.toString("utf8");
 };
 
 export const writeStoredFile = async (

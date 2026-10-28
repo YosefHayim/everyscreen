@@ -1,10 +1,16 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { useLiveStatus } from "@/dashboard/live/use-live-status";
+import { useLiveStatus } from "@/dashboard/device-feed/use-live-status";
 import { cn } from "@/dashboard/ui/cn";
 import { LogoMark } from "@/dashboard/ui/logo-mark";
 import { HUB_URL } from "@/environment";
+
+const NAV_LINKS = [
+  { to: "/", labelKey: "shell.nav.grid" },
+  { to: "/runs", labelKey: "shell.nav.runs" },
+  { to: "/devices", labelKey: "shell.nav.devices" },
+] as const;
 
 export const AppShell = (): ReactElement => {
   const { t } = useTranslation();
@@ -32,6 +38,22 @@ export const AppShell = (): ReactElement => {
           <span aria-hidden="true" className={liveDotClassName} />
           {HUB_URL}
         </span>
+        <nav
+          aria-label={t("shell.nav.label")}
+          className="ms-auto flex items-center gap-1"
+        >
+          {NAV_LINKS.map((navLink) => (
+            <Link
+              key={navLink.to}
+              to={navLink.to}
+              activeOptions={{ exact: navLink.to === "/" }}
+              className="flex min-h-11 items-center rounded-full px-3 text-sm text-ink-2 no-underline hover:text-ink"
+              activeProps={{ className: "bg-paper font-medium text-ink" }}
+            >
+              {t(navLink.labelKey)}
+            </Link>
+          ))}
+        </nav>
       </header>
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-soft">
         <Outlet />

@@ -4,6 +4,7 @@ import type { DevicePage } from "@/devices/device-browsers";
 import { createDevicesRoutes } from "@/devices/devices-routes";
 import { writeProblem } from "@/hub/problem-reply";
 import { createRunsRoutes } from "@/runs/runs-routes";
+import { createShotsRoutes } from "@/runs/shots-routes";
 
 export const createHubApp = (
   rootFolder: string,
@@ -14,6 +15,7 @@ export const createHubApp = (
     .route("/devices", createDevicesRoutes(rootFolder))
     .route("/commands", createCommandsRoutes(rootFolder, devicePages))
     .route("/runs", createRunsRoutes(rootFolder))
+    .route("/shots", createShotsRoutes(rootFolder))
     .onError(writeProblem);
 
 export type HubApp = ReturnType<typeof createHubApp>;
