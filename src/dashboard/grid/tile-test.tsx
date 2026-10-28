@@ -10,6 +10,12 @@ const TEST_STATUS_CLASS_NAMES = {
   failed: "text-failed",
 } satisfies Record<LiveTestStatus, string>;
 
+const TEST_STATUS_LABEL_KEYS = {
+  running: "tile.test.running",
+  ok: "tile.test.ok",
+  failed: "tile.test.failed",
+} satisfies Record<LiveTestStatus, string>;
+
 interface TileTestProps {
   deviceTest: DeviceTest | null;
 }
@@ -29,7 +35,7 @@ export const TileTest = ({
         {title}
       </span>
       <span className={cn("flex-none", TEST_STATUS_CLASS_NAMES[status])}>
-        {t(`tile.test.${status}`)}
+        {t(TEST_STATUS_LABEL_KEYS[status])}
       </span>
     </p>
   );

@@ -10,25 +10,27 @@ const SUITE_CONFIG_PATH = fileURLToPath(
 );
 const SUITE_TIMEOUT_MS = 180_000;
 
-test.describe("live suite without a hub", () => {
-  test.setTimeout(SUITE_TIMEOUT_MS);
-
-  let rootFolder = "";
-
-  test.beforeEach(async () => {
-    rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-no-hub-"));
-  });
-
-  test.afterEach(async () => {
+const noHubTest = test.extend<{ rootFolder: string }>({
+  // biome-ignore lint/correctness/noEmptyPattern: Playwright requires a destructuring pattern here
+  rootFolder: async ({}, use) => {
+    const rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-no-hub-"));
+    await use(rootFolder);
     await rm(rootFolder, { recursive: true, force: true });
-  });
+  },
+});
 
-  test("still runs every test and reports the missing hub once per process", async () => {
-    const suiteRun = await runSuite(SUITE_CONFIG_PATH, rootFolder);
+noHubTest.describe("live suite without a hub", () => {
+  noHubTest.setTimeout(SUITE_TIMEOUT_MS);
 
-    expect(suiteRun.exitCode).toBe(1);
-    expect(suiteRun.stdout).toContain("2 passed");
-    expect(suiteRun.stdout).toContain("2 failed");
-    expect(suiteRun.stderr).toContain("could not reach the hub");
-  });
+  noHubTest(
+    "still runs every test and reports the missing hub once per process",
+    async ({ rootFolder }) => {
+      const suiteRun = await runSuite(SUITE_CONFIG_PATH, rootFolder);
+
+      expect(suiteRun.exitCode).toBe(1);
+      expect(suiteRun.stdout).toContain("2 passed");
+      expect(suiteRun.stdout).toContain("2 failed");
+      expect(suiteRun.stderr).toContain("could not reach the hub");
+    },
+  );
 });

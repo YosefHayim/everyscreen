@@ -1,8 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { rejectInvalidRequest } from "@/hub/problem-reply";
-import { broadcast } from "@/live/live-feed";
-import { testEventSchema, testScreenSchema } from "@/live/live-test-schema";
+import { broadcast, forgetTests } from "@/live/live-feed";
+import {
+  testEventSchema,
+  testScreenSchema,
+  testsClearSchema,
+} from "@/live/live-test-schema";
 
 const NO_CONTENT_STATUS = 204;
 
@@ -23,6 +27,15 @@ export const createLiveTestRoutes = () =>
       (c) => {
         const { deviceId, title, status } = c.req.valid("json");
         broadcast({ kind: "test", deviceId, title, status });
+        return c.body(null, NO_CONTENT_STATUS);
+      },
+    )
+    .post(
+      "/clear",
+      zValidator("json", testsClearSchema, rejectInvalidRequest),
+      (c) => {
+        const { deviceIds } = c.req.valid("json");
+        forgetTests(deviceIds);
         return c.body(null, NO_CONTENT_STATUS);
       },
     );

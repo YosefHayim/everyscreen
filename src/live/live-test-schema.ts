@@ -13,5 +13,11 @@ export const testEventSchema = z.object({
   status: liveTestStatusSchema,
 });
 
+export const testsClearSchema = z.object({
+  deviceIds: z.array(z.string().min(1)),
+});
+
 export type LiveTestStatus = z.infer<typeof liveTestStatusSchema>;
 export type TestEvent = z.infer<typeof testEventSchema>;
+export type TestsClear = z.infer<typeof testsClearSchema>;
+export type TestScreen = z.infer<typeof testScreenSchema>;

@@ -2,12 +2,12 @@ import { devicesFileSchema } from "@/devices/device-schema";
 import { pickGridDevices } from "@/devices/devices-logic";
 import { parseDevicesYaml } from "@/devices/devices-store";
 import { DEVICES_FILE_PATH } from "@/environment";
-import { readHubFile } from "@/playwright/hub-link";
 import {
   createDeviceProject,
   type DeviceProject,
   pickProjectDevices,
 } from "@/playwright/playwright-logic";
+import { readHubFile } from "@/playwright/read-hub-file";
 import { readOptionalFile } from "@/playwright/read-optional-file";
 
 const readGridDevices = () => {

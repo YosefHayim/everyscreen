@@ -7,7 +7,7 @@ const PLAYWRIGHT_CLI_PATH = join(
 );
 const MAX_SUITE_OUTPUT_BYTES = 10_000_000;
 
-export interface SuiteRun {
+interface SuiteRun {
   exitCode: number;
   stdout: string;
   stderr: string;
@@ -23,7 +23,9 @@ export const runSuite = (
       [PLAYWRIGHT_CLI_PATH, "test", "--config", configPath],
       { cwd: workingFolder, maxBuffer: MAX_SUITE_OUTPUT_BYTES },
       (error, stdout, stderr) => {
-        const exitCode = typeof error?.code === "number" ? error.code : 0;
+        const errorCode = error?.code;
+        const isExitCodeNumber = typeof errorCode === "number";
+        const exitCode = isExitCodeNumber ? errorCode : 0;
         onSuiteDone({ exitCode, stdout, stderr });
       },
     );

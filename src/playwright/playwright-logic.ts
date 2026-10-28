@@ -8,6 +8,7 @@ import type { TestStatus } from "@playwright/test/reporter";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import { createReplyLine } from "@/commands/commands-logic";
 import type { BrowserName, DevicePreset } from "@/devices/devices-logic";
+import { HUB_HOST } from "@/environment";
 import type { HubFile } from "@/hub/hub-file";
 import type { LiveTestStatus, TestEvent } from "@/live/live-test-schema";
 import type { RunStep } from "@/runs/runs-logic";
@@ -43,7 +44,7 @@ export interface AttemptSummary {
   retries: number;
 }
 
-const STEP_TITLE_SEPARATOR = " › ";
+export const STEP_TITLE_SEPARATOR = " › ";
 const KEY_SEPARATOR = "\u0000";
 
 export const pickScreenshotMode = (
@@ -65,8 +66,6 @@ export const createDeviceProject = (
     : undefined;
   return {
     name: devicePreset.id,
-    // Every device runs at the same time, so the tests show side by side in the grid.
-    fullyParallel: true,
     use: {
       everyscreenDeviceId: devicePreset.id,
       browserName: devicePreset.browserName,
@@ -213,17 +212,24 @@ export const createTestEvent = (
   status,
 });
 
+export const createHubUrl = (hubFile: HubFile): string =>
+  `http://${HUB_HOST}:${hubFile.port}`;
+
 // Only a device browser without a CDP address is hidden from the hub, so only its tests send screen images.
-export const isScreenSentByTest = (
+export const pickScreenHubUrl = (
   hubFile: HubFile | null,
   deviceId: string | null,
-): boolean => {
+): string | null => {
   const isDeviceUnknown = deviceId === null;
-  if (isDeviceUnknown) return false;
+  const isHubFileMissing = hubFile === null;
+  if (isDeviceUnknown || isHubFileMissing) return null;
 
-  const hubDevice = hubFile?.devices[deviceId];
+  const hubDevice = hubFile.devices[deviceId];
   const isHubDeviceMissing = hubDevice === undefined;
-  if (isHubDeviceMissing) return false;
+  if (isHubDeviceMissing) return null;
 
-  return hubDevice.cdpUrl === null;
+  const isDeviceWatchedByHub = hubDevice.cdpUrl !== null;
+  if (isDeviceWatchedByHub) return null;
+
+  return createHubUrl(hubFile);
 };

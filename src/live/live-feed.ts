@@ -29,3 +29,8 @@ export const broadcast = (message: LiveMessage): void => {
   if (isTest) lastTests.set(message.deviceId, message);
   for (const listener of listeners) listener(message);
 };
+
+// A killed run must not leave a running test to replay for every new dashboard.
+export const forgetTests = (deviceIds: string[]): void => {
+  for (const deviceId of deviceIds) lastTests.delete(deviceId);
+};

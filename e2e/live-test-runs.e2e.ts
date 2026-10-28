@@ -9,6 +9,8 @@ import { WebSocket } from "ws";
 import { LIVE_PATH } from "@/environment";
 import { type RunningHub, startHub } from "@/hub/hub-server";
 import type { LiveMessage } from "@/live/live-feed";
+import { STEP_TITLE_SEPARATOR } from "@/playwright/playwright-logic";
+import { LIVE_DEVICE_IDS } from "./live-device-ids";
 import { runSuite } from "./run-suite";
 import { readCenterColor, type ScreenColor } from "./screen-color";
 
@@ -28,6 +30,11 @@ const SCREEN_EXPECTATIONS = [
 
 type ScreenMessage = Extract<LiveMessage, { kind: "screen" }>;
 type TestMessage = Extract<LiveMessage, { kind: "test" }>;
+
+interface HubFolders {
+  runningHub: RunningHub;
+  rootFolder: string;
+}
 
 const isGreen = (screenColor: ScreenColor): boolean =>
   Math.abs(screenColor.red - GREEN_CHANNELS.red) < COLOR_TOLERANCE &&
@@ -49,95 +56,121 @@ const listTestMessages = (
     .filter(isTestMessage)
     .filter((testMessage) => testMessage.deviceId === deviceId);
 
+const isRunningMessage = (
+  liveMessage: LiveMessage,
+  deviceId: string,
+  testTitle: string,
+): boolean =>
+  isTestMessage(liveMessage) &&
+  liveMessage.deviceId === deviceId &&
+  liveMessage.status === "running" &&
+  liveMessage.title.endsWith(testTitle);
+
+const isFinishedMessage = (
+  liveMessage: LiveMessage,
+  deviceId: string,
+  testTitle: string,
+): boolean =>
+  isTestMessage(liveMessage) &&
+  liveMessage.deviceId === deviceId &&
+  liveMessage.status !== "running" &&
+  liveMessage.title.endsWith(testTitle);
+
 const listScreensWhileRunning = (
   liveMessages: LiveMessage[],
   deviceId: string,
   testTitle: string,
 ): ScreenMessage[] => {
-  const runningIndex = liveMessages.findIndex(
-    (liveMessage) =>
-      isTestMessage(liveMessage) &&
-      liveMessage.deviceId === deviceId &&
-      liveMessage.status === "running" &&
-      liveMessage.title.endsWith(testTitle),
+  const runningIndex = liveMessages.findIndex((liveMessage) =>
+    isRunningMessage(liveMessage, deviceId, testTitle),
   );
-  const finishedIndex = liveMessages.findIndex(
-    (liveMessage) =>
-      isTestMessage(liveMessage) &&
-      liveMessage.deviceId === deviceId &&
-      liveMessage.status !== "running" &&
-      liveMessage.title.endsWith(testTitle),
+  const finishedIndex = liveMessages.findIndex((liveMessage) =>
+    isFinishedMessage(liveMessage, deviceId, testTitle),
   );
+  const isRunningMissing = runningIndex === -1;
+  const isFinishedMissing = finishedIndex === -1;
+  if (isRunningMissing || isFinishedMissing) return [];
+
   return liveMessages
     .slice(runningIndex, finishedIndex)
     .filter(isScreenMessage)
     .filter((screenMessage) => screenMessage.deviceId === deviceId);
 };
 
-test.describe("live test runs", () => {
-  let rootFolder = "";
-  let dashboardFolder = "";
-  let runningHub: RunningHub;
-
-  test.beforeAll(async () => {
-    test.setTimeout(STARTUP_TIMEOUT_MS);
-    rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-live-tests-"));
-    dashboardFolder = await mkdtemp(join(tmpdir(), "everyscreen-dashboard-"));
-    await writeFile(join(dashboardFolder, "index.html"), "<!doctype html>");
-    runningHub = await startHub({ rootFolder, port: 0, dashboardFolder });
-  });
-
-  test.afterAll(async () => {
-    await runningHub?.stop();
-    await rm(rootFolder, { recursive: true, force: true });
-    await rm(dashboardFolder, { recursive: true, force: true });
-  });
-
-  test("streams screens and test events for a WebKit and a Chromium device", async () => {
-    test.setTimeout(STARTUP_TIMEOUT_MS);
-    const liveMessages: LiveMessage[] = [];
-    const liveSocket = new WebSocket(
-      `${runningHub.url.replace("http", "ws")}${LIVE_PATH}`,
-    );
-    liveSocket.on("message", (messageBytes) => {
-      liveMessages.push(JSON.parse(messageBytes.toString()));
-    });
-    await once(liveSocket, "open");
-
-    const suiteRun = await runSuite(SUITE_CONFIG_PATH, rootFolder);
-    liveSocket.terminate();
-
-    expect(suiteRun.exitCode).toBe(1);
-    for (const deviceId of ["pixel-8", "iphone-se"]) {
-      const testMessages = listTestMessages(liveMessages, deviceId);
-      const eventSummaries = testMessages.map(
-        ({ title, status }) => `${status} ${title.split(" › ").at(-1)}`,
+const liveTest = test.extend<object, { hubFolders: HubFolders }>({
+  hubFolders: [
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires a destructuring pattern here
+    async ({}, use) => {
+      const rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-live-"));
+      const dashboardFolder = await mkdtemp(
+        join(tmpdir(), "everyscreen-dashboard-"),
       );
-      expect(eventSummaries).toContain(`running ${PASSING_TITLE}`);
-      expect(eventSummaries).toContain(`ok ${PASSING_TITLE}`);
-      expect(eventSummaries).toContain(`running ${FAILING_TITLE}`);
-      expect(eventSummaries).toContain(`failed ${FAILING_TITLE}`);
-    }
+      await writeFile(join(dashboardFolder, "index.html"), "<!doctype html>");
+      const runningHub = await startHub({
+        rootFolder,
+        port: 0,
+        dashboardFolder,
+      });
+      await use({ runningHub, rootFolder });
+      await runningHub.stop();
+      await rm(rootFolder, { recursive: true, force: true });
+      await rm(dashboardFolder, { recursive: true, force: true });
+    },
+    { scope: "worker", timeout: STARTUP_TIMEOUT_MS },
+  ],
+});
 
-    const browser = await chromium.launch();
-    const decoderPage = await browser.newPage();
-    try {
-      for (const { deviceId, minScreenCount } of SCREEN_EXPECTATIONS) {
-        const screenMessages = listScreensWhileRunning(
-          liveMessages,
-          deviceId,
-          PASSING_TITLE,
+liveTest.describe("live test runs", () => {
+  liveTest(
+    "streams screens and test events for a WebKit and a Chromium device",
+    async ({ hubFolders }) => {
+      liveTest.setTimeout(STARTUP_TIMEOUT_MS);
+      const { runningHub, rootFolder } = hubFolders;
+      const liveMessages: LiveMessage[] = [];
+      const liveSocket = new WebSocket(
+        `${runningHub.url.replace("http", "ws")}${LIVE_PATH}`,
+      );
+      liveSocket.on("message", (messageBytes) => {
+        liveMessages.push(JSON.parse(messageBytes.toString()));
+      });
+      await once(liveSocket, "open");
+
+      const suiteRun = await runSuite(SUITE_CONFIG_PATH, rootFolder);
+      liveSocket.terminate();
+
+      expect(suiteRun.exitCode).toBe(1);
+      for (const deviceId of LIVE_DEVICE_IDS) {
+        const testMessages = listTestMessages(liveMessages, deviceId);
+        const eventSummaries = testMessages.map(
+          ({ title, status }) =>
+            `${status} ${title.split(STEP_TITLE_SEPARATOR).at(-1)}`,
         );
-        expect(screenMessages.length).toBeGreaterThanOrEqual(minScreenCount);
-        const centerColors = await Promise.all(
-          screenMessages.map(({ imageBase64 }) =>
-            readCenterColor(decoderPage, imageBase64),
-          ),
-        );
-        expect(centerColors.some(isGreen)).toBe(true);
+        expect(eventSummaries).toContain(`running ${PASSING_TITLE}`);
+        expect(eventSummaries).toContain(`ok ${PASSING_TITLE}`);
+        expect(eventSummaries).toContain(`running ${FAILING_TITLE}`);
+        expect(eventSummaries).toContain(`failed ${FAILING_TITLE}`);
       }
-    } finally {
-      await browser.close();
-    }
-  });
+
+      const browser = await chromium.launch();
+      const decoderPage = await browser.newPage();
+      try {
+        for (const { deviceId, minScreenCount } of SCREEN_EXPECTATIONS) {
+          const screenMessages = listScreensWhileRunning(
+            liveMessages,
+            deviceId,
+            PASSING_TITLE,
+          );
+          expect(screenMessages.length).toBeGreaterThanOrEqual(minScreenCount);
+          const centerColors = await Promise.all(
+            screenMessages.map(({ imageBase64 }) =>
+              readCenterColor(decoderPage, imageBase64),
+            ),
+          );
+          expect(centerColors.some(isGreen)).toBe(true);
+        }
+      } finally {
+        await browser.close();
+      }
+    },
+  );
 });
