@@ -41,7 +41,7 @@ const stepProofSchema = z.object({
   codeLocation: z.string().nullable(),
 });
 
-export const runStepSchema = z.object({
+const runStepSchema = z.object({
   stepId: z.string(),
   title: z.string(),
   startedAt: z.number(),
