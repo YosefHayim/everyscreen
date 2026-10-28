@@ -5,7 +5,8 @@ import { emulateDevice } from "@/devices/device-emulation";
 import type { DevicePreset } from "@/devices/devices-logic";
 import type { PageWatcher, StopWatching } from "@/devices/page-watcher";
 import { HUB_HOST } from "@/environment";
-import { readStoredFile, runWithFileLock } from "@/hub/stored-files";
+import { runOneAtATime } from "@/hub/run-one-at-a-time";
+import { readStoredFile } from "@/hub/stored-files";
 import { startScreencast } from "@/live/screencast";
 
 export interface DeviceBrowser {
@@ -127,7 +128,7 @@ export const startDeviceBrowser = async (
     };
 
     const runSafely = (task: () => Promise<void>): void => {
-      runWithFileLock(cdpUrl, task).catch((error) => {
+      runOneAtATime(cdpUrl, task).catch((error) => {
         console.error({ deviceId, error });
       });
     };
