@@ -1,12 +1,9 @@
 import type { Page } from "playwright";
-import type { DevicePreset, FrameShape } from "@/devices/devices-logic";
-
-interface SafeAreaInsets {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
+import type {
+  DevicePreset,
+  FrameShape,
+  SafeAreaInsets,
+} from "@/devices/devices-logic";
 
 const NO_INSETS: SafeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 
