@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.wrangler/
+*.tsbuildinfo
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+
+# Everyscreen run files
+.everyscreen/
+
+# OS files
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
