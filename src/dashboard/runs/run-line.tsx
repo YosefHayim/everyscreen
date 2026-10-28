@@ -27,11 +27,11 @@ const STATUS_CLASS_NAMES = {
   failed: "text-failed",
 } satisfies Record<RunStatus, string>;
 
-interface RunRowProps {
+interface RunLineProps {
   run: Run;
 }
 
-export const RunRow = ({ run }: RunRowProps): ReactElement => {
+export const RunLine = ({ run }: RunLineProps): ReactElement => {
   const { t } = useTranslation();
   const headline = pickRunHeadline(run) ?? t("runs.noSteps");
   const failedDeviceId = pickFirstFailedDeviceId(run);

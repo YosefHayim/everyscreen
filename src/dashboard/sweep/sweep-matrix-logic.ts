@@ -54,7 +54,7 @@ export interface SweepTotals {
 
 export interface SweepRouteFilter {
   isFindingsOnly: boolean;
-  pathText: string;
+  routeFilter: string | null;
 }
 
 export interface ShotChoice {
@@ -166,12 +166,12 @@ export const pickSweepTotals = (sweepMatrix: SweepMatrix): SweepTotals => {
 
 export const listShownRoutes = (
   routes: SweepRoute[],
-  routeFilter: SweepRouteFilter,
+  sweepFilter: SweepRouteFilter,
 ): SweepRoute[] => {
-  const pathQuery = routeFilter.pathText.trim().toLowerCase();
+  const pathQuery = (sweepFilter.routeFilter ?? "").trim().toLowerCase();
   return routes.filter((route) => {
     const isRouteFlagged = route.verdict !== "clean";
-    const isHiddenByFindings = routeFilter.isFindingsOnly && !isRouteFlagged;
+    const isHiddenByFindings = sweepFilter.isFindingsOnly && !isRouteFlagged;
     const isPathMatching = route.path.toLowerCase().includes(pathQuery);
     return !isHiddenByFindings && isPathMatching;
   });

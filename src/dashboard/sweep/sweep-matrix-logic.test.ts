@@ -166,7 +166,7 @@ describe("listShownRoutes", () => {
   test("keeps every route when nothing is filtered", () => {
     const shownRoutes = listShownRoutes(routes, {
       isFindingsOnly: false,
-      pathText: "",
+      routeFilter: null,
     });
 
     expect(shownRoutes).toHaveLength(3);
@@ -175,16 +175,16 @@ describe("listShownRoutes", () => {
   test("hides clean routes when only findings are wanted", () => {
     const shownRoutes = listShownRoutes(routes, {
       isFindingsOnly: true,
-      pathText: "",
+      routeFilter: null,
     });
 
     expect(shownRoutes.map(({ path }) => path)).toEqual(["/login", "/Orders"]);
   });
 
-  test("filters routes by path text, ignoring case and spaces around it", () => {
+  test("filters routes by their path, ignoring case and spaces around it", () => {
     const shownRoutes = listShownRoutes(routes, {
       isFindingsOnly: false,
-      pathText: " ORDERS ",
+      routeFilter: " ORDERS ",
     });
 
     expect(shownRoutes.map(({ path }) => path)).toEqual(["/Orders"]);
@@ -193,7 +193,7 @@ describe("listShownRoutes", () => {
   test("shows nothing when no path matches", () => {
     const shownRoutes = listShownRoutes(routes, {
       isFindingsOnly: false,
-      pathText: "cart",
+      routeFilter: "cart",
     });
 
     expect(shownRoutes).toEqual([]);

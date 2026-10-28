@@ -19,11 +19,11 @@ interface SweepScreen {
   totalRouteCount: number;
   sweepTotals: SweepTotals;
   isFindingsOnly: boolean;
-  pathText: string;
+  routeFilter: string | null;
   openedShot: OpenedShot | null;
   runSweep: RunSweep;
   changeFindingsOnly: (event: ChangeEvent<HTMLInputElement>) => void;
-  changePathText: (event: ChangeEvent<HTMLInputElement>) => void;
+  changeRouteFilter: (event: ChangeEvent<HTMLInputElement>) => void;
   openShot: (shotChoice: ShotChoice) => void;
   closeShot: () => void;
 }
@@ -33,13 +33,13 @@ export const useSweepScreen = (
   deviceViews: DeviceView[],
 ): SweepScreen => {
   const [isFindingsOnly, setIsFindingsOnly] = useState(false);
-  const [pathText, setPathText] = useState("");
+  const [routeFilter, setRouteFilter] = useState<string | null>(null);
   const [shotChoice, setShotChoice] = useState<ShotChoice | null>(null);
   const runSweep = useRunSweep();
   const sweepMatrix = createSweepMatrix(run, deviceViews);
   const shownRoutes = listShownRoutes(sweepMatrix.routes, {
     isFindingsOnly,
-    pathText,
+    routeFilter,
   });
 
   return {
@@ -48,11 +48,14 @@ export const useSweepScreen = (
     totalRouteCount: sweepMatrix.routes.length,
     sweepTotals: pickSweepTotals(sweepMatrix),
     isFindingsOnly,
-    pathText,
+    routeFilter,
     openedShot: pickOpenedShot(sweepMatrix, shotChoice),
     runSweep,
     changeFindingsOnly: (event) => setIsFindingsOnly(event.target.checked),
-    changePathText: (event) => setPathText(event.target.value),
+    changeRouteFilter: (event) => {
+      const isInputEmpty = event.target.value === "";
+      setRouteFilter(isInputEmpty ? null : event.target.value);
+    },
     openShot: setShotChoice,
     closeShot: () => setShotChoice(null),
   };

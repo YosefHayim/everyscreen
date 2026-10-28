@@ -27,10 +27,10 @@ export const SweepScreen = ({
       <SweepHeader
         sweepTotals={sweepScreen.sweepTotals}
         isFindingsOnly={sweepScreen.isFindingsOnly}
-        pathText={sweepScreen.pathText}
+        routeFilter={sweepScreen.routeFilter}
         runSweep={sweepScreen.runSweep}
         onChangeFindingsOnly={sweepScreen.changeFindingsOnly}
-        onChangePathText={sweepScreen.changePathText}
+        onChangeRouteFilter={sweepScreen.changeRouteFilter}
       />
       <SweepTable
         columns={sweepScreen.columns}
