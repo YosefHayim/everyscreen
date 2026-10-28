@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { chromium } from "playwright";
+import { createServer } from "vite";
 import { WebSocket } from "ws";
 import { LIVE_PATH } from "@/environment";
 import { type RunningHub, startHub } from "@/hub/hub-server";
@@ -97,6 +98,29 @@ const listScreensWhileRunning = (
     .filter((screenMessage) => screenMessage.deviceId === deviceId);
 };
 
+const HOST = "127.0.0.1";
+const DESKTOP_VIEWPORT = { width: 1440, height: 900 };
+
+const startDashboard = async (hubUrl: string) => {
+  const viteServer = await createServer({
+    server: {
+      host: HOST,
+      port: 0,
+      proxy: { "/api": { target: hubUrl, ws: true } },
+    },
+    logLevel: "silent",
+  });
+  await viteServer.listen();
+  const dashboardAddress = viteServer.httpServer?.address() ?? null;
+  const isDashboardAddressMissing =
+    dashboardAddress === null || typeof dashboardAddress === "string";
+  if (isDashboardAddressMissing) throw new Error("dashboard did not start");
+  return {
+    viteServer,
+    dashboardUrl: `http://${HOST}:${dashboardAddress.port}`,
+  };
+};
+
 const liveTest = test.extend<object, { hubFolders: HubFolders }>({
   hubFolders: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright requires a destructuring pattern here
@@ -170,6 +194,55 @@ liveTest.describe("live test runs", () => {
         }
       } finally {
         await browser.close();
+      }
+    },
+  );
+
+  liveTest(
+    "shows the run bar and each tile's steps in the dashboard while the tests run",
+    async ({ hubFolders, page }) => {
+      liveTest.setTimeout(STARTUP_TIMEOUT_MS);
+      const { runningHub, rootFolder } = hubFolders;
+      const { viteServer, dashboardUrl } = await startDashboard(runningHub.url);
+      try {
+        await page.setViewportSize(DESKTOP_VIEWPORT);
+        await page.goto(dashboardUrl);
+        const runBar = page.getByRole("region", { name: "Test run" });
+        const pixelTile = page
+          .getByRole("article")
+          .filter({ hasText: "Pixel 8" });
+        const iphoneTile = page
+          .getByRole("article")
+          .filter({ hasText: "iPhone SE" });
+
+        const suiteRun = runSuite(SUITE_CONFIG_PATH, rootFolder);
+
+        await expect(
+          runBar.getByText("Running", { exact: true }).first(),
+        ).toBeVisible();
+        await expect(pixelTile).toContainText(/step 2 · Wait for timeout/);
+        await expect(iphoneTile).toContainText(/step 2 · Wait for timeout/);
+        await expect(runBar).toContainText("live.suite.ts");
+        await suiteRun;
+
+        await expect(
+          runBar.getByText("Failed", { exact: true }).first(),
+        ).toBeVisible();
+        const counters = runBar.locator("dd");
+        await expect(counters).toHaveText([
+          "4 / 4",
+          "2",
+          "2",
+          "0",
+          /^\d+:\d\d$/,
+        ]);
+        for (const deviceTile of [pixelTile, iphoneTile]) {
+          await expect(deviceTile).toContainText("fails on purpose");
+          await expect(deviceTile).toContainText("toHaveTitle");
+          await expect(deviceTile).toHaveClass(/bg-failed-soft/);
+        }
+      } finally {
+        await viteServer.close();
       }
     },
   );

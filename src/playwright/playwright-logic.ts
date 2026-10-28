@@ -1,3 +1,4 @@
+import { basename, sep } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import type {
   PlaywrightTestOptions,
@@ -10,7 +11,11 @@ import { createReplyLine } from "@/commands/commands-logic";
 import type { BrowserName, DevicePreset } from "@/devices/devices-logic";
 import { HUB_HOST } from "@/environment";
 import type { HubFile } from "@/hub/hub-file";
-import type { LiveTestStatus, TestEvent } from "@/live/live-test-schema";
+import type {
+  LiveTestStatus,
+  StepEvent,
+  TestEvent,
+} from "@/live/live-test-schema";
 import type { RunStep } from "@/runs/runs-logic";
 
 export interface HubDevice {
@@ -203,15 +208,96 @@ export const pickLiveTestStatus = (testStatus: TestStatus): "ok" | "failed" => {
   return isTestGood ? "ok" : "failed";
 };
 
-export const createTestEvent = (
-  deviceId: string,
-  titlePath: string[],
-  status: LiveTestStatus,
-): TestEvent => ({
-  deviceId,
-  title: titlePath.join(STEP_TITLE_SEPARATOR),
-  status,
-});
+export const pickFirstErrorLine = (
+  errorMessage: string | null | undefined,
+): string | null => {
+  const isMessageMissing = errorMessage === null || errorMessage === undefined;
+  if (isMessageMissing) return null;
+
+  const plainMessage = stripVTControlCharacters(errorMessage);
+  const firstLine = plainMessage
+    .split("\n")
+    .map((messageLine) => messageLine.trim())
+    .find((messageLine) => messageLine !== "");
+  return firstLine ?? null;
+};
+
+export interface TestAttempt {
+  deviceId: string;
+  titlePath: string[];
+  status: LiveTestStatus;
+  errorMessage: string | null | undefined;
+}
+
+// The title path starts with the spec file, which the run bar shows apart from the title.
+export const createTestEvent = (testAttempt: TestAttempt): TestEvent => {
+  const { deviceId, titlePath, status, errorMessage } = testAttempt;
+  const [specPath, ...titleParts] = titlePath;
+  const isTestFailed = status === "failed";
+  return {
+    deviceId,
+    title: titleParts.join(STEP_TITLE_SEPARATOR),
+    specFile: basename(specPath ?? ""),
+    status,
+    errorLine: isTestFailed ? pickFirstErrorLine(errorMessage) : null,
+  };
+};
+
+const USER_STEP_CATEGORIES = ["pw:api", "test.step"];
+const HIDDEN_PARENT_CATEGORIES = ["hook", "fixture"];
+
+// Only the top step a user wrote counts, so a click inside test.step is not a second step.
+export const isCountedStep = (
+  category: string,
+  ancestorCategories: string[],
+): boolean => {
+  const isUserStep = USER_STEP_CATEGORIES.includes(category);
+  const hasHiddenAncestor = ancestorCategories.some(
+    (ancestorCategory) =>
+      HIDDEN_PARENT_CATEGORIES.includes(ancestorCategory) ||
+      USER_STEP_CATEGORIES.includes(ancestorCategory),
+  );
+  return isUserStep && !hasHiddenAncestor;
+};
+
+// The fixture streams screen images with its own page calls, which are not steps the user wrote.
+export const isStepFromFolder = (
+  stepFile: string | undefined,
+  folderPath: string,
+): boolean => {
+  const hasNoStepFile = stepFile === undefined;
+  if (hasNoStepFile) return false;
+  return stepFile.startsWith(`${folderPath}${sep}`);
+};
+
+export interface StepReport {
+  deviceId: string;
+  stepIndex: number;
+  stepTitle: string;
+  errorMessage: string | null | undefined;
+  isEnded: boolean;
+}
+
+export const createStepEvent = (stepReport: StepReport): StepEvent => {
+  const { deviceId, stepIndex, stepTitle, errorMessage, isEnded } = stepReport;
+  const errorLine = pickFirstErrorLine(errorMessage);
+  const isStepFailed = errorLine !== null;
+  const endStatus = isStepFailed ? "failed" : "ok";
+  return {
+    deviceId,
+    stepIndex,
+    stepTitle,
+    status: isEnded ? endStatus : "running",
+    errorLine,
+  };
+};
+
+export const pickRunOutcome = (
+  suiteStatus: "passed" | "failed" | "timedout" | "interrupted",
+): "ok" | "failed" => {
+  const isSuitePassed = suiteStatus === "passed";
+  return isSuitePassed ? "ok" : "failed";
+};
 
 export const createHubUrl = (hubFile: HubFile): string =>
   `http://${HUB_HOST}:${hubFile.port}`;

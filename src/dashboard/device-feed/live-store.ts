@@ -1,8 +1,13 @@
 import type { Finding } from "@/checks/checks-logic";
+import {
+  addDeviceStep,
+  type DeviceStep,
+  pickStepTotalToKeep,
+} from "@/dashboard/device-feed/step-progress-logic";
 import { LIVE_PATH } from "@/environment";
 import type { DeviceLoad } from "@/estimates/estimates-logic";
 import type { LiveMessage } from "@/live/live-feed";
-import type { LiveTestStatus } from "@/live/live-test-schema";
+import type { LiveTestStatus, RunTotals } from "@/live/live-test-schema";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
 
@@ -22,11 +27,19 @@ interface Connection {
 
 export interface DeviceTest {
   title: string;
+  specFile: string;
   status: LiveTestStatus;
+  errorLine: string | null;
 }
+
+const NO_STEPS: DeviceStep[] = [];
 
 interface LiveFeed {
   deviceTests: ReadonlyMap<string, DeviceTest>;
+  deviceSteps: ReadonlyMap<string, DeviceStep[]>;
+  stepTotals: ReadonlyMap<string, number>;
+  latestTest: DeviceTest | null;
+  runTotals: RunTotals | null;
   screenImageUrls: ReadonlyMap<string, string>;
   deviceLoads: ReadonlyMap<string, DeviceLoad>;
   findings: Finding[];
@@ -41,6 +54,10 @@ const connection: Connection = {
 
 const liveFeed: LiveFeed = {
   deviceTests: new Map(),
+  deviceSteps: new Map(),
+  stepTotals: new Map(),
+  latestTest: null,
+  runTotals: null,
   screenImageUrls: new Map(),
   deviceLoads: new Map(),
   findings: [],
@@ -61,6 +78,39 @@ const readLiveMessage = (messageLine: string): LiveMessage | null => {
   }
 };
 
+type TestMessage = Extract<LiveMessage, { kind: "test" }>;
+
+const forgetRunTests = (): void => {
+  liveFeed.deviceTests = new Map();
+  liveFeed.deviceSteps = new Map();
+  liveFeed.stepTotals = new Map();
+  liveFeed.latestTest = null;
+};
+
+const applyTestMessage = (testMessage: TestMessage): void => {
+  const { deviceId, title, specFile, status, errorLine } = testMessage;
+  const deviceTest = { title, specFile, status, errorLine };
+  liveFeed.deviceTests = new Map(liveFeed.deviceTests).set(
+    deviceId,
+    deviceTest,
+  );
+  liveFeed.latestTest = deviceTest;
+
+  const isTestStarting = status === "running";
+  if (isTestStarting) {
+    liveFeed.deviceSteps = new Map(liveFeed.deviceSteps).set(
+      deviceId,
+      NO_STEPS,
+    );
+    return;
+  }
+  const deviceSteps = liveFeed.deviceSteps.get(deviceId) ?? NO_STEPS;
+  const stepTotal = pickStepTotalToKeep(status, deviceSteps);
+  const isStepTotalUnknown = stepTotal === null;
+  if (isStepTotalUnknown) return;
+  liveFeed.stepTotals = new Map(liveFeed.stepTotals).set(title, stepTotal);
+};
+
 const applyLiveMessage = (liveMessage: LiveMessage): void => {
   switch (liveMessage.kind) {
     case "screen": {
@@ -78,11 +128,23 @@ const applyLiveMessage = (liveMessage: LiveMessage): void => {
       );
       return;
     case "test":
-      liveFeed.deviceTests = new Map(liveFeed.deviceTests).set(
+      applyTestMessage(liveMessage);
+      return;
+    case "step": {
+      const deviceSteps = liveFeed.deviceSteps.get(liveMessage.deviceId);
+      const nextSteps = addDeviceStep(deviceSteps ?? NO_STEPS, liveMessage);
+      liveFeed.deviceSteps = new Map(liveFeed.deviceSteps).set(
         liveMessage.deviceId,
-        { title: liveMessage.title, status: liveMessage.status },
+        nextSteps,
       );
       return;
+    }
+    case "run-totals": {
+      const isRunStarting = liveMessage.phase === "start";
+      if (isRunStarting) forgetRunTests();
+      liveFeed.runTotals = liveMessage;
+      return;
+    }
     case "finding":
       liveFeed.findings = [liveMessage.finding, ...liveFeed.findings].slice(
         0,
@@ -99,7 +161,8 @@ const markConnectionClosed = (): void => {
   connection.socket = null;
   liveFeed.screenImageUrls = new Map();
   liveFeed.deviceLoads = new Map();
-  liveFeed.deviceTests = new Map();
+  forgetRunTests();
+  liveFeed.runTotals = null;
   notifyListeners();
 };
 
@@ -167,6 +230,21 @@ export const getDeviceLoad = (deviceId: string): DeviceLoad | null =>
 
 export const getDeviceTest = (deviceId: string): DeviceTest | null =>
   liveFeed.deviceTests.get(deviceId) ?? null;
+
+export const getDeviceSteps = (deviceId: string): DeviceStep[] =>
+  liveFeed.deviceSteps.get(deviceId) ?? NO_STEPS;
+
+export const getStepTotal = (testTitle: string): number | null =>
+  liveFeed.stepTotals.get(testTitle) ?? null;
+
+export const getRunTotals = (): RunTotals | null => liveFeed.runTotals;
+
+export const getLatestTest = (): DeviceTest | null => liveFeed.latestTest;
+
+export const getRunningTestCount = (): number =>
+  [...liveFeed.deviceTests.values()].filter(
+    ({ status }) => status === "running",
+  ).length;
 
 export const getFindings = (): Finding[] => liveFeed.findings;
 

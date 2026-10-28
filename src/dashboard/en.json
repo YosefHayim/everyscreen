@@ -8,6 +8,21 @@
       "devices": "Devices"
     }
   },
+  "runBar": {
+    "label": "Test run",
+    "status": {
+      "running": "Running",
+      "ok": "OK",
+      "failed": "Failed"
+    },
+    "counters": {
+      "done": "Done",
+      "ok": "OK",
+      "failed": "Failed",
+      "running": "Running",
+      "elapsed": "Elapsed"
+    }
+  },
   "grid": {
     "tilesLabel": "Devices in the grid",
     "copy": {
@@ -43,9 +58,11 @@
     "perStep": "per step",
     "waiting": "Waiting for the first screen image",
     "test": {
-      "running": "Running",
-      "ok": "OK",
-      "failed": "Failed"
+      "running": "running",
+      "ok": "ok",
+      "failed": "failed",
+      "stepLine": "step {{stepNumber}} · {{stepTitle}}",
+      "stepLineOf": "step {{stepNumber}}/{{totalSteps}} · {{stepTitle}}"
     },
     "estimate": "{{fps}} fps · {{cpuPercent}}% CPU est.",
     "noEstimate": "No estimate yet",

@@ -1,6 +1,8 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import type { DeviceTest } from "@/dashboard/device-feed/live-store";
+import type { StepProgress } from "@/dashboard/device-feed/step-progress-logic";
+import { TileStepSegments } from "@/dashboard/grid/tile-step-segments";
+import { useTileTest } from "@/dashboard/grid/use-tile-test";
 import { cn } from "@/dashboard/ui/cn";
 import type { LiveTestStatus } from "@/live/live-test-schema";
 
@@ -16,27 +18,58 @@ const TEST_STATUS_LABEL_KEYS = {
   failed: "tile.test.failed",
 } satisfies Record<LiveTestStatus, string>;
 
+const pickStepLineKey = (stepProgress: StepProgress): string => {
+  const isTotalKnown = stepProgress.totalSteps !== null;
+  return isTotalKnown ? "tile.test.stepLineOf" : "tile.test.stepLine";
+};
+
 interface TileTestProps {
-  deviceTest: DeviceTest | null;
+  deviceId: string;
 }
 
-export const TileTest = ({
-  deviceTest,
-}: TileTestProps): ReactElement | null => {
+export const TileTest = ({ deviceId }: TileTestProps): ReactElement | null => {
   const { t } = useTranslation();
+  const { deviceTest, stepProgress } = useTileTest(deviceId);
   const hasNoDeviceTest = deviceTest === null;
   if (hasNoDeviceTest) return null;
 
-  const { title, status } = deviceTest;
+  const { title, status, errorLine } = deviceTest;
+  const hasStepProgress = stepProgress !== null;
+  const hasSegments = hasStepProgress && stepProgress.segments.length > 0;
+  const hasErrorLine = status === "failed" && errorLine !== null;
+
+  const stepLine = hasStepProgress
+    ? t(pickStepLineKey(stepProgress), {
+        stepNumber: stepProgress.stepNumber,
+        totalSteps: stepProgress.totalSteps,
+        stepTitle: stepProgress.stepTitle,
+      })
+    : null;
 
   return (
-    <p className="m-0 mb-1 flex items-center justify-between gap-2">
-      <span className="truncate" title={title}>
-        {title}
-      </span>
-      <span className={cn("flex-none", TEST_STATUS_CLASS_NAMES[status])}>
-        {t(TEST_STATUS_LABEL_KEYS[status])}
-      </span>
-    </p>
+    <div className="mb-1">
+      <p className="m-0 flex items-baseline gap-2 font-sans text-xs">
+        <span
+          className={cn(
+            "flex-none font-semibold",
+            TEST_STATUS_CLASS_NAMES[status],
+          )}
+        >
+          {t(TEST_STATUS_LABEL_KEYS[status])}
+        </span>
+        <span className="truncate text-ink" title={title}>
+          {title}
+        </span>
+      </p>
+      {hasStepProgress && <p className="m-0 mt-0.5 truncate">{stepLine}</p>}
+      {hasErrorLine && (
+        <p className="m-0 truncate text-failed" title={errorLine}>
+          {errorLine}
+        </p>
+      )}
+      {hasSegments && (
+        <TileStepSegments testTitle={title} segments={stepProgress.segments} />
+      )}
+    </div>
   );
 };
