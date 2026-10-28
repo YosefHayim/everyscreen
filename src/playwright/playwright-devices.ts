@@ -4,9 +4,9 @@ import type {
   PlaywrightWorkerOptions,
   Project,
 } from "@playwright/test";
-import { parse } from "yaml";
 import { devicesFileSchema } from "@/devices/device-schema";
 import { pickGridDevices } from "@/devices/devices-logic";
+import { parseDevicesYaml } from "@/devices/devices-store";
 import { DEVICES_FILE_PATH, HUB_FILE_PATH } from "@/environment";
 import { hubFileSchema } from "@/hub/hub-file";
 import {
@@ -24,16 +24,18 @@ const readOptionalFile = (filePath: string): string | null => {
 const readGridDevices = () => {
   const devicesYaml = readOptionalFile(DEVICES_FILE_PATH);
   const isDevicesFileMissing = devicesYaml === null;
-  const devicesDocument = isDevicesFileMissing ? {} : parse(devicesYaml);
-  const devicesFile = devicesFileSchema.parse(devicesDocument ?? {});
-  return pickGridDevices(devicesFile);
+  if (isDevicesFileMissing) return pickGridDevices(devicesFileSchema.parse({}));
+
+  return pickGridDevices(parseDevicesYaml(devicesYaml));
 };
 
 const readHubDevices = () => {
   const serializedHubFile = readOptionalFile(HUB_FILE_PATH);
   const isHubFileMissing = serializedHubFile === null;
-  if (isHubFileMissing) return {};
-  return hubFileSchema.parse(JSON.parse(serializedHubFile)).devices;
+  if (isHubFileMissing) return null;
+
+  const hubFileDocument: unknown = JSON.parse(serializedHubFile);
+  return hubFileSchema.parse(hubFileDocument).devices;
 };
 
 export const listDevices = (
@@ -42,7 +44,8 @@ export const listDevices = (
   const gridDevices = readGridDevices();
   const hubDevices = readHubDevices();
   const projectDevices = pickProjectDevices(gridDevices, deviceIds);
-  return projectDevices.map((projectDevice) =>
-    createDeviceProject(projectDevice, hubDevices[projectDevice.id] ?? null),
-  );
+  return projectDevices.map((projectDevice) => {
+    const hubDevice = hubDevices?.[projectDevice.id] ?? null;
+    return createDeviceProject(projectDevice, hubDevice);
+  });
 };

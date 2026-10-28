@@ -85,7 +85,7 @@ export const pickProjectDevices = (
   });
 };
 
-export const isFinalAttempt = (attemptSummary: AttemptSummary): boolean => {
+export const isLastAttempt = (attemptSummary: AttemptSummary): boolean => {
   const { status, retry, retries } = attemptSummary;
   const hasNoMoreRetries = retry >= retries;
   const isAttemptGood = status === "passed" || status === "skipped";
@@ -113,8 +113,8 @@ const pickFirstLine = (message: string): string => {
 
 const createDeviceAnswer = (finishedTest: FinishedTest): DeviceAnswer => {
   const { deviceId, durationMs, errorMessage, status, shotPath } = finishedTest;
-  const isTestFailed = isFailed(finishedTest);
-  if (!isTestFailed) return { status: "ok", deviceId, durationMs };
+  const isTestPassed = status === "passed";
+  if (isTestPassed) return { status: "ok", deviceId, durationMs };
 
   const hasErrorMessage = errorMessage !== null;
   const message = hasErrorMessage

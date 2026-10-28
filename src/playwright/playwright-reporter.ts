@@ -13,7 +13,7 @@ import {
   createRunStep,
   createSuiteReplyLine,
   type FinishedTest,
-  isFinalAttempt,
+  isLastAttempt,
   isStepComplete,
   pickRunEndStatus,
   pickTestKey,
@@ -29,8 +29,14 @@ const TITLE_PATH_PROJECT_PARTS = 2;
 const pickTitlePath = (testCase: TestCase): string[] =>
   testCase.titlePath().slice(TITLE_PATH_PROJECT_PARTS);
 
-const pickDeviceId = (testCase: TestCase): string =>
-  testCase.parent.project()?.name ?? "unknown";
+const pickDeviceId = (testCase: TestCase): string => {
+  const project = testCase.parent.project();
+  const isProjectMissing = project === undefined;
+  if (isProjectMissing) {
+    throw new Error(`Test ${testCase.title} belongs to no project`);
+  }
+  return project.name;
+};
 
 export default class EveryscreenReporter implements Reporter {
   rootFolder = process.cwd();
@@ -63,8 +69,8 @@ export default class EveryscreenReporter implements Reporter {
     const attachment = testResult.attachments.find(
       ({ name }) => name === SCREENSHOT_ATTACHMENT_NAME,
     );
-    const sourcePath = attachment?.path;
-    const isShotMissing = sourcePath === undefined;
+    const attachmentPath = attachment?.path;
+    const isShotMissing = attachmentPath === undefined;
     if (isShotMissing) return null;
 
     const shotPath = join(
@@ -75,7 +81,7 @@ export default class EveryscreenReporter implements Reporter {
     await mkdir(join(this.rootFolder, STORE_FOLDER, SHOTS_SUBFOLDER), {
       recursive: true,
     });
-    await copyFile(sourcePath, join(this.rootFolder, shotPath));
+    await copyFile(attachmentPath, join(this.rootFolder, shotPath));
     return shotPath;
   };
 
@@ -97,7 +103,8 @@ export default class EveryscreenReporter implements Reporter {
 
   onBegin = (_config: FullConfig, suite: Suite) => {
     for (const testCase of suite.allTests()) {
-      const testKey = pickTestKey(pickTitlePath(testCase));
+      const testTitlePath = pickTitlePath(testCase);
+      const testKey = pickTestKey(testTitlePath);
       this.expectedCounts.set(
         testKey,
         (this.expectedCounts.get(testKey) ?? 0) + 1,
@@ -110,12 +117,13 @@ export default class EveryscreenReporter implements Reporter {
   };
 
   onTestEnd = (testCase: TestCase, testResult: TestResult) => {
-    const isFinished = isFinalAttempt({
+    const isAttemptLast = isLastAttempt({
       status: testResult.status,
       retry: testResult.retry,
       retries: testCase.retries,
     });
-    if (!isFinished) return;
+    const isRetryComing = !isAttemptLast;
+    if (isRetryComing) return;
 
     this.runTask(async () => {
       const { runId } = await this.readRun();
@@ -143,10 +151,16 @@ export default class EveryscreenReporter implements Reporter {
       const keyTests = this.finishedTests.filter(
         (finishedTest) => pickTestKey(finishedTest.titlePath) === testKey,
       );
-      const expectedCount = this.expectedCounts.get(testKey) ?? 1;
-      const isReadyToSave =
-        isStepComplete(keyTests, expectedCount) && !this.savedKeys.has(testKey);
-      if (!isReadyToSave) return;
+      const expectedCount = this.expectedCounts.get(testKey);
+      const isExpectedCountMissing = expectedCount === undefined;
+      if (isExpectedCountMissing) {
+        throw new Error(`Test ${testCase.title} was not counted at the start`);
+      }
+
+      const isStepSaved = this.savedKeys.has(testKey);
+      const isReadyToSave = isStepComplete(keyTests, expectedCount);
+      const isSaveNeeded = isReadyToSave && !isStepSaved;
+      if (!isSaveNeeded) return;
 
       this.savedKeys.add(testKey);
       await this.saveStep(testKey);
@@ -164,10 +178,12 @@ export default class EveryscreenReporter implements Reporter {
     }
 
     const { runId } = await this.readRun();
+    const runEndStatus = pickRunEndStatus(fullResult.status);
     await saveRunEvent(this.rootFolder, runId, {
       kind: "run-end",
-      status: pickRunEndStatus(fullResult.status),
+      status: runEndStatus,
     });
-    console.log(createSuiteReplyLine(this.savedSteps, runId));
+    const replyLine = createSuiteReplyLine(this.savedSteps, runId);
+    console.log(replyLine);
   };
 }

@@ -36,12 +36,18 @@ const runSuite = (
   rootFolder: string,
   hollisUrl: string,
   deviceIds: string,
-  args: string[],
+  suiteFlags: string[],
 ): Promise<SuiteRun> =>
   new Promise((done) => {
     execFile(
       process.execPath,
-      [PLAYWRIGHT_CLI_PATH, "test", "--config", SUITE_CONFIG_PATH, ...args],
+      [
+        PLAYWRIGHT_CLI_PATH,
+        "test",
+        "--config",
+        SUITE_CONFIG_PATH,
+        ...suiteFlags,
+      ],
       {
         cwd: rootFolder,
         maxBuffer: MAX_SUITE_OUTPUT_BYTES,
@@ -130,8 +136,8 @@ test.describe("playwright reporter", () => {
     );
     for (const answer of failedStep.deviceAnswers) {
       const shotPath = answer.status === "failed" ? answer.shotPath : null;
-      expect(shotPath).not.toBeNull();
-      await access(join(rootFolder, shotPath ?? ""));
+      if (shotPath === null) throw new Error("A failed answer has no shot");
+      await access(join(rootFolder, shotPath));
     }
     expect(suiteRun.stdout).toContain(
       "2 devices · 0 ok · 2 failed · report run-0001",

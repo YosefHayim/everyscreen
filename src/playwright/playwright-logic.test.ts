@@ -5,7 +5,7 @@ import {
   createRunStep,
   createSuiteReplyLine,
   type FinishedTest,
-  isFinalAttempt,
+  isLastAttempt,
   isStepComplete,
   pickProjectDevices,
   pickRunEndStatus,
@@ -92,27 +92,27 @@ describe("pickProjectDevices", () => {
   });
 });
 
-describe("isFinalAttempt", () => {
-  test("is final when the attempt passed", () => {
-    const isFinal = isFinalAttempt({ status: "passed", retry: 0, retries: 2 });
+describe("isLastAttempt", () => {
+  test("is last when the attempt passed", () => {
+    const isFinal = isLastAttempt({ status: "passed", retry: 0, retries: 2 });
 
     expect(isFinal).toBe(true);
   });
 
-  test("is final when the test was skipped", () => {
-    const isFinal = isFinalAttempt({ status: "skipped", retry: 0, retries: 2 });
+  test("is last when the test was skipped", () => {
+    const isFinal = isLastAttempt({ status: "skipped", retry: 0, retries: 2 });
 
     expect(isFinal).toBe(true);
   });
 
-  test("is not final when a failed attempt still has retries", () => {
-    const isFinal = isFinalAttempt({ status: "failed", retry: 0, retries: 2 });
+  test("is not last when a failed attempt still has retries", () => {
+    const isFinal = isLastAttempt({ status: "failed", retry: 0, retries: 2 });
 
     expect(isFinal).toBe(false);
   });
 
-  test("is final when a failed attempt used the last retry", () => {
-    const isFinal = isFinalAttempt({ status: "failed", retry: 2, retries: 2 });
+  test("is last when a failed attempt used the last retry", () => {
+    const isFinal = isLastAttempt({ status: "failed", retry: 2, retries: 2 });
 
     expect(isFinal).toBe(true);
   });
