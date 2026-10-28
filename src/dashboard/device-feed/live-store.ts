@@ -1,4 +1,5 @@
 import type { Finding } from "@/checks/checks-logic";
+import { LIVE_PATH } from "@/environment";
 import type { DeviceLoad } from "@/estimates/estimates-logic";
 import type { LiveMessage } from "@/live/live-feed";
 
@@ -9,7 +10,7 @@ const LAST_RETRY_DELAY_MS = 30000;
 const MAX_FINDINGS = 20;
 const IS_PAGE_SECURE = location.protocol === "https:";
 const LIVE_SCHEME = IS_PAGE_SECURE ? "wss:" : "ws:";
-const LIVE_URL = `${LIVE_SCHEME}//${location.host}/live`;
+const LIVE_URL = `${LIVE_SCHEME}//${location.host}${LIVE_PATH}`;
 
 interface Connection {
   status: ConnectionStatus;

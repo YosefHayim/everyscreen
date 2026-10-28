@@ -35,7 +35,7 @@ export interface RunningHub {
   stop: () => Promise<void>;
 }
 
-interface ListeningServer {
+export interface ListeningServer {
   httpServer: ServerType;
   port: number;
 }
@@ -127,7 +127,7 @@ const createHubServerApp = (hubStart: HubStart, devicePages: DevicePage[]) => {
     .onError(writeProblem);
 };
 
-const listen = (
+export const listen = (
   hubServerApp: Hono,
   websocketServer: WebSocketServer,
   port: number,

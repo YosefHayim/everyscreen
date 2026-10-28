@@ -1,9 +1,9 @@
 import { upgradeWebSocket } from "@hono/node-server";
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
+import { LIVE_PATH } from "@/environment";
 import { subscribe } from "@/live/live-feed";
 
-const LIVE_PATH = "/api/live";
 const SOCKET_OPEN = 1;
 
 export const liveRoutes = new Hono().get(

@@ -26,8 +26,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": HUB_URL,
-      "/live": { target: HUB_URL, ws: true },
+      "/api": { target: HUB_URL, ws: true },
     },
   },
 });
