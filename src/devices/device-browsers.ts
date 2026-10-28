@@ -1,9 +1,16 @@
 import { setTimeout as sleep } from "node:timers/promises";
-import type { BrowserContext, BrowserServer, Page } from "playwright";
-import { chromium } from "playwright";
+import type {
+  Browser,
+  BrowserContext,
+  BrowserServer,
+  BrowserType,
+  Page,
+} from "playwright";
+import { chromium, firefox, webkit } from "playwright";
 import { emulateDevice } from "@/devices/device-emulation";
-import type { DevicePreset } from "@/devices/devices-logic";
+import type { BrowserName, DevicePreset } from "@/devices/devices-logic";
 import type { PageWatcher, StopWatching } from "@/devices/page-watcher";
+import { listDefaultPageWatchers } from "@/devices/page-watchers-logic";
 import { HUB_HOST } from "@/environment";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { readStoredFile } from "@/hub/stored-files";
@@ -11,12 +18,19 @@ import { startScreencast } from "@/live/screencast";
 
 export interface DeviceBrowser {
   deviceId: string;
+  browserName: BrowserName;
   wsEndpoint: string;
-  cdpUrl: string;
+  cdpUrl: string | null;
+  openPage: () => Promise<Page>;
   stop: () => Promise<void>;
 }
 
-const DEFAULT_WATCHERS: PageWatcher[] = [startScreencast];
+const CDP_PAGE_WATCHERS: PageWatcher[] = [startScreencast];
+const BROWSER_TYPES: Record<BrowserName, BrowserType> = {
+  chromium,
+  webkit,
+  firefox,
+};
 const DEVTOOLS_PORT_FILE = "DevToolsActivePort";
 const USER_DATA_DIR_FLAG = "--user-data-dir=";
 const DEVTOOLS_PORT_TIMEOUT_MS = 5000;
@@ -60,24 +74,48 @@ const stopPageWatchers = async (
   }
 };
 
-export const startDeviceBrowser = async (
-  devicePreset: DevicePreset,
-  pageWatchers: PageWatcher[] = DEFAULT_WATCHERS,
-): Promise<DeviceBrowser> => {
-  const isChromium = devicePreset.browserName === "chromium";
-  if (!isChromium) {
-    throw new Error("Live device browsers run on Chromium only");
+const launchBrowserServer = async (
+  browserName: BrowserName,
+): Promise<BrowserServer> => {
+  const isChromium = browserName === "chromium";
+  if (isChromium) {
+    return chromium.launchServer({
+      headless: true,
+      host: HUB_HOST,
+      args: ["--remote-debugging-port=0"],
+    });
   }
-
-  const browserServer = await chromium.launchServer({
+  return BROWSER_TYPES[browserName].launchServer({
     headless: true,
     host: HUB_HOST,
-    args: ["--remote-debugging-port=0"],
   });
+};
+
+const connectHubBrowser = async (
+  browserName: BrowserName,
+  wsEndpoint: string,
+  cdpUrl: string | null,
+): Promise<Browser> => {
+  const isThereCdpUrl = cdpUrl !== null;
+  if (isThereCdpUrl) return chromium.connectOverCDP(cdpUrl);
+  return BROWSER_TYPES[browserName].connect(wsEndpoint);
+};
+
+export const startDeviceBrowser = async (
+  devicePreset: DevicePreset,
+  customPageWatchers: PageWatcher[] | null = null,
+): Promise<DeviceBrowser> => {
+  const { browserName } = devicePreset;
+  const isChromium = browserName === "chromium";
+  const pageWatchers =
+    customPageWatchers ??
+    listDefaultPageWatchers(browserName, CDP_PAGE_WATCHERS);
+
+  const browserServer = await launchBrowserServer(browserName);
   try {
     const wsEndpoint = browserServer.wsEndpoint();
-    const cdpUrl = await readCdpUrl(browserServer);
-    const watcherBrowser = await chromium.connectOverCDP(cdpUrl);
+    const cdpUrl = isChromium ? await readCdpUrl(browserServer) : null;
+    const hubBrowser = await connectHubBrowser(browserName, wsEndpoint, cdpUrl);
     const deviceId = devicePreset.id;
 
     const openPages: Page[] = [];
@@ -109,11 +147,13 @@ export const startDeviceBrowser = async (
       const isAlreadyTracked = openPages.includes(page);
       if (isAlreadyTracked) return;
 
-      await emulateDevice(page, devicePreset);
-      const cdpSession = await page.context().newCDPSession(page);
-      await cdpSession.send("Emulation.setCPUThrottlingRate", {
-        rate: devicePreset.cpuSlowdown,
-      });
+      if (isChromium) {
+        await emulateDevice(page, devicePreset);
+        const cdpSession = await page.context().newCDPSession(page);
+        await cdpSession.send("Emulation.setCPUThrottlingRate", {
+          rate: devicePreset.cpuSlowdown,
+        });
+      }
 
       const [currentPage] = openPages.slice(-1);
       const isThereCurrentPage = currentPage !== undefined;
@@ -128,7 +168,7 @@ export const startDeviceBrowser = async (
     };
 
     const runSafely = (task: () => Promise<void>): void => {
-      runOneAtATime(cdpUrl, task).catch((error) => {
+      runOneAtATime(wsEndpoint, task).catch((error) => {
         console.error({ deviceId, error });
       });
     };
@@ -140,9 +180,19 @@ export const startDeviceBrowser = async (
       }
     };
 
-    for (const context of watcherBrowser.contexts()) {
-      watchBrowserContext(context);
+    // WebKit and Firefox servers hide pages that other processes open, so only the hub's own pages are watched.
+    if (isChromium) {
+      for (const context of hubBrowser.contexts()) {
+        watchBrowserContext(context);
+      }
     }
+
+    const openPage = async (): Promise<Page> => {
+      const context = await hubBrowser.newContext(devicePreset.use);
+      const page = await context.newPage();
+      await runOneAtATime(wsEndpoint, () => trackPage(page));
+      return page;
+    };
 
     const stop = async (): Promise<void> => {
       try {
@@ -153,13 +203,13 @@ export const startDeviceBrowser = async (
           ([, stopWatchers]) => stopWatchers,
         );
         await stopPageWatchers(allStopWatchers, deviceId);
-        await watcherBrowser.close();
+        await hubBrowser.close();
       } finally {
         await browserServer.close();
       }
     };
 
-    return { deviceId, wsEndpoint, cdpUrl, stop };
+    return { deviceId, browserName, wsEndpoint, cdpUrl, openPage, stop };
   } catch (error) {
     await browserServer.close();
     throw new Error("Device browser failed to start", { cause: error });

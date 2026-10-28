@@ -7,7 +7,7 @@ import { SAFE_AREA_INSETS } from "@/devices/device-emulation";
 import type { DevicePreset } from "@/devices/devices-logic";
 import type { LiveMessage } from "@/live/live-feed";
 import { subscribe } from "@/live/live-feed";
-import { startScreencast } from "@/live/screencast";
+import { sendStepScreen, startScreencast } from "@/live/screencast";
 
 const PAGE_URL = `data:text/html,${encodeURIComponent('<meta name="viewport" content="width=device-width"><body style=\'background:tomato\'><h1>Hollis Goods</h1></body>')}`;
 const ANIMATED_PAGE_URL = `data:text/html,${encodeURIComponent("<style>@keyframes blink{50%{background:blue}}body{animation:blink 200ms infinite}</style><h1>Moving</h1>")}`;
@@ -163,5 +163,39 @@ test.describe("startDeviceBrowser", () => {
     await secondPage.close();
 
     await expect.poll(() => watchedPages.length).toBe(3);
+  });
+
+  test("opens a webkit page at the preset viewport and sends one step screen", async () => {
+    const webkitPreset: DevicePreset = {
+      id: "webkit-phone",
+      name: "WebKit phone",
+      browserName: "webkit",
+      frameShape: "dynamic-island",
+      cpuSlowdown: 1,
+      use: {
+        viewport: { width: 393, height: 852 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+      },
+    };
+    const deviceBrowser = await startDeviceBrowser(webkitPreset);
+    cleanups.push(() => deviceBrowser.stop());
+
+    const page = await deviceBrowser.openPage();
+    await page.goto(PAGE_URL);
+    const innerSize = await page.evaluate(() => ({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }));
+    await sendStepScreen(page, "webkit-phone");
+
+    expect(deviceBrowser.cdpUrl).toBeNull();
+    expect(innerSize).toEqual({ width: 393, height: 852 });
+    const screenMessages = listScreenMessages(liveMessages, "webkit-phone");
+    expect(screenMessages).toHaveLength(1);
+    expect(screenMessages[0].imageBase64.startsWith(JPEG_BASE64_PREFIX)).toBe(
+      true,
+    );
   });
 });

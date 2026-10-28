@@ -53,3 +53,18 @@ export const startScreencast = async (
     }
   };
 };
+
+export const sendStepScreen = async (
+  page: Page,
+  deviceId: string,
+): Promise<void> => {
+  const stepScreenImage = await page.screenshot({
+    type: SCREENCAST.format,
+    quality: SCREENCAST.quality,
+  });
+  broadcast({
+    kind: "screen",
+    deviceId,
+    imageBase64: stepScreenImage.toString("base64"),
+  });
+};
