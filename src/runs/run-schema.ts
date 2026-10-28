@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SEVERITIES } from "@/checks/checks-logic";
 import type { Run, RunEvent } from "@/runs/runs-logic";
 
 export const runOriginSchema = z.enum(["cli", "flow", "playwright"]);
@@ -27,7 +28,7 @@ const findingSchema = z.object({
     "console-error",
     "failed-request",
   ]),
-  severity: z.enum(["failed", "warn"]),
+  severity: z.enum(SEVERITIES),
   deviceId: z.string(),
   selector: z.string().nullable(),
   message: z.string(),

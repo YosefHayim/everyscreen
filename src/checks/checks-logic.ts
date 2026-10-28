@@ -13,7 +13,9 @@ export type FindingKind =
   | "console-error"
   | "failed-request";
 
-export type Severity = "failed" | "warn";
+export const SEVERITIES = ["failed", "warn"] as const;
+
+export type Severity = (typeof SEVERITIES)[number];
 
 export interface Finding {
   kind: FindingKind;
