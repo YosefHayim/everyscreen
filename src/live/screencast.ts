@@ -14,6 +14,8 @@ export const startScreencast = async (
         sessionId: screencastFrame.sessionId,
       });
     } catch (error) {
+      const hasPageClosed = page.isClosed();
+      if (hasPageClosed) return;
       console.error({ deviceId, error });
     }
     broadcast({ kind: "screen", deviceId, imageBase64: screencastFrame.data });
