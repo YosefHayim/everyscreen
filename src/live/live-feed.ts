@@ -1,5 +1,6 @@
 import type { Finding } from "@/checks/checks-logic";
 import type { DeviceLoad } from "@/estimates/estimates-logic";
+import type { CommandNotice } from "@/live/live-command-schema";
 import type { RunTotals, StepEvent, TestEvent } from "@/live/live-test-schema";
 import {
   isScreenAccepted,
@@ -15,7 +16,10 @@ export type LiveMessage =
   | ({ kind: "step" } & StepEvent)
   | ({ kind: "run-totals" } & RunTotals)
   | { kind: "finding"; finding: Finding }
-  | { kind: "run"; runId: string };
+  | { kind: "run"; runId: string }
+  | { kind: "command"; commandNotice: CommandNotice };
+
+const MAX_REPLAYED_COMMANDS = 8;
 
 type LiveListener = (message: LiveMessage) => void;
 
@@ -24,6 +28,7 @@ const lastScreens = new Map<string, LiveMessage>();
 const lastTests = new Map<string, TestEvent>();
 const lastSteps = new Map<string, StepEvent[]>();
 const screenPhases = new Map<string, ScreenPhase>();
+let recentCommands: LiveMessage[] = [];
 const lastRunTotals: { runTotals: RunTotals | null } = { runTotals: null };
 
 export const subscribe = (listener: LiveListener): (() => void) => {
@@ -37,6 +42,7 @@ export const subscribe = (listener: LiveListener): (() => void) => {
     const testSteps = lastSteps.get(testId) ?? [];
     for (const stepEvent of testSteps) listener({ kind: "step", ...stepEvent });
   }
+  for (const recentCommand of recentCommands) listener(recentCommand);
   return () => listeners.delete(listener);
 };
 
@@ -96,6 +102,9 @@ export const broadcast = (
       lastRunTotals.runTotals = message;
       break;
     }
+    case "command":
+      recentCommands = [...recentCommands, message].slice(-MAX_REPLAYED_COMMANDS);
+      break;
     case "estimate":
     case "finding":
     case "run":

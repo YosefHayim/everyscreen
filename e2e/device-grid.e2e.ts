@@ -1,0 +1,334 @@
+import { mkdtemp, readFile, rm, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  expect,
+  type Page,
+  type Request,
+  test,
+  type WebSocketRoute,
+} from "@playwright/test";
+import { Hono } from "hono";
+import { createServer, type ViteDevServer } from "vite";
+import { WebSocketServer } from "ws";
+import { DEVICES_FILE_PATH, LIVE_PATH } from "@/environment";
+import { createHubApp } from "@/hub/hub-app";
+import { type ListeningServer, listen } from "@/hub/hub-server";
+import { liveRoutes } from "@/live/live-routes";
+
+const HOST = "127.0.0.1";
+const DESKTOP_VIEWPORT = { width: 1440, height: 900 };
+const PHONE_VIEWPORT = { width: 390, height: 844 };
+const FIRST_SCREEN_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const SECOND_SCREEN_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg==";
+const GRID_VIEW_STORAGE_KEY = "everyscreen.gridView";
+const FRAME_FAMILIES_BY_DEVICE = [
+  { name: "iPhone SE", family: "phone-home-button" },
+  { name: "iPhone 17", family: "phone-island" },
+  { name: "iPad mini", family: "tablet" },
+  { name: "MacBook Air 13", family: "window-macos" },
+  { name: "Windows laptop 1366", family: "window-windows" },
+  { name: "Linux monitor 1920", family: "window-linux" },
+] as const;
+
+interface GridDeviceReply {
+  name: string;
+  use: { viewport: { width: number; height: number } };
+}
+
+const isLiveSocketUrl = (socketUrl: URL): boolean =>
+  socketUrl.pathname === LIVE_PATH;
+
+const createScreenMessage = (deviceId: string, imageBase64: string): string =>
+  JSON.stringify({ kind: "screen", deviceId, imageBase64 });
+
+const readFrameWidth = (page: Page, deviceName: string): Promise<number> =>
+  page
+    .getByRole("article")
+    .filter({
+      has: page.getByRole("heading", { name: deviceName, exact: true }),
+    })
+    .locator("[data-frame-page]")
+    .evaluate((pageElement) => pageElement.getBoundingClientRect().width);
+
+test.describe("device grid", () => {
+  let rootFolder = "";
+  let hubServer: ListeningServer;
+  let websocketServer: WebSocketServer;
+  let viteServer: ViteDevServer;
+  let dashboardUrl = "";
+  let liveSocket: WebSocketRoute | null = null;
+
+  test.beforeAll(async () => {
+    rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-grid-"));
+    const hubApp = new Hono()
+      .route("/", createHubApp(rootFolder))
+      .route("/", liveRoutes);
+    websocketServer = new WebSocketServer({ noServer: true });
+    hubServer = await listen(hubApp, websocketServer, 0);
+    const hubUrl = `http://${HOST}:${hubServer.port}`;
+    viteServer = await createServer({
+      server: {
+        host: HOST,
+        port: 0,
+        proxy: { "/api": { target: hubUrl, ws: true } },
+      },
+      logLevel: "silent",
+    });
+    await viteServer.listen();
+    const dashboardAddress = viteServer.httpServer?.address() ?? null;
+    const isDashboardAddressMissing =
+      dashboardAddress === null || typeof dashboardAddress === "string";
+    if (isDashboardAddressMissing) throw new Error("dashboard did not start");
+    dashboardUrl = `http://${HOST}:${dashboardAddress.port}`;
+  });
+
+  test.afterAll(async () => {
+    await viteServer.close();
+    for (const liveClient of websocketServer.clients) liveClient.terminate();
+    hubServer.httpServer.close();
+    await rm(rootFolder, { recursive: true });
+  });
+
+  test.beforeEach(async ({ page }) => {
+    liveSocket = null;
+    await page.routeWebSocket(isLiveSocketUrl, (route) => {
+      liveSocket = route;
+      route.send(createScreenMessage("iphone-se", FIRST_SCREEN_BASE64));
+    });
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+  });
+
+  test("each frame family draws its page at the catalog viewport size", async ({
+    page,
+    request,
+  }) => {
+    await page.addInitScript((storageKey) => {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          sizeMode: "true-size",
+          density: "compact",
+          scalePercent: 100,
+        }),
+      );
+    }, GRID_VIEW_STORAGE_KEY);
+    const devicesReply = await request.get(`${dashboardUrl}/api/devices`);
+    const gridDevices: GridDeviceReply[] = await devicesReply.json();
+
+    await page.goto(dashboardUrl);
+
+    for (const frameDevice of FRAME_FAMILIES_BY_DEVICE) {
+      const gridDevice = gridDevices.find(
+        (candidate) => candidate.name === frameDevice.name,
+      );
+      const tile = page.getByRole("article").filter({
+        has: page.getByRole("heading", { name: frameDevice.name, exact: true }),
+      });
+      await expect(tile.locator("[data-frame-family]")).toHaveAttribute(
+        "data-frame-family",
+        frameDevice.family,
+      );
+      const pageWidth = await readFrameWidth(page, frameDevice.name);
+      expect(pageWidth).toBeCloseTo(gridDevice?.use.viewport.width ?? -1, 0);
+    }
+  });
+
+  test("Fit and True size and the density change the tile size and are remembered", async ({
+    page,
+  }) => {
+    await page.goto(dashboardUrl);
+    const firstTile = page.getByRole("article").first();
+    await expect(firstTile).toBeVisible();
+    const fitWidth = (await firstTile.boundingBox())?.width ?? 0;
+
+    await page.getByRole("button", { name: "True size" }).click();
+    const trueSizeWidth = (await firstTile.boundingBox())?.width ?? 0;
+    await page.getByRole("button", { name: "Comfortable" }).click();
+    await page.getByRole("button", { name: "Fit" }).click();
+    const comfortableWidth = (await firstTile.boundingBox())?.width ?? 0;
+    await page.reload();
+
+    expect(trueSizeWidth).not.toBe(fitWidth);
+    expect(comfortableWidth).toBeGreaterThan(fitWidth);
+    await expect(
+      page.getByRole("button", { name: "Comfortable" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("the scale buttons step the scale percent", async ({ page }) => {
+    await page.goto(dashboardUrl);
+
+    await page.getByRole("button", { name: "Larger" }).click();
+
+    await expect(page.getByRole("status", { name: "Scale" })).toHaveText(
+      "110%",
+    );
+  });
+
+  test("search filters the tiles by name", async ({ page }) => {
+    await page.goto(dashboardUrl);
+
+    await page.getByRole("searchbox", { name: "Search devices" }).fill("pixel");
+
+    await expect(page.getByRole("article")).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: "Pixel 10" })).toBeVisible();
+  });
+
+  test("the picker adds and removes a catalog device and rewrites the yaml file", async ({
+    page,
+  }) => {
+    const devicesFilePath = join(rootFolder, DEVICES_FILE_PATH);
+    await page.goto(dashboardUrl);
+
+    await page.getByRole("button", { name: "Add device" }).click();
+    const pixelNine = page.getByRole("button", {
+      name: /^Pixel 9 (Add|In grid)$/,
+    });
+    await pixelNine.click();
+    await expect(pixelNine).toHaveAttribute("aria-pressed", "true");
+    const yamlWithPixel = await readFile(devicesFilePath, "utf8");
+    await pixelNine.click();
+    await expect(pixelNine).toHaveAttribute("aria-pressed", "false");
+    const yamlWithoutPixel = await readFile(devicesFilePath, "utf8");
+    await unlink(devicesFilePath);
+
+    expect(yamlWithPixel).toContain("pixel-9");
+    expect(yamlWithoutPixel).not.toContain("pixel-9");
+  });
+
+  test("the agent panel shows a command from the live feed", async ({
+    page,
+  }) => {
+    await page.goto(dashboardUrl);
+    await expect(
+      page.getByRole("complementary", { name: "Agent activity" }),
+    ).toBeVisible();
+
+    liveSocket?.send(
+      JSON.stringify({
+        kind: "command",
+        commandNotice: {
+          commandName: "open",
+          status: "ok",
+          line: "opened http://localhost:5173 on 12 devices",
+          sentAt: Date.now(),
+        },
+      }),
+    );
+
+    await expect(
+      page.getByText("opened http://localhost:5173 on 12 devices"),
+    ).toBeVisible();
+  });
+
+  test("the grid has no sideways scroll at 390 wide", async ({ page }) => {
+    await page.setViewportSize(PHONE_VIEWPORT);
+    await page.goto(dashboardUrl);
+    await expect(page.getByRole("article").first()).toBeVisible();
+
+    const scrollWidth = await page.evaluate(
+      () => document.documentElement.scrollWidth,
+    );
+
+    expect(scrollWidth).toBeLessThanOrEqual(PHONE_VIEWPORT.width);
+  });
+
+  test("hovering a tile shows the expand button", async ({ page }) => {
+    await page.goto(dashboardUrl);
+    const expandButton = page.getByRole("button", { name: "Expand iPhone SE" });
+    await expect(expandButton).toHaveCSS("opacity", "0");
+
+    await page.getByRole("article").first().hover();
+
+    await expect(expandButton).toHaveCSS("opacity", "1");
+  });
+
+  test.describe("zoom dialog", () => {
+    test("opens from the expand button, shows the live image and closes with Esc", async ({
+      page,
+    }) => {
+      await page.goto(dashboardUrl);
+      const zoomDialog = page.getByRole("dialog", { name: "Device zoom" });
+      const tileImage = page.getByRole("img", { name: "iPhone SE" }).first();
+      await expect(tileImage).toBeVisible();
+
+      await page.getByRole("article").first().hover();
+      await page.getByRole("button", { name: "Expand iPhone SE" }).click();
+      const dialogImage = zoomDialog.getByRole("img", { name: "iPhone SE" });
+      await expect(dialogImage).toBeVisible();
+      const firstSource = await dialogImage.getAttribute("src");
+      liveSocket?.send(createScreenMessage("iphone-se", SECOND_SCREEN_BASE64));
+      await expect(dialogImage).not.toHaveAttribute("src", firstSource ?? "");
+      await page.keyboard.press("Escape");
+
+      await expect(zoomDialog).toBeHidden();
+    });
+
+    test("opens from the keyboard with Enter and moves with the arrow keys", async ({
+      page,
+    }) => {
+      await page.goto(dashboardUrl);
+      const zoomDialog = page.getByRole("dialog", { name: "Device zoom" });
+      const frameButton = page.getByRole("button", {
+        name: "Zoom in on iPhone SE",
+      });
+
+      await frameButton.focus();
+      await page.keyboard.press("Enter");
+      await expect(
+        zoomDialog.getByRole("heading", { name: "iPhone SE" }),
+      ).toBeVisible();
+      await page.keyboard.press("ArrowRight");
+      await expect(
+        zoomDialog.getByRole("heading", { name: "iPhone 17", exact: true }),
+      ).toBeVisible();
+      await page.keyboard.press("ArrowLeft");
+      await expect(
+        zoomDialog.getByRole("heading", { name: "iPhone SE" }),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
+
+      await expect(zoomDialog).toBeHidden();
+      await expect(frameButton).toBeFocused();
+    });
+
+    test("a backdrop click closes it and the size toggle works", async ({
+      page,
+    }) => {
+      await page.goto(dashboardUrl);
+      const zoomDialog = page.getByRole("dialog", { name: "Device zoom" });
+
+      await page.getByRole("button", { name: "Zoom in on iPhone SE" }).click();
+      await zoomDialog.getByRole("button", { name: "True size" }).click();
+      await expect(
+        zoomDialog.getByRole("button", { name: "True size" }),
+      ).toHaveAttribute("aria-pressed", "true");
+      await page.mouse.click(4, 4);
+
+      await expect(zoomDialog).toBeHidden();
+    });
+
+    test("tells the hub which device is zoomed and drops it on close", async ({
+      page,
+    }) => {
+      const zoomBodies: string[] = [];
+      await page.route("**/api/zoom", async (route) => {
+        const zoomRequest: Request = route.request();
+        zoomBodies.push(zoomRequest.postData() ?? "");
+        await route.fulfill({ status: 200, json: { deviceId: null } });
+      });
+      await page.goto(dashboardUrl);
+
+      await page.getByRole("button", { name: "Zoom in on iPhone SE" }).click();
+      await expect.poll(() => zoomBodies.length).toBe(1);
+      await page.keyboard.press("Escape");
+      await expect.poll(() => zoomBodies.length).toBe(2);
+
+      expect(zoomBodies[0]).toContain("iphone-se");
+      expect(zoomBodies[1]).toContain("null");
+    });
+  });
+});

@@ -22,7 +22,7 @@ export interface SafeAreaInsets {
   right: number;
 }
 
-type DevicePlatform =
+export type DevicePlatform =
   | "ios"
   | "ipados"
   | "android"
@@ -30,7 +30,7 @@ type DevicePlatform =
   | "windows"
   | "linux";
 
-type DeviceMaker =
+export type DeviceMaker =
   | "apple"
   | "samsung"
   | "google"
@@ -38,7 +38,7 @@ type DeviceMaker =
   | "oneplus"
   | "generic";
 
-type CutoutKind =
+export type CutoutKind =
   | "none"
   | "notch"
   | "dynamic-island"
@@ -325,4 +325,12 @@ export const pickDeviceScreen = (
   const isScreenMissing = screen === undefined;
   if (isScreenMissing) return pickDeviceViewport(devicePreset);
   return { width: screen.width, height: screen.height };
+};
+
+export const replaceGrid = (
+  devicesFile: DevicesFile,
+  deviceIds: string[],
+): DevicesFile => {
+  const uniqueIds = [...new Set(deviceIds)];
+  return checkDeviceIds({ ...devicesFile, grid: uniqueIds });
 };

@@ -6,16 +6,23 @@ import { useDeviceTest } from "@/dashboard/device-feed/use-device-test";
 import { useFindings } from "@/dashboard/device-feed/use-findings";
 import { useScreenImage } from "@/dashboard/device-feed/use-screen-image";
 import type { DeviceView } from "@/dashboard/devices/device-view-logic";
+import { DeviceFrame } from "@/dashboard/frames/device-frame";
+import { pickFrameLayout } from "@/dashboard/frames/frame-layout-logic";
+import {
+  type GridView,
+  pickFrameScale,
+  pickTilePadding,
+} from "@/dashboard/grid/grid-view-logic";
 import { pickScreenUpdate } from "@/dashboard/grid/screen-update-logic";
 import { TileEstimate } from "@/dashboard/grid/tile-estimate";
 import { pickTileStatus } from "@/dashboard/grid/tile-status-logic";
 import { TileTest } from "@/dashboard/grid/tile-test";
 import { cn } from "@/dashboard/ui/cn";
-import { DeviceFrame } from "@/dashboard/ui/device-frame";
+import { Icon } from "@/dashboard/ui/icon";
 import { type ChipStatus, StatusChip } from "@/dashboard/ui/status-chip";
 
-// The screen image is drawn at this share of the device's real viewport.
-const TILE_SCREEN_SCALE = 0.25;
+// The waiting text stays this many screen px tall whatever the frame scale.
+const WAITING_FONT_PX = 11;
 
 const TILE_BORDER_CLASS_NAMES = {
   ok: "border-line",
@@ -25,11 +32,17 @@ const TILE_BORDER_CLASS_NAMES = {
 
 interface DeviceTileProps {
   device: DeviceView;
+  gridView: GridView;
+  onZoom: () => void;
 }
 
-export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
+export const DeviceTile = ({
+  device,
+  gridView,
+  onZoom,
+}: DeviceTileProps): ReactElement => {
   const { t } = useTranslation();
-  const { deviceId, name, browserName, frameShape } = device;
+  const { deviceId, name, browserName } = device;
   const { viewportWidth, viewportHeight } = device;
   const screenImageUrl = useScreenImage(deviceId);
   const deviceLoad = useDeviceLoad(deviceId);
@@ -44,65 +57,79 @@ export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
     "size-1.5 rounded-full bg-pink",
     isLiveWithScreenImage && "live-dot",
   );
-  const screenWidth = Math.round(viewportWidth * TILE_SCREEN_SCALE);
+  const frameLayout = pickFrameLayout(device);
+  const frameScale = pickFrameScale(frameLayout, gridView);
+  const tilePadding = pickTilePadding(gridView);
+  const isTrueSize = gridView.sizeMode === "true-size";
+  const waitingFontSize = Math.round(WAITING_FONT_PX / frameScale);
 
   return (
     <article
       className={cn(
-        "relative flex min-w-46 max-w-full flex-none flex-col overflow-hidden rounded-xl border bg-card",
+        "group relative flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card transition-[translate,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-lift",
         TILE_BORDER_CLASS_NAMES[status],
         isTestFailed && "border-failed bg-failed-soft",
+        isTrueSize && "w-fit flex-none",
       )}
     >
-      <header className="flex h-12 flex-col px-3 pt-2">
-        <div className="flex h-6 items-center justify-between gap-2">
-          <h3 className="m-0 text-[13px] leading-5 font-semibold">
-            <Link
-              to="/focus/$deviceId"
-              params={{ deviceId }}
-              className="text-ink no-underline after:absolute after:inset-0 after:content-['']"
-            >
-              {name}
-            </Link>
-          </h3>
-          <StatusChip
-            status={status}
-            label={t(`tile.status.${status}`)}
-            isLabelHidden
-          />
-        </div>
-        <p className="m-0 flex h-4 items-center justify-between font-mono text-[10px] text-ink-2">
-          <span>
-            {viewportWidth}&times;{viewportHeight}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span aria-hidden="true" className={liveDotClassName} />
-            {t(`tile.engines.${browserName}`)} &middot;{" "}
-            {t(`tile.${screenUpdate}`)}
-          </span>
-        </p>
-      </header>
-      <div className="mx-2 mt-2 flex flex-1 items-center justify-center rounded-lg bg-soft py-2">
-        <DeviceFrame
-          frameShape={frameShape}
-          viewportWidth={viewportWidth}
-          viewportHeight={viewportHeight}
-          screenWidth={screenWidth}
-        >
-          <p
-            aria-hidden={hasScreenImage}
-            className="m-0 grid size-full place-items-center px-2 text-center text-[10px] text-ink-2"
+      <header className="flex min-h-7 flex-wrap items-center gap-x-2 gap-y-0 px-2 py-0.5">
+        <h3 className="m-0 min-w-16 flex-1 truncate text-xs font-semibold">
+          <Link
+            to="/focus/$deviceId"
+            params={{ deviceId }}
+            className="text-ink no-underline"
           >
-            {t("tile.waiting")}
-          </p>
-          {hasScreenImage && (
-            <img
-              src={screenImageUrl}
-              alt={name}
-              className="absolute inset-0 size-full object-cover"
-            />
-          )}
-        </DeviceFrame>
+            {name}
+          </Link>
+        </h3>
+        <span className="flex-none font-mono text-[10px] text-ink-2">
+          {viewportWidth}&times;{viewportHeight}
+        </span>
+        <span className="inline-flex flex-none items-center gap-1 font-mono text-[10px] text-ink-2">
+          <span aria-hidden="true" className={liveDotClassName} />
+          {t(`tile.engines.${browserName}`)}
+        </span>
+        <StatusChip
+          status={status}
+          label={t(`tile.status.${status}`)}
+          isLabelHidden
+        />
+        <button
+          type="button"
+          onClick={onZoom}
+          aria-label={t("tile.expand", { name })}
+          className="grid size-6 flex-none cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-ink-2 opacity-0 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:hidden"
+        >
+          <Icon name="expand" size={14} />
+        </button>
+      </header>
+      <div
+        className="flex flex-1 items-start justify-center bg-soft"
+        style={{ padding: tilePadding }}
+      >
+        <button
+          type="button"
+          onClick={onZoom}
+          aria-label={t("tile.zoom", { name })}
+          className="cursor-zoom-in border-0 bg-transparent p-0"
+        >
+          <DeviceFrame layout={frameLayout} scale={frameScale}>
+            <p
+              aria-hidden={hasScreenImage}
+              className="m-0 grid size-full place-items-center px-4 text-center text-ink-2"
+              style={{ fontSize: waitingFontSize }}
+            >
+              {t("tile.waiting")}
+            </p>
+            {hasScreenImage && (
+              <img
+                src={screenImageUrl}
+                alt={name}
+                className="absolute inset-0 size-full object-cover"
+              />
+            )}
+          </DeviceFrame>
+        </button>
       </div>
       <footer className="px-3 pt-2 pb-[9px] font-mono text-[10px] leading-[14px] text-ink-2">
         <TileTest deviceId={deviceId} />

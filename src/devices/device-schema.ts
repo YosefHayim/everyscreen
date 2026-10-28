@@ -72,5 +72,9 @@ export const devicesFileSchema = z.object({
   viewportModes: z.record(z.string(), z.enum(VIEWPORT_MODES)).default({}),
 });
 
+export const gridUpdateSchema = z.object({
+  deviceIds: z.array(z.string().min(1)),
+});
+
 export type CustomDevice = z.infer<typeof customDeviceSchema>;
 export type DevicesFile = z.infer<typeof devicesFileSchema>;

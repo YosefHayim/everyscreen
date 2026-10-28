@@ -1,7 +1,18 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { DeviceFrame } from "@/dashboard/ui/device-frame";
+import { DeviceFrame } from "@/dashboard/frames/device-frame";
+import {
+  createDefaultFrameSpec,
+  pickFrameLayout,
+} from "@/dashboard/frames/frame-layout-logic";
 import { SiteIcon } from "@/site/ui/site-icon";
+
+const FAILURE_FRAME_SPEC = createDefaultFrameSpec("home-button", {
+  width: 375,
+  height: 667,
+});
+const FAILURE_FRAME_LAYOUT = pickFrameLayout(FAILURE_FRAME_SPEC);
+const FAILURE_FRAME_SCALE = 168 / 375;
 
 export const FailureShot = (): ReactElement => {
   const { t } = useTranslation();
@@ -9,12 +20,7 @@ export const FailureShot = (): ReactElement => {
   return (
     <div className="flex flex-col items-center gap-3">
       <div role="img" aria-label={t("proof.shotLabel")}>
-        <DeviceFrame
-          frameShape="home-button"
-          viewportWidth={375}
-          viewportHeight={667}
-          screenWidth={168}
-        >
+        <DeviceFrame layout={FAILURE_FRAME_LAYOUT} scale={FAILURE_FRAME_SCALE}>
           <div className="relative flex h-full flex-col gap-2 px-2 pt-3 pb-2 text-[9px]">
             <p className="m-0 text-center text-[8px] font-semibold tracking-[0.12em]">
               {t("checks.shop.name")}

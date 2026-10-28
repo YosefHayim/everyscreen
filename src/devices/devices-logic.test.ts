@@ -14,6 +14,7 @@ import {
   pickDeviceScreen,
   pickDeviceViewport,
   pickGridDevices,
+  replaceGrid,
 } from "@/devices/devices-logic";
 import { CPU_TIERS } from "@/environment";
 
@@ -372,5 +373,28 @@ describe("pickDeviceScreen", () => {
     const deviceScreen = pickDeviceScreen(customPreset);
 
     expect(deviceScreen).toEqual({ width: 800, height: 1280 });
+  });
+});
+
+describe("replaceGrid", () => {
+  test("replaces the grid and drops repeated ids", () => {
+    const devicesFile = createDevicesFile({ grid: ["iphone-se"] });
+
+    const changedFile = replaceGrid(devicesFile, [
+      "pixel-9",
+      "iphone-17",
+      "pixel-9",
+    ]);
+
+    expect(changedFile.grid).toEqual(["pixel-9", "iphone-17"]);
+  });
+
+  test("rejects an unknown id with 422 naming the id", () => {
+    const devicesFile = createDevicesFile({});
+
+    const changeGrid = () => replaceGrid(devicesFile, ["iphone-se", "nokia"]);
+
+    expect(changeGrid).toThrow("grid: no device with id nokia");
+    expect(readStatus(changeGrid)).toBe(422);
   });
 });

@@ -1,11 +1,22 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { DeviceFrame } from "@/dashboard/ui/device-frame";
+import { DeviceFrame } from "@/dashboard/frames/device-frame";
+import {
+  createDefaultFrameSpec,
+  pickFrameLayout,
+} from "@/dashboard/frames/frame-layout-logic";
 import { SiteIcon } from "@/site/ui/site-icon";
 
 const SIZE_IDS = ["small", "medium", "large"];
 const TOAST_IDS = ["notch", "tap", "clipped"];
 const FLAGGED_CLASS_NAME = "border border-dashed border-amber bg-amber/10";
+
+const SHOP_FRAME_SPEC = createDefaultFrameSpec("dynamic-island", {
+  width: 393,
+  height: 852,
+});
+const SHOP_FRAME_LAYOUT = pickFrameLayout(SHOP_FRAME_SPEC);
+const SHOP_FRAME_SCALE = 172 / 393;
 
 export const ShopPreview = (): ReactElement => {
   const { t } = useTranslation();
@@ -17,12 +28,7 @@ export const ShopPreview = (): ReactElement => {
         aria-label={t("checks.shop.label")}
         className="flex-none self-center"
       >
-        <DeviceFrame
-          frameShape="dynamic-island"
-          viewportWidth={393}
-          viewportHeight={852}
-          screenWidth={172}
-        >
+        <DeviceFrame layout={SHOP_FRAME_LAYOUT} scale={SHOP_FRAME_SCALE}>
           <div className="flex h-full flex-col gap-2 px-2 pt-6 pb-3 text-[9px]">
             <p
               className={`m-0 self-center rounded px-2 py-0.5 text-[9px] font-semibold tracking-[0.12em] ${FLAGGED_CLASS_NAME}`}

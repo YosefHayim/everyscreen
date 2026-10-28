@@ -1,7 +1,10 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { DeviceFrame } from "@/dashboard/ui/device-frame";
-import { pickFrameLayout } from "@/dashboard/ui/device-frame-logic";
+import { DeviceFrame } from "@/dashboard/frames/device-frame";
+import {
+  createDefaultFrameSpec,
+  pickFrameLayout,
+} from "@/dashboard/frames/frame-layout-logic";
 import { SiteIcon } from "@/site/ui/site-icon";
 import type { SiteIconName } from "@/site/ui/site-icon-paths";
 import { CartScreen } from "./cart-screen";
@@ -40,7 +43,12 @@ export const PreviewFrame = ({
   index,
 }: PreviewFrameProps): ReactElement => {
   const { t } = useTranslation();
-  const layout = pickFrameLayout(device);
+  const frameSpec = createDefaultFrameSpec(device.frameShape, {
+    width: device.viewportWidth,
+    height: device.viewportHeight,
+  });
+  const layout = pickFrameLayout(frameSpec);
+  const frameScale = device.screenWidth / device.viewportWidth;
   const badge = BADGES[device.badge];
   const displayClassName = device.isHiddenOnPhone ? "hidden md:flex" : "flex";
 
@@ -48,9 +56,9 @@ export const PreviewFrame = ({
     <div
       data-index={index}
       className={`loop-frame ${displayClassName} flex-none flex-col gap-2.5`}
-      style={{ width: layout.width }}
+      style={{ width: layout.width * frameScale }}
     >
-      <DeviceFrame {...device}>
+      <DeviceFrame layout={layout} scale={frameScale}>
         <span
           aria-hidden="true"
           className="loop-scan pointer-events-none absolute inset-x-0 -top-[46px] z-[2] h-[46px] border-b-2 border-cobalt bg-linear-to-b from-cobalt/0 to-cobalt/15 shadow-[0_6px_14px_-4px_rgb(43_53_224/0.45)]"

@@ -15,6 +15,9 @@ export const ICON_PATHS = {
   search: ["M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14z", "M20 20l-4-4"],
   refresh: ["M20 11a8 8 0 1 0-2.3 5.7", "M20 4.5V11h-6.5"],
   plus: ["M12 5v14M5 12h14"],
+  minus: ["M5 12h14"],
+  search: ["M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15z", "M16 16l5 5"],
+  expand: ["M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"],
   trash: ["M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13"],
   "device-add": [
     "M12 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5",

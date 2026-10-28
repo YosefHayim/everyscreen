@@ -1,7 +1,8 @@
 import { errors, type Page } from "playwright";
 import type { StopWatching } from "@/devices/device-browsers";
-import { SCREENCAST } from "@/environment";
+import { SCREENCAST, ZOOM_SCREENCAST } from "@/environment";
 import { broadcast } from "@/live/live-feed";
+import { registerZoomControl } from "@/live/zoom-store";
 
 const PAINT_TIMEOUT_MS = 3000;
 
@@ -55,11 +56,12 @@ export const startScreencast = async (
   await cdpSession.send("Page.startScreencast", { ...SCREENCAST });
 
   // A still page paints too few frames for the screencast, so each load sends one still screen image.
+  let stillQuality: number = SCREENCAST.quality;
   const sendStillScreenImage = async (): Promise<void> => {
     await waitForPaintedPage(page);
     const stillScreenImage = await cdpSession.send("Page.captureScreenshot", {
       format: SCREENCAST.format,
-      quality: SCREENCAST.quality,
+      quality: stillQuality,
     });
     broadcast({
       kind: "screen",
@@ -77,7 +79,21 @@ export const startScreencast = async (
   page.on("load", sendStillScreenImageOnLoad);
   sendStillScreenImageOnLoad();
 
+  // The zoomed device streams larger and sharper until the dashboard closes the zoom.
+  const setZoomed = async (isZoomed: boolean): Promise<void> => {
+    const screencastSize = isZoomed ? ZOOM_SCREENCAST : SCREENCAST;
+    stillQuality = screencastSize.quality;
+    await cdpSession.send("Page.stopScreencast");
+    await cdpSession.send("Page.startScreencast", {
+      ...SCREENCAST,
+      ...screencastSize,
+    });
+    sendStillScreenImageOnLoad();
+  };
+  const forgetZoomControl = registerZoomControl(deviceId, setZoomed);
+
   return async () => {
+    forgetZoomControl();
     page.off("load", sendStillScreenImageOnLoad);
     try {
       await cdpSession.send("Page.stopScreencast");

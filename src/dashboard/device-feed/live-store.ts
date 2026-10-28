@@ -10,6 +10,7 @@ import {
 } from "@/dashboard/device-feed/tile-test-logic";
 import { LIVE_PATH } from "@/environment";
 import type { DeviceLoad } from "@/estimates/estimates-logic";
+import type { CommandNotice } from "@/live/live-command-schema";
 import type { LiveMessage } from "@/live/live-feed";
 import type { RunTotals } from "@/live/live-test-schema";
 
@@ -18,6 +19,7 @@ export type ConnectionStatus = "connecting" | "open" | "closed";
 const FIRST_RETRY_DELAY_MS = 1000;
 const LAST_RETRY_DELAY_MS = 30000;
 const MAX_FINDINGS = 20;
+const MAX_COMMAND_NOTICES = 8;
 const IS_PAGE_SECURE = location.protocol === "https:";
 const LIVE_SCHEME = IS_PAGE_SECURE ? "wss:" : "ws:";
 const LIVE_URL = `${LIVE_SCHEME}//${location.host}${LIVE_PATH}`;
@@ -40,6 +42,7 @@ interface LiveFeed {
   screenImageUrls: ReadonlyMap<string, string>;
   deviceLoads: ReadonlyMap<string, DeviceLoad>;
   findings: Finding[];
+  commandNotices: CommandNotice[];
 }
 
 const connection: Connection = {
@@ -58,6 +61,7 @@ const liveFeed: LiveFeed = {
   screenImageUrls: new Map(),
   deviceLoads: new Map(),
   findings: [],
+  commandNotices: [],
 };
 
 const listeners = new Set<() => void>();
@@ -160,6 +164,12 @@ const applyLiveMessage = (liveMessage: LiveMessage): void => {
         MAX_FINDINGS,
       );
       return;
+    case "command":
+      liveFeed.commandNotices = [
+        liveMessage.commandNotice,
+        ...liveFeed.commandNotices,
+      ].slice(0, MAX_COMMAND_NOTICES);
+      return;
     case "run":
       return;
   }
@@ -261,6 +271,8 @@ export const getRunningTestCount = (): number =>
   ).length;
 
 export const getFindings = (): Finding[] => liveFeed.findings;
+
+export const getCommandNotices = (): CommandNotice[] => liveFeed.commandNotices;
 
 export const hasAnyScreenImage = (): boolean =>
   liveFeed.screenImageUrls.size > 0;
