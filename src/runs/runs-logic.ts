@@ -2,7 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import type { Finding } from "@/checks/checks-logic";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 
-export type RunStatus = "running" | "passed" | "failed";
+export type RunStatus = "running" | "ok" | "failed";
 
 export type RunOrigin = "cli" | "flow" | "playwright";
 
@@ -33,7 +33,7 @@ export interface Run {
 export type RunEvent =
   | { kind: "run-start"; origin: RunOrigin }
   | { kind: "step-end"; step: RunStep }
-  | { kind: "run-end"; status: "passed" | "failed" };
+  | { kind: "run-end"; status: "ok" | "failed" };
 
 export const RUN_ID_PATTERN = /^run-(\d+)$/;
 const RUN_ID_DIGITS = 4;
@@ -62,7 +62,7 @@ export const pickRunStatus = (steps: RunStep[]): RunStatus => {
   const hasFailedAnswer = steps.some((step) =>
     step.deviceAnswers.some((deviceAnswer) => deviceAnswer.status === "failed"),
   );
-  return hasFailedAnswer ? "failed" : "passed";
+  return hasFailedAnswer ? "failed" : "ok";
 };
 
 export const checkRunEvent = (

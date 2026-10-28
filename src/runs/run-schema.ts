@@ -54,7 +54,7 @@ const runStepSchema = z.object({
 export const runSchema = z.object({
   runId: z.string(),
   origin: runOriginSchema,
-  status: z.enum(["running", "passed", "failed"]),
+  status: z.enum(["running", "ok", "failed"]),
   startedAt: z.number(),
   steps: z.array(runStepSchema),
 }) satisfies z.ZodType<Run>;
@@ -64,6 +64,6 @@ export const runEventSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("step-end"), step: runStepSchema }),
   z.object({
     kind: z.literal("run-end"),
-    status: z.enum(["passed", "failed"]),
+    status: z.enum(["ok", "failed"]),
   }),
 ]) satisfies z.ZodType<RunEvent>;

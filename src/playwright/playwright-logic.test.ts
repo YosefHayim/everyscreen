@@ -233,10 +233,10 @@ describe("createRunStep", () => {
 });
 
 describe("pickRunEndStatus", () => {
-  test("passes when the suite passed", () => {
+  test("returns ok when the suite passed", () => {
     const status = pickRunEndStatus("passed");
 
-    expect(status).toBe("passed");
+    expect(status).toBe("ok");
   });
 
   test("fails for every other suite status", () => {

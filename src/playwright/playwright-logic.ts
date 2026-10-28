@@ -176,9 +176,9 @@ export const createRunStep = (
 
 export const pickRunEndStatus = (
   suiteStatus: "passed" | "failed" | "timedout" | "interrupted",
-): "passed" | "failed" => {
+): "ok" | "failed" => {
   const isSuitePassed = suiteStatus === "passed";
-  return isSuitePassed ? "passed" : "failed";
+  return isSuitePassed ? "ok" : "failed";
 };
 
 export const createSuiteReplyLine = (

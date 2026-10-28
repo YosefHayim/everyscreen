@@ -7,7 +7,7 @@ export const STATUS_FILTERS: StatusFilter[] = [
   "all",
   "running",
   "failed",
-  "passed",
+  "ok",
 ];
 export const ORIGIN_FILTERS: OriginFilter[] = [
   "all",

@@ -231,7 +231,7 @@ test.describe("dashboard screens", () => {
 
     await expect(page.getByText("run-0001")).toBeVisible();
     await expect(page.getByText("Failed on iphone-se")).toBeVisible();
-    await page.getByRole("button", { name: /^Passed/ }).click();
+    await page.getByRole("button", { name: /^Ok/ }).click();
     await expect(page.getByText("No runs match these filters")).toBeVisible();
     await page.getByRole("button", { name: /^Failed/ }).click();
     await expect(page.getByText("run-0001")).toBeVisible();

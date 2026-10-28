@@ -117,7 +117,7 @@
       "all": "All",
       "running": "Running",
       "failed": "Failed",
-      "passed": "Passed"
+      "ok": "Ok"
     },
     "originFilters": {
       "all": "Any source",
