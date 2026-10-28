@@ -6,12 +6,12 @@ import {
   checkDeviceRemoval,
   checkNewDevice,
   createPresetFromCustomDevice,
+  pickDeviceId,
   pickGridDevices,
 } from "@/devices/devices-logic";
 import { CPU_TIERS } from "@/environment";
 
 const TOUCH_KIOSK: CustomDevice = {
-  id: "shop-kiosk",
   name: "Shop kiosk",
   width: 800,
   height: 1280,
@@ -22,7 +22,7 @@ const TOUCH_KIOSK: CustomDevice = {
 
 const MOUSE_SCREEN: CustomDevice = {
   ...TOUCH_KIOSK,
-  id: "wall-screen",
+  name: "Wall screen",
   hasTouch: false,
 };
 
@@ -36,10 +36,31 @@ const readStatus = (action: () => void): number | null => {
   return null;
 };
 
+describe("pickDeviceId", () => {
+  test("turns the name into a kebab-case id", () => {
+    const deviceId = pickDeviceId("iPhone 15 Pro Max");
+
+    expect(deviceId).toBe("iphone-15-pro-max");
+  });
+
+  test("drops symbols and dashes at the edges", () => {
+    const deviceId = pickDeviceId("  Store kiosk (lobby)! ");
+
+    expect(deviceId).toBe("store-kiosk-lobby");
+  });
+
+  test("keeps Hebrew letters in the id", () => {
+    const deviceId = pickDeviceId("קיוסק 2");
+
+    expect(deviceId).toBe("קיוסק-2");
+  });
+});
+
 describe("createPresetFromCustomDevice", () => {
   test("makes a touch device a mobile phone-speed preset", () => {
     const devicePreset = createPresetFromCustomDevice(TOUCH_KIOSK);
 
+    expect(devicePreset.id).toBe("shop-kiosk");
     expect(devicePreset.cpuSlowdown).toBe(CPU_TIERS.phone);
     expect(devicePreset.use).toEqual({
       viewport: { width: 800, height: 1280 },
@@ -84,8 +105,8 @@ describe("checkNewDevice", () => {
     expect(checkedDevice).toEqual(TOUCH_KIOSK);
   });
 
-  test("rejects an id that a preset already uses with 409", () => {
-    const clashingDevice = { ...TOUCH_KIOSK, id: "iphone-se" };
+  test("rejects a name whose id a preset already uses with 409", () => {
+    const clashingDevice = { ...TOUCH_KIOSK, name: "iPhone SE" };
 
     const status = readStatus(() =>
       checkNewDevice(clashingDevice, DEVICE_PRESETS),

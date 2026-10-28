@@ -4,6 +4,7 @@ import { customDeviceSchema } from "@/devices/device-schema";
 import {
   checkDeviceRemoval,
   checkNewDevice,
+  createPresetFromCustomDevice,
   pickGridDevices,
 } from "@/devices/devices-logic";
 import { readDevicesFile, updateDevicesFile } from "@/devices/devices-store";
@@ -27,7 +28,8 @@ export const createDevicesRoutes = (rootFolder: string) =>
           const checkedDevice = checkNewDevice(customDevice, gridDevices);
           return { devices: [...devicesFile.devices, checkedDevice] };
         });
-        return c.json(customDevice, CREATED_STATUS);
+        const devicePreset = createPresetFromCustomDevice(customDevice);
+        return c.json(devicePreset, CREATED_STATUS);
       },
     )
     .delete("/:deviceId", async (c) => {

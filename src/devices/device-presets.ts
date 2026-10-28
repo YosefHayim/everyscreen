@@ -81,7 +81,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   },
   {
     id: "ipad-mini",
-    name: "iPad Mini",
+    name: "iPad mini",
     browserName: "chromium",
     frameShape: "tablet",
     cpuSlowdown: CPU_TIERS.tablet,

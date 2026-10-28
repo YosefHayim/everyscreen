@@ -32,6 +32,17 @@ export interface DevicePreset {
 
 const DEVICE_ID_CLASH_STATUS = 409;
 const DEVICE_MISSING_STATUS = 404;
+const NON_ID_CHARACTERS = /[^\p{L}\p{N}]+/gu;
+const EDGE_DASHES = /^-|-$/g;
+
+export const pickDeviceId = (deviceName: string): string =>
+  deviceName
+    .toLowerCase()
+    .replace(NON_ID_CHARACTERS, "-")
+    .replace(EDGE_DASHES, "");
+
+const hasDeviceId = (customDevice: CustomDevice, deviceId: string): boolean =>
+  pickDeviceId(customDevice.name) === deviceId;
 
 export const createPresetFromCustomDevice = (
   customDevice: CustomDevice,
@@ -40,7 +51,7 @@ export const createPresetFromCustomDevice = (
   const cpuSlowdown = isTouchDevice ? CPU_TIERS.phone : CPU_TIERS.desktop;
 
   return {
-    id: customDevice.id,
+    id: pickDeviceId(customDevice.name),
     name: customDevice.name,
     browserName: "chromium",
     frameShape: customDevice.frameShape,
@@ -63,12 +74,13 @@ export const checkNewDevice = (
   customDevice: CustomDevice,
   gridDevices: DevicePreset[],
 ): CustomDevice => {
+  const newDeviceId = pickDeviceId(customDevice.name);
   const isIdTaken = gridDevices.some(
-    (gridDevice) => gridDevice.id === customDevice.id,
+    (gridDevice) => gridDevice.id === newDeviceId,
   );
   if (isIdTaken) {
     throw new HTTPException(DEVICE_ID_CLASH_STATUS, {
-      message: `A device with id ${customDevice.id} already exists`,
+      message: `A device with id ${newDeviceId} already exists`,
     });
   }
 
@@ -79,8 +91,8 @@ export const checkDeviceRemoval = (
   devicesFile: DevicesFile,
   deviceId: string,
 ): DevicesFile => {
-  const isCustomDeviceMissing = devicesFile.devices.every(
-    (customDevice) => customDevice.id !== deviceId,
+  const isCustomDeviceMissing = !devicesFile.devices.some((customDevice) =>
+    hasDeviceId(customDevice, deviceId),
   );
   if (isCustomDeviceMissing) {
     throw new HTTPException(DEVICE_MISSING_STATUS, {
@@ -89,7 +101,7 @@ export const checkDeviceRemoval = (
   }
 
   const keptDevices = devicesFile.devices.filter(
-    (customDevice) => customDevice.id !== deviceId,
+    (customDevice) => !hasDeviceId(customDevice, deviceId),
   );
   return { devices: keptDevices };
 };

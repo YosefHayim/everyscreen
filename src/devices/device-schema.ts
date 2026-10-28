@@ -10,25 +10,29 @@ const FRAME_SHAPES = [
   "kiosk",
 ] as const satisfies readonly FrameShape[];
 
-const DEVICE_ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const MAX_DEVICE_ID_LENGTH = 40;
+// The device id is made from the name, so the name needs a letter or digit.
+const DEVICE_NAME_PATTERN = /[\p{L}\p{N}]/u;
 const MAX_DEVICE_NAME_LENGTH = 40;
-const MIN_DEVICE_SIZE = 200;
-const MAX_DEVICE_SIZE = 4000;
+const MIN_DEVICE_SIZE = 240;
+const MAX_DEVICE_SIZE = 3840;
 const MIN_PIXEL_RATIO = 1;
 const MAX_PIXEL_RATIO = 4;
+const DEFAULT_PIXEL_RATIO = 1;
 
 export const customDeviceSchema = z.object({
-  id: z
+  name: z
     .string()
-    .max(MAX_DEVICE_ID_LENGTH)
-    .regex(DEVICE_ID_PATTERN, "Use a kebab-case id, like store-kiosk"),
-  name: z.string().min(1).max(MAX_DEVICE_NAME_LENGTH),
+    .max(MAX_DEVICE_NAME_LENGTH)
+    .regex(DEVICE_NAME_PATTERN, "Use a letter or digit in the name"),
   width: z.number().int().min(MIN_DEVICE_SIZE).max(MAX_DEVICE_SIZE),
   height: z.number().int().min(MIN_DEVICE_SIZE).max(MAX_DEVICE_SIZE),
-  pixelRatio: z.number().min(MIN_PIXEL_RATIO).max(MAX_PIXEL_RATIO),
-  hasTouch: z.boolean(),
-  frameShape: z.enum(FRAME_SHAPES),
+  pixelRatio: z
+    .number()
+    .min(MIN_PIXEL_RATIO)
+    .max(MAX_PIXEL_RATIO)
+    .default(DEFAULT_PIXEL_RATIO),
+  hasTouch: z.boolean().default(false),
+  frameShape: z.enum(FRAME_SHAPES).default("kiosk"),
 });
 
 export const devicesFileSchema = z.object({
