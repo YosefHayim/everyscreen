@@ -1,5 +1,6 @@
 import { copyFile, mkdir } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import type {
   FullConfig,
   FullResult,
@@ -7,40 +8,65 @@ import type {
   Suite,
   TestCase,
   TestResult,
+  TestStep,
 } from "@playwright/test/reporter";
 import { STORE_FOLDER } from "@/environment";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import type {
   LiveTestStatus,
+  RunTotals,
+  StepEvent,
   TestEvent,
   TestsClear,
 } from "@/live/live-test-schema";
 import {
   createHubUrl,
   createRunStep,
+  createStepEvent,
   createSuiteReplyLine,
   createTestEvent,
   type FinishedTest,
+  isCountedStep,
   isLastAttempt,
   isStepComplete,
+  isStepFromFolder,
   pickLiveTestStatus,
   pickRunEndStatus,
+  pickRunOutcome,
   pickTestKey,
 } from "@/playwright/playwright-logic";
-import { type HubTarget, postToHub } from "@/playwright/post-to-hub";
+import {
+  type HubTarget,
+  postToHub,
+  waitForHubPosts,
+} from "@/playwright/post-to-hub";
 import { readHubFileSafely } from "@/playwright/read-hub-file";
 import { createHubTroubleReporter } from "@/playwright/report-hub-trouble";
 import type { Run, RunStep } from "@/runs/runs-logic";
 import { createRun, saveRunEvent } from "@/runs/runs-store";
 
+const OWN_FOLDER = dirname(fileURLToPath(import.meta.url));
 const SHOTS_SUBFOLDER = "shots";
 const SCREENSHOT_ATTACHMENT_NAME = "screenshot";
 const TEST_EVENTS_QUEUE_KEY = "test-events";
+const HEARTBEAT_INTERVAL_MS = 5000;
 // A title path starts with "", the project name and the file.
 const TITLE_PATH_PROJECT_PARTS = 2;
 
 const pickTitlePath = (testCase: TestCase): string[] =>
   testCase.titlePath().slice(TITLE_PATH_PROJECT_PARTS);
+
+const listAncestorCategories = (testStep: TestStep): string[] => {
+  const { parent } = testStep;
+  const hasNoParent = parent === undefined;
+  if (hasNoParent) return [];
+  return [parent.category, ...listAncestorCategories(parent)];
+};
+
+interface RunEnd {
+  endedAt: number;
+  outcome: "ok" | "failed";
+}
 
 const pickDeviceId = (testCase: TestCase): string => {
   const project = testCase.parent.project();
@@ -59,8 +85,17 @@ export default class EveryscreenReporter implements Reporter {
   savedKeys = new Set<string>();
   savedSteps: RunStep[] = [];
   pendingTasks: Promise<void>[] = [];
+  pendingHubPosts: Promise<boolean>[] = [];
+  isHubGivenUp = false;
+  heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   hubTarget: HubTarget | null = null;
   deviceIds: string[] = [];
+  totalTests = 0;
+  startedAt = 0;
+  okCount = 0;
+  failedCount = 0;
+  stepIndexes = new Map<TestStep, number>();
+  stepCounts = new Map<TestResult, number>();
 
   runTask = (task: () => Promise<void>) => {
     const trackedTask = task().catch((error: unknown) => {
@@ -76,22 +111,71 @@ export default class EveryscreenReporter implements Reporter {
     return runCreation;
   };
 
-  postToLiveTests = (routePath: string, message: TestEvent | TestsClear) => {
-    const { hubTarget } = this;
+  postToLiveTests = (
+    routePath: string,
+    message: TestEvent | StepEvent | RunTotals | TestsClear,
+  ) => {
+    const { hubTarget, isHubGivenUp } = this;
     const isHubMissing = hubTarget === null;
-    if (isHubMissing) return;
+    if (isHubMissing || isHubGivenUp) return;
 
-    const hubPost = runOneAtATime(TEST_EVENTS_QUEUE_KEY, () =>
-      postToHub(hubTarget, routePath, message),
-    );
-    this.pendingTasks.push(hubPost);
+    const hubPost = runOneAtATime(TEST_EVENTS_QUEUE_KEY, async () => {
+      const isPostSkipped = this.isHubGivenUp;
+      if (isPostSkipped) return false;
+      const isPosted = await postToHub(hubTarget, routePath, message);
+      this.isHubGivenUp = !isPosted;
+      return isPosted;
+    });
+    this.pendingHubPosts.push(hubPost);
   };
 
-  sendTestEvent = (testCase: TestCase, status: LiveTestStatus) => {
+  sendTestEvent = (
+    testCase: TestCase,
+    status: LiveTestStatus,
+    testResult: TestResult,
+  ) => {
     const deviceId = pickDeviceId(testCase);
     const titlePath = pickTitlePath(testCase);
-    const testEvent = createTestEvent(deviceId, titlePath, status);
+    const errorMessage = testResult.error?.message;
+    const testEvent = createTestEvent({
+      deviceId,
+      testId: testCase.id,
+      titlePath,
+      status,
+      errorMessage,
+    });
     this.postToLiveTests("/events", testEvent);
+  };
+
+  sendRunTotals = (phase: RunTotals["phase"], runEnd: RunEnd | null) => {
+    const isRunEnded = runEnd !== null;
+    this.postToLiveTests("/run", {
+      phase,
+      totalTests: this.totalTests,
+      startedAt: this.startedAt,
+      endedAt: isRunEnded ? runEnd.endedAt : null,
+      okCount: this.okCount,
+      failedCount: this.failedCount,
+      outcome: isRunEnded ? runEnd.outcome : null,
+      endReason: isRunEnded ? "reported" : null,
+    });
+  };
+
+  sendStepEvent = (
+    testCase: TestCase,
+    testStep: TestStep,
+    stepIndex: number,
+    isEnded: boolean,
+  ) => {
+    const stepEvent = createStepEvent({
+      deviceId: pickDeviceId(testCase),
+      testId: testCase.id,
+      stepIndex,
+      stepTitle: testStep.title,
+      errorMessage: testStep.error?.message,
+      isEnded,
+    });
+    this.postToLiveTests("/steps", stepEvent);
   };
 
   createHubTarget = (): HubTarget | null => {
@@ -148,8 +232,15 @@ export default class EveryscreenReporter implements Reporter {
   onBegin = (config: FullConfig, suite: Suite) => {
     this.hubTarget = this.createHubTarget();
     this.deviceIds = config.projects.map(({ name }) => name);
-    this.postToLiveTests("/clear", { deviceIds: this.deviceIds });
-    for (const testCase of suite.allTests()) {
+    const allTests = suite.allTests();
+    this.totalTests = allTests.length;
+    this.startedAt = Date.now();
+    this.sendRunTotals("start", null);
+    this.heartbeatTimer = setInterval(
+      () => this.sendRunTotals("update", null),
+      HEARTBEAT_INTERVAL_MS,
+    );
+    for (const testCase of allTests) {
       const testTitlePath = pickTitlePath(testCase);
       const testKey = pickTestKey(testTitlePath);
       this.expectedCounts.set(
@@ -163,12 +254,43 @@ export default class EveryscreenReporter implements Reporter {
     });
   };
 
-  onTestBegin = (testCase: TestCase) => {
-    this.sendTestEvent(testCase, "running");
+  onTestBegin = (testCase: TestCase, testResult: TestResult) => {
+    this.sendTestEvent(testCase, "running", testResult);
+  };
+
+  onStepBegin = (
+    testCase: TestCase,
+    testResult: TestResult,
+    testStep: TestStep,
+  ) => {
+    const ancestorCategories = listAncestorCategories(testStep);
+    const isUserStep = isCountedStep(testStep.category, ancestorCategories);
+    const isFixtureStep = isStepFromFolder(testStep.location?.file, OWN_FOLDER);
+    const isStepHidden = !isUserStep || isFixtureStep;
+    if (isStepHidden) return;
+
+    const stepIndex = (this.stepCounts.get(testResult) ?? 0) + 1;
+    this.stepCounts.set(testResult, stepIndex);
+    this.stepIndexes.set(testStep, stepIndex);
+    this.sendStepEvent(testCase, testStep, stepIndex, false);
+  };
+
+  onStepEnd = (
+    testCase: TestCase,
+    _testResult: TestResult,
+    testStep: TestStep,
+  ) => {
+    const stepIndex = this.stepIndexes.get(testStep);
+    const isStepUncounted = stepIndex === undefined;
+    if (isStepUncounted) return;
+
+    this.stepIndexes.delete(testStep);
+    this.sendStepEvent(testCase, testStep, stepIndex, true);
   };
 
   onTestEnd = (testCase: TestCase, testResult: TestResult) => {
-    this.sendTestEvent(testCase, pickLiveTestStatus(testResult.status));
+    const liveStatus = pickLiveTestStatus(testResult.status);
+    this.sendTestEvent(testCase, liveStatus, testResult);
     const isAttemptLast = isLastAttempt({
       status: testResult.status,
       retry: testResult.retry,
@@ -176,6 +298,12 @@ export default class EveryscreenReporter implements Reporter {
     });
     const isRetryComing = !isAttemptLast;
     if (isRetryComing) return;
+
+    const isTestFailed = liveStatus === "failed";
+    const isTestGood = liveStatus === "ok";
+    if (isTestFailed) this.failedCount += 1;
+    if (isTestGood) this.okCount += 1;
+    this.sendRunTotals("update", null);
 
     this.runTask(async () => {
       const { runId } = await this.readRun();
@@ -220,7 +348,17 @@ export default class EveryscreenReporter implements Reporter {
   };
 
   onEnd = async (fullResult: FullResult) => {
+    const { heartbeatTimer } = this;
+    const isHeartbeatRunning = heartbeatTimer !== null;
+    if (isHeartbeatRunning) clearInterval(heartbeatTimer);
+    this.heartbeatTimer = null;
+
+    this.sendRunTotals("update", {
+      endedAt: Date.now(),
+      outcome: pickRunOutcome(fullResult.status),
+    });
     this.postToLiveTests("/clear", { deviceIds: this.deviceIds });
+    await waitForHubPosts(this.pendingHubPosts);
     await Promise.all(this.pendingTasks);
     const unsavedKeys = [...this.expectedCounts.keys()].filter(
       (testKey) => !this.savedKeys.has(testKey),

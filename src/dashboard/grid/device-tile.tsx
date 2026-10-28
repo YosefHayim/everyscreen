@@ -34,6 +34,7 @@ export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
   const screenImageUrl = useScreenImage(deviceId);
   const deviceLoad = useDeviceLoad(deviceId);
   const deviceTest = useDeviceTest(deviceId);
+  const isTestFailed = deviceTest?.status === "failed";
   const findings = useFindings();
   const status = pickTileStatus(deviceId, findings, deviceLoad);
   const hasScreenImage = screenImageUrl !== null;
@@ -50,6 +51,7 @@ export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
       className={cn(
         "relative flex min-w-46 max-w-full flex-none flex-col overflow-hidden rounded-xl border bg-card",
         TILE_BORDER_CLASS_NAMES[status],
+        isTestFailed && "border-failed bg-failed-soft",
       )}
     >
       <header className="flex h-12 flex-col px-3 pt-2">
@@ -103,7 +105,7 @@ export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
         </DeviceFrame>
       </div>
       <footer className="px-3 pt-2 pb-[9px] font-mono text-[10px] leading-[14px] text-ink-2">
-        <TileTest deviceTest={deviceTest} />
+        <TileTest deviceId={deviceId} />
         <TileEstimate deviceLoad={deviceLoad} />
       </footer>
     </article>

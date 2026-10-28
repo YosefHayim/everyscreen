@@ -7,6 +7,7 @@ test.describe("live suite", () => {
   test("shows the green page", async ({ page }) => {
     await page.goto(GREEN_PAGE_URL);
     await page.waitForTimeout(WATCH_PAUSE_MS);
+    await page.locator("p").textContent();
 
     await expect(page).toHaveTitle("Live suite");
   });

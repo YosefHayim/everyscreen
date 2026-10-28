@@ -13,6 +13,7 @@ import type { HubCommand } from "@/commands/commands-schema";
 import type { DevicePage } from "@/devices/device-browsers";
 import { pickDeviceViewport } from "@/devices/devices-logic";
 import { writeStoredFile } from "@/hub/stored-files";
+import { releaseDeviceScreen } from "@/live/live-feed";
 import { sendStepScreen, waitForPaintedPage } from "@/live/screencast";
 
 export const ACTION_TIMEOUT_MS = 10_000;
@@ -107,6 +108,7 @@ export const runStepOnDevice = async (
   const { page, device, hasLiveScreen } = devicePage;
   const { hubCommand } = stepTarget;
   const startedAt = Date.now();
+  releaseDeviceScreen(device.id);
 
   const actionErrorMessage = await tryCommand(devicePage, hubCommand);
   const deviceViewport = pickDeviceViewport(device);

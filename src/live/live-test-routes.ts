@@ -3,10 +3,13 @@ import { Hono } from "hono";
 import { rejectInvalidRequest } from "@/hub/problem-reply";
 import { broadcast, forgetTests } from "@/live/live-feed";
 import {
+  runTotalsSchema,
+  stepEventSchema,
   testEventSchema,
   testScreenSchema,
   testsClearSchema,
 } from "@/live/live-test-schema";
+import { watchRun } from "@/live/run-watchdog";
 
 const NO_CONTENT_STATUS = 204;
 
@@ -17,7 +20,7 @@ export const createLiveTestRoutes = () =>
       zValidator("json", testScreenSchema, rejectInvalidRequest),
       (c) => {
         const { deviceId, imageBase64 } = c.req.valid("json");
-        broadcast({ kind: "screen", deviceId, imageBase64 });
+        broadcast({ kind: "screen", deviceId, imageBase64 }, "test-run");
         return c.body(null, NO_CONTENT_STATUS);
       },
     )
@@ -25,8 +28,27 @@ export const createLiveTestRoutes = () =>
       "/events",
       zValidator("json", testEventSchema, rejectInvalidRequest),
       (c) => {
-        const { deviceId, title, status } = c.req.valid("json");
-        broadcast({ kind: "test", deviceId, title, status });
+        const testEvent = c.req.valid("json");
+        broadcast({ kind: "test", ...testEvent });
+        return c.body(null, NO_CONTENT_STATUS);
+      },
+    )
+    .post(
+      "/steps",
+      zValidator("json", stepEventSchema, rejectInvalidRequest),
+      (c) => {
+        const stepEvent = c.req.valid("json");
+        broadcast({ kind: "step", ...stepEvent });
+        return c.body(null, NO_CONTENT_STATUS);
+      },
+    )
+    .post(
+      "/run",
+      zValidator("json", runTotalsSchema, rejectInvalidRequest),
+      (c) => {
+        const runTotals = c.req.valid("json");
+        broadcast({ kind: "run-totals", ...runTotals });
+        watchRun(runTotals);
         return c.body(null, NO_CONTENT_STATUS);
       },
     )

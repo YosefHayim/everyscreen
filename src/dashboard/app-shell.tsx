@@ -2,6 +2,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useLiveStatus } from "@/dashboard/device-feed/use-live-status";
+import { RunBar } from "@/dashboard/run-bar/run-bar";
 import { cn } from "@/dashboard/ui/cn";
 import { LogoMark } from "@/dashboard/ui/logo-mark";
 import { HUB_URL } from "@/environment";
@@ -55,6 +56,7 @@ export const AppShell = (): ReactElement => {
           ))}
         </nav>
       </header>
+      <RunBar />
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-soft">
         <Outlet />
       </main>

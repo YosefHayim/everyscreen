@@ -5,14 +5,19 @@ import {
   createDeviceProject,
   createHubUrl,
   createRunStep,
+  createStepEvent,
   createSuiteReplyLine,
   createTestEvent,
   type FinishedTest,
+  isCountedStep,
   isLastAttempt,
   isStepComplete,
+  isStepFromFolder,
+  pickFirstErrorLine,
   pickLiveTestStatus,
   pickProjectDevices,
   pickRunEndStatus,
+  pickRunOutcome,
   pickScreenHubUrl,
   pickScreenshotMode,
   pickTestKey,
@@ -301,16 +306,174 @@ describe("pickLiveTestStatus", () => {
 });
 
 describe("createTestEvent", () => {
-  test("joins the title path into one title", () => {
-    const titlePath = ["shop.spec.ts", "cart", "adds a tote"];
+  test("splits the spec file from the joined title", () => {
+    const titlePath = ["tests/shop.spec.ts", "cart", "adds a tote"];
 
-    const testEvent = createTestEvent("pixel-8", titlePath, "running");
+    const testEvent = createTestEvent({
+      deviceId: "pixel-8",
+      testId: "abc-1",
+      titlePath,
+      status: "running",
+      errorMessage: undefined,
+    });
 
     expect(testEvent).toEqual({
       deviceId: "pixel-8",
-      title: `shop.spec.ts${STEP_TITLE_SEPARATOR}cart${STEP_TITLE_SEPARATOR}adds a tote`,
+      testId: "abc-1",
+      title: `cart${STEP_TITLE_SEPARATOR}adds a tote`,
+      specFile: "shop.spec.ts",
       status: "running",
+      errorLine: null,
     });
+  });
+
+  test("carries the first error line of a failed test", () => {
+    const errorMessage = `${ANSI_RED}Error: expect(Pay).toBeVisible() timed out${ANSI_RESET}\n\nLocator: Pay`;
+
+    const testEvent = createTestEvent({
+      deviceId: "pixel-8",
+      testId: "abc-1",
+      titlePath: ["shop.spec.ts", "pays"],
+      status: "failed",
+      errorMessage,
+    });
+
+    expect(testEvent.errorLine).toBe(
+      "Error: expect(Pay).toBeVisible() timed out",
+    );
+  });
+
+  test("leaves the error line empty on a passed test", () => {
+    const testEvent = createTestEvent({
+      deviceId: "pixel-8",
+      testId: "abc-1",
+      titlePath: ["shop.spec.ts", "pays"],
+      status: "ok",
+      errorMessage: "left over",
+    });
+
+    expect(testEvent.errorLine).toBeNull();
+  });
+
+  test("gives an empty spec file when the title path is empty", () => {
+    const testEvent = createTestEvent({
+      deviceId: "pixel-8",
+      testId: "abc-1",
+      titlePath: [],
+      status: "running",
+      errorMessage: undefined,
+    });
+
+    expect(testEvent.specFile).toBe("");
+  });
+});
+
+describe("pickFirstErrorLine", () => {
+  test("returns null when there is no message", () => {
+    expect(pickFirstErrorLine(undefined)).toBeNull();
+    expect(pickFirstErrorLine(null)).toBeNull();
+  });
+
+  test("skips blank lines and colors", () => {
+    const errorLine = pickFirstErrorLine(
+      `\n  ${ANSI_RED}boom${ANSI_RESET}\nmore`,
+    );
+
+    expect(errorLine).toBe("boom");
+  });
+
+  test("returns null when the message is only blank lines", () => {
+    expect(pickFirstErrorLine(" \n ")).toBeNull();
+  });
+});
+
+describe("isCountedStep", () => {
+  test("counts a top page call and a test.step", () => {
+    expect(isCountedStep("pw:api", [])).toBe(true);
+    expect(isCountedStep("test.step", [])).toBe(true);
+  });
+
+  test("skips categories the user did not write", () => {
+    expect(isCountedStep("hook", [])).toBe(false);
+    expect(isCountedStep("fixture", [])).toBe(false);
+    expect(isCountedStep("expect", [])).toBe(false);
+  });
+
+  test("skips a call inside a user step", () => {
+    expect(isCountedStep("pw:api", ["test.step"])).toBe(false);
+  });
+
+  test("skips a call inside a hook or fixture", () => {
+    expect(isCountedStep("pw:api", ["hook"])).toBe(false);
+    expect(isCountedStep("pw:api", ["fixture"])).toBe(false);
+  });
+
+  test("counts a call under a step that is not a user step", () => {
+    expect(isCountedStep("pw:api", ["expect"])).toBe(true);
+  });
+});
+
+describe("isStepFromFolder", () => {
+  test("is true for a file inside the folder", () => {
+    expect(isStepFromFolder("/pkg/dist/test.mjs", "/pkg/dist")).toBe(true);
+  });
+
+  test("is false for a file in a folder that only shares the name start", () => {
+    expect(isStepFromFolder("/pkg/dist-other/a.ts", "/pkg/dist")).toBe(false);
+  });
+
+  test("is false for a step without a file", () => {
+    expect(isStepFromFolder(undefined, "/pkg/dist")).toBe(false);
+  });
+});
+
+describe("createStepEvent", () => {
+  const stepReport = {
+    deviceId: "pixel-8",
+    testId: "abc-1",
+    stepIndex: 2,
+    stepTitle: 'Click "Apply"',
+    errorMessage: undefined,
+    isEnded: false,
+  };
+
+  test("reports a begun step as running", () => {
+    const stepEvent = createStepEvent(stepReport);
+
+    expect(stepEvent).toEqual({
+      deviceId: "pixel-8",
+      testId: "abc-1",
+      stepIndex: 2,
+      stepTitle: 'Click "Apply"',
+      status: "running",
+      errorLine: null,
+    });
+  });
+
+  test("reports an ended step without an error as ok", () => {
+    const stepEvent = createStepEvent({ ...stepReport, isEnded: true });
+
+    expect(stepEvent.status).toBe("ok");
+  });
+
+  test("reports an ended step with an error as failed with its line", () => {
+    const stepEvent = createStepEvent({
+      ...stepReport,
+      isEnded: true,
+      errorMessage: "Timeout 1000ms exceeded\ncall log",
+    });
+
+    expect(stepEvent.status).toBe("failed");
+    expect(stepEvent.errorLine).toBe("Timeout 1000ms exceeded");
+  });
+});
+
+describe("pickRunOutcome", () => {
+  test("is ok only when the suite passed", () => {
+    expect(pickRunOutcome("passed")).toBe("ok");
+    expect(pickRunOutcome("failed")).toBe("failed");
+    expect(pickRunOutcome("timedout")).toBe("failed");
+    expect(pickRunOutcome("interrupted")).toBe("failed");
   });
 });
 
