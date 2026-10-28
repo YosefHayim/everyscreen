@@ -1,6 +1,12 @@
 import type { Finding } from "@/checks/checks-logic";
 import type { DeviceLoad } from "@/estimates/estimates-logic";
 import type { RunTotals, StepEvent, TestEvent } from "@/live/live-test-schema";
+import {
+  isScreenAccepted,
+  pickScreenPhase,
+  type ScreenPhase,
+  type ScreenSource,
+} from "@/live/screen-priority-logic";
 
 export type LiveMessage =
   | { kind: "screen"; deviceId: string; imageBase64: string }
@@ -17,6 +23,7 @@ const listeners = new Set<LiveListener>();
 const lastScreens = new Map<string, LiveMessage>();
 const lastTests = new Map<string, TestEvent>();
 const lastSteps = new Map<string, StepEvent[]>();
+const screenPhases = new Map<string, ScreenPhase>();
 const lastRunTotals: { runTotals: RunTotals | null } = { runTotals: null };
 
 export const subscribe = (listener: LiveListener): (() => void) => {
@@ -48,25 +55,44 @@ const rememberStep = (stepEvent: StepEvent): void => {
   lastSteps.set(stepEvent.testId, [...otherSteps, stepEvent]);
 };
 
+const rememberScreenPhase = (deviceId: string): void => {
+  const deviceStatuses = [...lastTests.values()]
+    .filter((testEvent) => testEvent.deviceId === deviceId)
+    .map(({ status }) => status);
+  screenPhases.set(deviceId, pickScreenPhase(deviceStatuses));
+};
+
 const forgetAllTests = (): void => {
   lastTests.clear();
   lastSteps.clear();
 };
 
-export const broadcast = (message: LiveMessage): void => {
+export const broadcast = (
+  message: LiveMessage,
+  screenSource: ScreenSource = "hub",
+): void => {
   switch (message.kind) {
-    case "screen":
+    case "screen": {
+      const screenPhase = screenPhases.get(message.deviceId) ?? "following-hub";
+      const isScreenKept = isScreenAccepted(screenSource, screenPhase);
+      const isScreenDropped = !isScreenKept;
+      if (isScreenDropped) return;
       lastScreens.set(message.deviceId, message);
       break;
+    }
     case "test":
       rememberTest(message);
+      rememberScreenPhase(message.deviceId);
       break;
     case "step":
       rememberStep(message);
       break;
     case "run-totals": {
       const isRunStarting = message.phase === "start";
-      if (isRunStarting) forgetAllTests();
+      if (isRunStarting) {
+        forgetAllTests();
+        screenPhases.clear();
+      }
       lastRunTotals.runTotals = message;
       break;
     }
@@ -77,6 +103,13 @@ export const broadcast = (message: LiveMessage): void => {
   }
   for (const listener of listeners) listener(message);
 };
+
+export const releaseDeviceScreen = (deviceId: string): void => {
+  screenPhases.delete(deviceId);
+};
+
+export const listRunningTests = (): TestEvent[] =>
+  [...lastTests.values()].filter(({ status }) => status === "running");
 
 export const readRunTotals = (): RunTotals | null => lastRunTotals.runTotals;
 

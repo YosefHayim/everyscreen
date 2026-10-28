@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { chromium } from "playwright";
 import { createServer } from "vite";
 import { WebSocket } from "ws";
@@ -20,6 +20,7 @@ const SUITE_CONFIG_PATH = fileURLToPath(
 );
 const STARTUP_TIMEOUT_MS = 240_000;
 const RUN_SILENCE_WAIT_MS = 30_000;
+const BLANK_FRAME_WAIT_MS = 3000;
 const PASSING_TITLE = "shows the green page";
 const FAILING_TITLE = "fails on purpose";
 const GREEN_CHANNELS = { red: 34, green: 170, blue: 102 };
@@ -97,6 +98,27 @@ const listScreensWhileRunning = (
     .slice(runningIndex, finishedIndex)
     .filter(isScreenMessage)
     .filter((screenMessage) => screenMessage.deviceId === deviceId);
+};
+
+const IMAGE_URL_PREFIX = "data:image/jpeg;base64,";
+
+const expectTileShowsTestPage = async (
+  decoderPage: Page,
+  deviceTile: Locator,
+): Promise<void> => {
+  await expect
+    .poll(async () => {
+      const imageUrl = await deviceTile
+        .locator("img")
+        .first()
+        .getAttribute("src");
+      const hasNoImage = imageUrl === null;
+      if (hasNoImage) return false;
+      const imageBase64 = imageUrl.replace(IMAGE_URL_PREFIX, "");
+      const screenColor = await readCenterColor(decoderPage, imageBase64);
+      return isGreen(screenColor);
+    })
+    .toBe(true);
 };
 
 const HOST = "127.0.0.1";
@@ -258,6 +280,8 @@ liveTest.describe("live test runs", () => {
         await expect(pixelTile).toContainText(/step 2 · Wait for timeout/);
         await expect(iphoneTile).toContainText(/step 2 · Wait for timeout/);
         await expect(runBar).toContainText("live.suite.ts");
+        await expectTileShowsTestPage(page, pixelTile);
+        await expectTileShowsTestPage(page, iphoneTile);
         await suiteRun;
 
         await expect(
@@ -271,7 +295,9 @@ liveTest.describe("live test runs", () => {
           "0",
           /^\d+:\d\d$/,
         ]);
+        await page.waitForTimeout(BLANK_FRAME_WAIT_MS);
         for (const deviceTile of [pixelTile, iphoneTile]) {
+          await expectTileShowsTestPage(page, deviceTile);
           await expect(deviceTile).toContainText("fails on purpose");
           await expect(deviceTile).toContainText("toHaveTitle");
           await expect(deviceTile).toHaveClass(/bg-failed-soft/);
@@ -347,14 +373,23 @@ liveTest.describe("live test runs", () => {
         "/run",
         createRunTotals({ phase: "start" }),
       );
+      await postToLiveTests(runningHub.url, "/events", {
+        ...LATE_TEST,
+        testId: "stuck-1",
+        status: "running",
+      });
       const { viteServer, dashboardUrl } = await startDashboard(runningHub.url);
       try {
         await page.setViewportSize(DESKTOP_VIEWPORT);
         await page.goto(dashboardUrl);
         const runBar = page.getByRole("region", { name: "Test run" });
+        const iphoneTile = page
+          .getByRole("article")
+          .filter({ hasText: "iPhone SE" });
         await expect(
           runBar.getByText("Running", { exact: true }).first(),
         ).toBeVisible();
+        await expect(iphoneTile).toContainText("running");
 
         await expect(runBar).toContainText("Run stopped without a report", {
           timeout: RUN_SILENCE_WAIT_MS,
@@ -362,6 +397,9 @@ liveTest.describe("live test runs", () => {
         await expect(
           runBar.getByText("Failed", { exact: true }).first(),
         ).toBeVisible();
+        await expect(iphoneTile).toContainText("failed");
+        await expect(iphoneTile).toContainText("Run stopped without a report");
+        await expect(iphoneTile).not.toContainText("running");
       } finally {
         await viteServer.close();
       }

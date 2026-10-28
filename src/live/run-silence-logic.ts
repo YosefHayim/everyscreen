@@ -1,6 +1,7 @@
-import type { RunTotals } from "@/live/live-test-schema";
+import type { RunTotals, TestEvent } from "@/live/live-test-schema";
 
 export const RUN_SILENCE_LIMIT_MS = 15000;
+const RUN_STOPPED_LINE = "Run stopped without a report";
 
 export const isRunLive = (runTotals: RunTotals): boolean =>
   runTotals.outcome === null;
@@ -24,3 +25,10 @@ export const pickSilentRunEnd = (
     endReason: "stopped",
   };
 };
+
+export const listStoppedTests = (runningTests: TestEvent[]): TestEvent[] =>
+  runningTests.map((runningTest) => ({
+    ...runningTest,
+    status: "failed",
+    errorLine: RUN_STOPPED_LINE,
+  }));

@@ -20,7 +20,7 @@ export const createLiveTestRoutes = () =>
       zValidator("json", testScreenSchema, rejectInvalidRequest),
       (c) => {
         const { deviceId, imageBase64 } = c.req.valid("json");
-        broadcast({ kind: "screen", deviceId, imageBase64 });
+        broadcast({ kind: "screen", deviceId, imageBase64 }, "test-run");
         return c.body(null, NO_CONTENT_STATUS);
       },
     )

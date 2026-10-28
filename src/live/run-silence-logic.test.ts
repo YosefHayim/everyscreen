@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 import type { RunTotals } from "@/live/live-test-schema";
-import { isRunLive, pickSilentRunEnd } from "./run-silence-logic";
+import {
+  isRunLive,
+  listStoppedTests,
+  pickSilentRunEnd,
+} from "./run-silence-logic";
 
 const createTotals = (changes: Partial<RunTotals> = {}): RunTotals => ({
   phase: "update",
@@ -21,6 +25,33 @@ describe("isRunLive", () => {
 
   test("is false once the run has an outcome", () => {
     expect(isRunLive(createTotals({ outcome: "ok" }))).toBe(false);
+  });
+});
+
+describe("listStoppedTests", () => {
+  test("marks each running test failed with the stopped line", () => {
+    const runningTest = {
+      deviceId: "pixel-10",
+      testId: "a1",
+      title: "pays",
+      specFile: "shop.spec.ts",
+      status: "running" as const,
+      errorLine: null,
+    };
+
+    const stoppedTests = listStoppedTests([runningTest]);
+
+    expect(stoppedTests).toEqual([
+      {
+        ...runningTest,
+        status: "failed",
+        errorLine: "Run stopped without a report",
+      },
+    ]);
+  });
+
+  test("gives nothing when no test was running", () => {
+    expect(listStoppedTests([])).toEqual([]);
   });
 });
 
