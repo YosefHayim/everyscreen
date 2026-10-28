@@ -20,7 +20,9 @@ CLI ── hc<HubApp> over HTTP ──► Hub (Hono, 127.0.0.1:4100)
                                  ├─ live feed ── WebSocket /api/live ──► Dashboard (React, served by the hub)
                                  └─ hub file: .everyscreen/hub.json
 playwright.config.ts ── listDevices() reads the hub file ──► device browsers
-Playwright reporter ── POST /api/runs/:runId/events ──► Hub
+everyscreen/test fixture ── screen images ──► Hub (live feed)
+Playwright reporter ── test and step events ──► Hub (live feed, runs store)
+everyscreen sweep ── one fresh page per route and device ──► shots in the runs store
 ```
 
 ## One command
@@ -33,7 +35,7 @@ Playwright reporter ── POST /api/runs/:runId/events ──► Hub
 
 ## Files
 
-- `everyscreen.yaml`: the user's custom devices and grid list, committed in their repo.
+- `everyscreen.yaml`: the user's custom devices, grid list, viewport modes and sweep routes, committed in their repo.
 - `.everyscreen/`: the hub file, runs and shots, git-ignored.
 - `src/skill/SKILL.md`: what `everyscreen skill install` writes for agents.
 - `src/site/`: the landing page on everyscreen.jtslabs.dev, built from the dashboard's UI kit.
