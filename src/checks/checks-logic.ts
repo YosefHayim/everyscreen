@@ -65,6 +65,9 @@ const listSafeAreaFindings = (
   measurements: PageMeasurements,
   checkDevice: CheckDevice,
 ): Finding[] => {
+  const isPageKeptOutOfInsets = !measurements.isViewportCover;
+  if (isPageKeptOutOfInsets) return [];
+
   const { pinnedBoxes, viewportHeight } = measurements;
   const { safeAreaInsets } = checkDevice;
   const homeBarTop = viewportHeight - safeAreaInsets.bottom;
