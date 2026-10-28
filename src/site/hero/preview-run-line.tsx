@@ -11,11 +11,11 @@ export interface PreviewRun {
   railIndex: number | null;
 }
 
-interface PreviewRunRowProps {
+interface PreviewRunLineProps {
   run: PreviewRun;
 }
 
-export const PreviewRunRow = ({ run }: PreviewRunRowProps): ReactElement => {
+export const PreviewRunLine = ({ run }: PreviewRunLineProps): ReactElement => {
   const { t } = useTranslation();
   const isRunning = run.status === "running";
   const isPassed = run.status === "passed";

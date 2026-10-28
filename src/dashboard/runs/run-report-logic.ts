@@ -8,7 +8,7 @@ interface MatrixCell {
   status: CellStatus;
 }
 
-export interface MatrixRow {
+export interface MatrixRoute {
   deviceId: string;
   cells: MatrixCell[];
   okCount: number;
@@ -58,7 +58,7 @@ export const pickCellStatus = (step: RunStep, deviceId: string): CellStatus => {
   return hasFinding ? "warn" : "ok";
 };
 
-export const createMatrix = (run: Run): MatrixRow[] =>
+export const createMatrix = (run: Run): MatrixRoute[] =>
   listRunDeviceIds(run).map((deviceId) => {
     const cells = run.steps.map((step) => ({
       stepId: step.stepId,
@@ -77,14 +77,16 @@ export const createMatrix = (run: Run): MatrixRow[] =>
 
 export const pickRunTotals = (run: Run): RunTotals => {
   const matrix = createMatrix(run);
-  const failedRows = matrix.filter((matrixRow) => matrixRow.failedCount > 0);
+  const failedRoutes = matrix.filter(
+    (matrixRoute) => matrixRoute.failedCount > 0,
+  );
   const findingCount = countRunFindings(run);
   return {
     stepCount: run.steps.length,
     deviceCount: matrix.length,
     findingCount,
-    okDeviceCount: matrix.length - failedRows.length,
-    failedDeviceCount: failedRows.length,
+    okDeviceCount: matrix.length - failedRoutes.length,
+    failedDeviceCount: failedRoutes.length,
   };
 };
 

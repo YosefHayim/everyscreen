@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { type PreviewRun, PreviewRunRow } from "./preview-run-row";
+import { type PreviewRun, PreviewRunLine } from "./preview-run-line";
 
 const FINISHED_RUNS: PreviewRun[] = [
   { id: "checkout", status: "running", railIndex: null },
@@ -24,13 +24,13 @@ export const PreviewRunsSidebar = (): ReactElement => {
     <aside className="hidden w-58 flex-none flex-col gap-1 border-r border-line-soft px-3 py-[18px] md:flex">
       <p className={`${HEADING_CLASS_NAME} mb-2`}>{t("preview.runsHeading")}</p>
       {FINISHED_RUNS.map((run) => (
-        <PreviewRunRow key={run.id} run={run} />
+        <PreviewRunLine key={run.id} run={run} />
       ))}
       <p className={`${HEADING_CLASS_NAME} mt-4 mb-2`}>
         {t("preview.queueHeading")}
       </p>
       {QUEUED_RUNS.map((run) => (
-        <PreviewRunRow key={run.id} run={run} />
+        <PreviewRunLine key={run.id} run={run} />
       ))}
     </aside>
   );

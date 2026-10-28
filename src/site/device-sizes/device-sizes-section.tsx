@@ -4,7 +4,7 @@ import { PageSection } from "@/site/page-section";
 import { SectionHeading } from "@/site/section-heading";
 import { CodeBlock } from "@/site/ui/code-block";
 import { AddDeviceForm } from "./add-device-form";
-import { SizeRow } from "./size-row";
+import { SizeStrip } from "./size-strip";
 
 const CLI_CODE_LINES = [
   '$ everyscreen device add --name "Store kiosk" \\',
@@ -30,7 +30,7 @@ export const DeviceSizesSection = (): ReactElement => {
         title={t("device-sizes.title")}
         subtitle={t("device-sizes.subtitle")}
       />
-      <SizeRow />
+      <SizeStrip />
       <div className="grid items-stretch gap-4 md:grid-cols-2">
         <AddDeviceForm />
         <div className="flex min-w-0 flex-col gap-4 rounded-2xl border border-line bg-card p-6">
