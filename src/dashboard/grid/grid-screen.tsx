@@ -9,12 +9,12 @@ import { ScreenBoundary } from "@/dashboard/ui/screen-boundary";
 
 export const GridScreen = (): ReactElement => {
   const { t } = useTranslation();
-  const { deviceViews, devicesStatus } = useGridScreen();
+  const { deviceViews, devicesStatus, isOpenAppCardShown } = useGridScreen();
 
   return (
     <div className="flex min-h-full flex-col items-center gap-4 p-4 md:px-7 md:pt-4 md:pb-5">
       <SetupSteps />
-      <OpenAppCard />
+      {isOpenAppCardShown && <OpenAppCard />}
       <ScreenBoundary status={devicesStatus}>
         <section
           aria-label={t("grid.tilesLabel")}

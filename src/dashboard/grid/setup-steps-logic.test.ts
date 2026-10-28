@@ -1,5 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { pickSetupStepProgress } from "@/dashboard/grid/setup-steps-logic";
+import {
+  isOpenAppCardShown,
+  pickSetupStepProgress,
+} from "@/dashboard/grid/setup-steps-logic";
 
 describe("pickSetupStepProgress", () => {
   test("asks for the hub while the live feed is connecting", () => {
@@ -60,5 +63,23 @@ describe("pickSetupStepProgress", () => {
       "openApp",
       "runTests",
     ]);
+  });
+});
+
+describe("isOpenAppCardShown", () => {
+  test("shows the card while the live feed is closed", () => {
+    expect(isOpenAppCardShown("closed", false)).toBe(true);
+  });
+
+  test("shows the card when the hub is open and no screen image came", () => {
+    expect(isOpenAppCardShown("open", false)).toBe(true);
+  });
+
+  test("hides the card once a screen image has arrived", () => {
+    expect(isOpenAppCardShown("open", true)).toBe(false);
+  });
+
+  test("shows the card when a screen image is left from a closed feed", () => {
+    expect(isOpenAppCardShown("closed", true)).toBe(true);
   });
 });
