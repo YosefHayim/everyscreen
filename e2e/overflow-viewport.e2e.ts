@@ -36,8 +36,8 @@ for (const { deviceId, engine, isEmulatedByCdp } of OVERFLOW_ENGINES) {
     const isPresetMissing = devicePreset === undefined;
     if (isPresetMissing) throw new Error(`No preset ${deviceId}`);
     const engineBrowser = await engine.launch();
-    const contextOptions = isEmulatedByCdp ? {} : devicePreset.use;
-    const browserContext = await engineBrowser.newContext(contextOptions);
+    const devicePlaywrightUse = isEmulatedByCdp ? {} : devicePreset.use;
+    const browserContext = await engineBrowser.newContext(devicePlaywrightUse);
     const page = await browserContext.newPage();
     if (isEmulatedByCdp) await emulateDevice(page, devicePreset);
     const deviceViewport = pickDeviceViewport(devicePreset);
