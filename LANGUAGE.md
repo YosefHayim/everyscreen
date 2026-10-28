@@ -6,12 +6,12 @@ Every name in the code, the CLI, the dashboard and the docs uses these words. A 
 One screen size the app runs on, such as `iphone-se`: an id, a name, a viewport, a pixel ratio, touch, a frame shape and a CPU slowdown.
 _Avoid_: screen, target, emulator, profile
 
-**Device preset**
-A device that ships with Everyscreen (`DEVICE_PRESETS`), the nine built-in ids.
-_Avoid_: default device, template, built-in profile
+**Device catalog**
+The 59 devices Everyscreen can run, from Playwright's registry and its own list. The grid starts 12 of them by default.
+_Avoid_: device list, device library, presets, built-in devices
 
 **Custom device**
-A device the user adds in `everyscreen.yaml` or with `device add`.
+A device the user adds in `everyscreen.yaml` or with `devices add`.
 _Avoid_: user device, extra device, own device
 
 **Frame**
@@ -106,6 +106,14 @@ _Avoid_: stats, perf, health
 How something went, in one word set: ok, warn or failed. Device answers, device loads, findings and tile chips all use it.
 _Avoid_: pass, fail, success, error
 
+**Route**
+One path of the app under test, such as `/pricing`, that a sweep visits.
+_Avoid_: page, url, screen, view
+
+**Sweep**
+One run that visits every route of the app on every chosen device and saves a shot of each.
+_Avoid_: crawl, scan, audit
+
 **Flow**
 A YAML file of steps that runs on a list of devices.
 _Avoid_: scenario, script, spec, journey, test
@@ -143,3 +151,5 @@ _Avoid_: bot, AI, assistant, LLM
 | action, request           | command                       |
 | output                    | reply                         |
 | pass, fail, success       | ok, failed                    |
+| crawl, scan               | sweep                         |
+| page, url (of the app)    | route                         |
