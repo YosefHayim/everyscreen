@@ -39,7 +39,7 @@ describe("listFindings", () => {
     expect(findings).toEqual([
       {
         kind: "overflow",
-        severity: "fail",
+        severity: "failed",
         deviceId: "iphone-se",
         selector: ".cart-total",
         message: ".cart-total is 18px past the edge",
@@ -184,7 +184,7 @@ describe("createConsoleFinding", () => {
 
     expect(finding).toEqual({
       kind: "console-error",
-      severity: "fail",
+      severity: "failed",
       deviceId: "pixel-8",
       selector: null,
       message: "boom",

@@ -39,7 +39,7 @@ const findOverflow = (
   return [
     {
       kind: "overflow",
-      severity: "fail",
+      severity: "failed",
       deviceId: checkDevice.id,
       selector,
       message: `${selector} is ${overflowPx}px past the edge`,
@@ -124,7 +124,7 @@ export const createConsoleFinding = (
   consoleMessage: string,
 ): Finding => ({
   kind: "console-error",
-  severity: "fail",
+  severity: "failed",
   deviceId,
   selector: null,
   message: consoleMessage,
@@ -138,7 +138,7 @@ export const createRequestFinding = (
   const { pathname } = new URL(requestUrl);
   return {
     kind: "failed-request",
-    severity: "fail",
+    severity: "failed",
     deviceId,
     selector: null,
     message: `${pathname} ${failureReason ?? "failed"}`,
