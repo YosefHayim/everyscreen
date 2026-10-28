@@ -10,6 +10,7 @@ import {
   pickNextRunId,
   type Run,
   type RunEvent,
+  type RunKind,
   type RunOrigin,
 } from "@/runs/runs-logic";
 
@@ -73,12 +74,14 @@ export const listRuns = async (rootFolder: string): Promise<Run[]> => {
 export const createRun = async (
   rootFolder: string,
   origin: RunOrigin,
+  runKind: RunKind,
 ): Promise<Run> => {
   return runOneAtATime(pickRunsFolder(rootFolder), async () => {
     const runIds = await listRunIds(rootFolder);
     const run: Run = {
       runId: pickNextRunId(runIds),
       origin,
+      runKind,
       status: "running",
       startedAt: Date.now(),
       steps: [],

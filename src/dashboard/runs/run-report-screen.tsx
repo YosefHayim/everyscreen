@@ -5,6 +5,7 @@ import { RunFindings } from "@/dashboard/runs/run-findings";
 import { RunMatrix } from "@/dashboard/runs/run-matrix";
 import { RunSummary } from "@/dashboard/runs/run-summary";
 import { useRunReport } from "@/dashboard/runs/use-run-report";
+import { SweepScreen } from "@/dashboard/sweep/sweep-screen";
 import { ScreenBoundary } from "@/dashboard/ui/screen-boundary";
 
 export const RunReportScreen = (): ReactElement => {
@@ -12,6 +13,11 @@ export const RunReportScreen = (): ReactElement => {
   const { run, runStatus, failureProofs, deviceViews } = useRunReport();
   const isRunLoaded = run !== null;
   const hasFailureProofs = failureProofs.length > 0;
+  const isSweepRun = isRunLoaded && run.runKind === "sweep";
+
+  if (isSweepRun) {
+    return <SweepScreen run={run} deviceViews={deviceViews} />;
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-290 flex-col gap-7 p-4 md:p-7">

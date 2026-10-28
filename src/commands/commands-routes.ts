@@ -20,7 +20,7 @@ import { runSweep } from "@/sweep/sweep-run";
 const readRunningRun = async (rootFolder: string): Promise<Run> => {
   const runs = await listRuns(rootFolder);
   const runningRun = pickRunningRun(runs);
-  return runningRun ?? (await createRun(rootFolder, "cli"));
+  return runningRun ?? (await createRun(rootFolder, "cli", "steps"));
 };
 
 const runCommand = async (

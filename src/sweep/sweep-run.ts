@@ -107,7 +107,7 @@ export const runSweep = async (
     configuredRoutes: devicesFile.routes,
   });
 
-  const { runId } = await createRun(rootFolder, "cli");
+  const { runId } = await createRun(rootFolder, "cli", "sweep");
   try {
     const routeStepsByDevice = await Promise.all(
       chosenPages.map((devicePage) =>

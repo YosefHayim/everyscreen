@@ -66,6 +66,7 @@ const lonelyStep: RunStep = {
 const run: Run = {
   runId: "run-0001",
   origin: "flow",
+  runKind: "steps",
   status: "failed",
   startedAt: 1,
   steps: [passedStep, failedStep, lonelyStep],

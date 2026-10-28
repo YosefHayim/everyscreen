@@ -24,7 +24,7 @@ export const createRunsRoutes = (rootFolder: string) =>
       zValidator("json", newRunSchema, rejectInvalidRequest),
       async (c) => {
         const { origin } = c.req.valid("json");
-        const run = await createRun(rootFolder, origin);
+        const run = await createRun(rootFolder, origin, "steps");
         return c.json({ runId: run.runId }, CREATED_STATUS);
       },
     )

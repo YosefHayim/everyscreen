@@ -157,7 +157,7 @@ export default class EveryscreenReporter implements Reporter {
         (this.expectedCounts.get(testKey) ?? 0) + 1,
       );
     }
-    this.runCreation = createRun(this.rootFolder, "playwright");
+    this.runCreation = createRun(this.rootFolder, "playwright", "steps");
     this.runCreation.catch((error: unknown) => {
       console.error({ message: "Everyscreen could not create the run", error });
     });
