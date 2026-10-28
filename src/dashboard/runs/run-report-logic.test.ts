@@ -22,8 +22,8 @@ const passedStep: RunStep = {
   title: "open /cart",
   startedAt: 1,
   deviceAnswers: [
-    { status: "ok", deviceId: "pixel-8", durationMs: 100 },
-    { status: "ok", deviceId: "iphone-se", durationMs: 100 },
+    { status: "ok", deviceId: "pixel-8", durationMs: 100, shotPath: null },
+    { status: "ok", deviceId: "iphone-se", durationMs: 100, shotPath: null },
   ],
   findings: [overflowFinding],
   proof: null,
@@ -34,7 +34,7 @@ const failedStep: RunStep = {
   title: "tap Apply",
   startedAt: 2,
   deviceAnswers: [
-    { status: "ok", deviceId: "pixel-8", durationMs: 100 },
+    { status: "ok", deviceId: "pixel-8", durationMs: 100, shotPath: null },
     {
       status: "failed",
       deviceId: "iphone-se",
@@ -56,7 +56,9 @@ const lonelyStep: RunStep = {
   stepId: "step-3",
   title: "tap Pay",
   startedAt: 3,
-  deviceAnswers: [{ status: "ok", deviceId: "pixel-8", durationMs: 100 }],
+  deviceAnswers: [
+    { status: "ok", deviceId: "pixel-8", durationMs: 100, shotPath: null },
+  ],
   findings: [],
   proof: null,
 };

@@ -24,6 +24,7 @@ const OK_ANSWER: DeviceAnswer = {
   status: "ok",
   deviceId: "iphone-se",
   durationMs: 100,
+  shotPath: null,
 };
 const FAILED_ANSWER: DeviceAnswer = {
   status: "failed",

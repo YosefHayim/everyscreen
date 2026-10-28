@@ -50,8 +50,13 @@ const SAVED_RUN = {
       title: "open /shop/linen-shirt",
       startedAt: 1,
       deviceAnswers: [
-        { status: "ok", deviceId: "pixel-8", durationMs: 1400 },
-        { status: "ok", deviceId: "iphone-se", durationMs: 1200 },
+        { status: "ok", deviceId: "pixel-8", durationMs: 1400, shotPath: null },
+        {
+          status: "ok",
+          deviceId: "iphone-se",
+          durationMs: 1200,
+          shotPath: null,
+        },
       ],
       findings: [
         {
@@ -69,7 +74,7 @@ const SAVED_RUN = {
       title: "tap Add to cart",
       startedAt: 2,
       deviceAnswers: [
-        { status: "ok", deviceId: "pixel-8", durationMs: 300 },
+        { status: "ok", deviceId: "pixel-8", durationMs: 300, shotPath: null },
         {
           status: "failed",
           deviceId: "iphone-se",

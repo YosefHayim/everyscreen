@@ -26,7 +26,10 @@ export const createDevicesRoutes = (rootFolder: string) =>
         await updateDevicesFile(rootFolder, (devicesFile) => {
           const gridDevices = pickGridDevices(devicesFile);
           const checkedDevice = checkNewDevice(customDevice, gridDevices);
-          return { devices: [...devicesFile.devices, checkedDevice] };
+          return {
+            ...devicesFile,
+            devices: [...devicesFile.devices, checkedDevice],
+          };
         });
         const devicePreset = createPresetFromCustomDevice(customDevice);
         return c.json(devicePreset, CREATED_STATUS);

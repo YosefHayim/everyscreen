@@ -3,9 +3,9 @@ import { Hono } from "hono";
 import { runStepOnDevice, type StepTarget } from "@/commands/command-steps";
 import {
   type CommandReply,
+  createCommandRunStep,
   createStepTitle,
-  pickDeviceIds,
-  pickStepProof,
+  pickChosenPages,
   summarizeCommand,
 } from "@/commands/commands-logic";
 import { type HubCommand, hubCommandSchema } from "@/commands/commands-schema";
@@ -13,13 +13,9 @@ import type { DevicePage } from "@/devices/device-browsers";
 import { rejectInvalidRequest } from "@/hub/problem-reply";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { broadcast } from "@/live/live-feed";
-import {
-  pickRunningRun,
-  pickStepId,
-  type Run,
-  type RunStep,
-} from "@/runs/runs-logic";
+import { pickRunningRun, pickStepId, type Run } from "@/runs/runs-logic";
 import { createRun, listRuns, saveRunEvent } from "@/runs/runs-store";
+import { runSweep } from "@/sweep/sweep-run";
 
 const readRunningRun = async (rootFolder: string): Promise<Run> => {
   const runs = await listRuns(rootFolder);
@@ -32,11 +28,10 @@ const runCommand = async (
   devicePages: DevicePage[],
   hubCommand: HubCommand,
 ): Promise<CommandReply> => {
-  const runningDeviceIds = devicePages.map(({ device }) => device.id);
-  const chosenIds = pickDeviceIds(runningDeviceIds, hubCommand.deviceIds);
-  const chosenPages = devicePages.filter(({ device }) =>
-    chosenIds.includes(device.id),
-  );
+  const isSweepCommand = hubCommand.commandName === "sweep";
+  if (isSweepCommand) return runSweep(rootFolder, devicePages, hubCommand);
+
+  const chosenPages = pickChosenPages(devicePages, hubCommand.deviceIds);
 
   const run = await readRunningRun(rootFolder);
   const stepTarget: StepTarget = {
@@ -50,16 +45,13 @@ const runCommand = async (
     chosenPages.map((devicePage) => runStepOnDevice(devicePage, stepTarget)),
   );
 
-  const deviceAnswers = deviceSteps.map(({ deviceAnswer }) => deviceAnswer);
-  const findings = deviceSteps.flatMap((deviceStep) => deviceStep.findings);
-  const runStep: RunStep = {
+  const runStep = createCommandRunStep({
     stepId: stepTarget.stepId,
     title: createStepTitle(hubCommand),
     startedAt,
-    deviceAnswers,
-    findings,
-    proof: pickStepProof(deviceAnswers),
-  };
+    deviceSteps,
+  });
+  const { deviceAnswers, findings } = runStep;
   await saveRunEvent(rootFolder, run.runId, {
     kind: "step-end",
     step: runStep,

@@ -114,7 +114,8 @@ const pickFirstLine = (message: string): string => {
 const createDeviceAnswer = (finishedTest: FinishedTest): DeviceAnswer => {
   const { deviceId, durationMs, errorMessage, status, shotPath } = finishedTest;
   const isTestPassed = status === "passed";
-  if (isTestPassed) return { status: "ok", deviceId, durationMs };
+  if (isTestPassed)
+    return { status: "ok", deviceId, durationMs, shotPath: null };
 
   const hasErrorMessage = errorMessage !== null;
   const message = hasErrorMessage
