@@ -1,0 +1,7 @@
+name: Checkout with a coupon
+devices: [iphone-se, iphone-15, pixel-8]
+steps:
+  - open: http://localhost:5173
+  - fill: { role: textbox, name: Coupon, with: SPRING }
+  - tap: { role: button, name: Apply }
+  - expect: { text: "Total $66" }
