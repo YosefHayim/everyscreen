@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const hubFileSchema = z.object({
+  pid: z.number(),
   port: z.number(),
   devices: z.record(
     z.string(),

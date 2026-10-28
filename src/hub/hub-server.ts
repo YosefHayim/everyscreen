@@ -90,6 +90,7 @@ const startGridDevices = async (
 };
 
 const createHubFile = (port: number, gridDevices: GridDevice[]): HubFile => ({
+  pid: process.pid,
   port,
   devices: Object.fromEntries(
     gridDevices.map(({ device, deviceBrowser }) => [
