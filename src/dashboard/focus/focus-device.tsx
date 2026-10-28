@@ -6,12 +6,18 @@ import { useScreenImage } from "@/dashboard/device-feed/use-screen-image";
 import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import { FocusEstimates } from "@/dashboard/focus/focus-estimates";
 import { FocusFindings } from "@/dashboard/focus/focus-findings";
+import { DeviceFrame } from "@/dashboard/frames/device-frame";
+import {
+  pickFitScale,
+  pickFrameLayout,
+} from "@/dashboard/frames/frame-layout-logic";
 import { pickScreenUpdate } from "@/dashboard/grid/screen-update-logic";
 import { pickTileStatus } from "@/dashboard/grid/tile-status-logic";
-import { DeviceFrame } from "@/dashboard/ui/device-frame";
 import { StatusChip } from "@/dashboard/ui/status-chip";
 
-const FOCUS_SCREEN_WIDTH = 260;
+const FOCUS_BOX = { width: 420, height: 720 };
+// The waiting text stays this many screen px tall whatever the frame scale.
+const WAITING_FONT_PX = 13;
 
 interface FocusDeviceProps {
   device: DeviceView;
@@ -19,13 +25,16 @@ interface FocusDeviceProps {
 
 export const FocusDevice = ({ device }: FocusDeviceProps): ReactElement => {
   const { t } = useTranslation();
-  const { deviceId, name, browserName, frameShape } = device;
+  const { deviceId, name, browserName } = device;
   const screenImageUrl = useScreenImage(deviceId);
   const deviceLoad = useDeviceLoad(deviceId);
   const findings = useFindings();
   const status = pickTileStatus(deviceId, findings, deviceLoad);
   const screenUpdate = pickScreenUpdate(browserName);
   const hasScreenImage = screenImageUrl !== null;
+  const frameLayout = pickFrameLayout(device);
+  const frameScale = pickFitScale(frameLayout, FOCUS_BOX);
+  const waitingFontSize = Math.round(WAITING_FONT_PX / frameScale);
 
   return (
     <div className="flex flex-col gap-5">
@@ -44,15 +53,11 @@ export const FocusDevice = ({ device }: FocusDeviceProps): ReactElement => {
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <div className="flex justify-center overflow-hidden rounded-2xl border border-line bg-card py-6">
-          <DeviceFrame
-            frameShape={frameShape}
-            viewportWidth={device.viewportWidth}
-            viewportHeight={device.viewportHeight}
-            screenWidth={FOCUS_SCREEN_WIDTH}
-          >
+          <DeviceFrame layout={frameLayout} scale={frameScale}>
             <p
               aria-hidden={hasScreenImage}
-              className="m-0 grid size-full place-items-center px-3 text-center text-xs text-ink-2"
+              className="m-0 grid size-full place-items-center px-4 text-center text-ink-2"
+              style={{ fontSize: waitingFontSize }}
             >
               {t("focus.waiting")}
             </p>

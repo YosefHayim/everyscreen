@@ -17,6 +17,14 @@ export const SCREENCAST = {
   maxHeight: 1280,
 } as const;
 
+// The one device zoomed in the dashboard streams at this larger size.
+export const ZOOM_SCREENCAST = {
+  quality: 90,
+  everyNthFrame: 1,
+  maxWidth: 3000,
+  maxHeight: 3000,
+} as const;
+
 export const CPU_TIERS = {
   budgetPhone: 4,
   phone: 2,

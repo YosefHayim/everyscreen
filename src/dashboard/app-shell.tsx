@@ -1,7 +1,10 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useLiveStatus } from "@/dashboard/device-feed/use-live-status";
+import { AppUrlBar } from "@/dashboard/grid/app-url-bar";
+import { DeviceSearchInput } from "@/dashboard/grid/device-search-input";
+import { AddDeviceButton } from "@/dashboard/picker/add-device-button";
 import { RunBar } from "@/dashboard/run-bar/run-bar";
 import { cn } from "@/dashboard/ui/cn";
 import { LogoMark } from "@/dashboard/ui/logo-mark";
@@ -17,14 +20,20 @@ export const AppShell = (): ReactElement => {
   const { t } = useTranslation();
   const liveStatus = useLiveStatus();
   const isLive = liveStatus === "open";
+  const pathname = useRouterState({
+    select: (routerState) => routerState.location.pathname,
+  });
+  const isGridRoute = pathname === "/";
+  const hubLabelKey = isLive ? "shell.hubConnected" : "shell.hubOffline";
   const liveDotClassName = cn(
-    "size-2 rounded-full bg-pink",
-    isLive && "live-dot",
+    "size-2 rounded-full",
+    isLive && "live-dot bg-ok",
+    !isLive && "bg-failed",
   );
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-paper font-sans text-ink">
-      <header className="flex h-14 flex-none items-center gap-4 border-b border-line bg-card px-3 md:px-5">
+      <header className="flex flex-none flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-card px-3 py-1 md:px-5">
         <Link
           to="/"
           aria-label={t("shell.name")}
@@ -35,10 +44,16 @@ export const AppShell = (): ReactElement => {
             {t("shell.name")}
           </span>
         </Link>
-        <span className="hidden h-7 items-center gap-2 rounded-full bg-paper px-3 font-mono text-xs text-ink-2 md:inline-flex">
+        <span
+          title={HUB_URL}
+          className="inline-flex h-7 items-center gap-2 rounded-full bg-paper px-3 text-xs text-ink-2"
+        >
           <span aria-hidden="true" className={liveDotClassName} />
-          {HUB_URL}
+          {t(hubLabelKey)}
         </span>
+        {isGridRoute && <AppUrlBar />}
+        {isGridRoute && <DeviceSearchInput />}
+        {isGridRoute && <AddDeviceButton />}
         <nav
           aria-label={t("shell.nav.label")}
           className="ms-auto flex items-center gap-1"

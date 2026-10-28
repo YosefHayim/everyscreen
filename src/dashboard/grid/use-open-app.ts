@@ -2,6 +2,8 @@ import { type UseMutationResult, useMutation } from "@tanstack/react-query";
 import type { CommandReply } from "@/commands/commands-logic";
 import { hubApi } from "@/dashboard/hub-api";
 
+export const DEFAULT_APP_URL = "http://localhost:5173";
+
 const sendOpenCommand = async (url: string): Promise<CommandReply> => {
   const hubAnswer = await hubApi.api.commands.$post({
     json: { commandName: "open", url, deviceIds: null },

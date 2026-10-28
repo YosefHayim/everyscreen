@@ -1,12 +1,11 @@
 import { type FormEvent, type ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CommandLine } from "@/dashboard/grid/command-line";
-import { useOpenApp } from "@/dashboard/grid/use-open-app";
+import { DEFAULT_APP_URL, useOpenApp } from "@/dashboard/grid/use-open-app";
 import { Button } from "@/dashboard/ui/button";
 import { Icon } from "@/dashboard/ui/icon";
 import { HUB_URL } from "@/environment";
 
-const DEFAULT_APP_URL = "http://localhost:5173";
 const SKILL_INSTALL_COMMAND = "npx everyscreen skill install";
 
 export const OpenAppCard = (): ReactElement => {

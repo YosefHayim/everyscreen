@@ -18,15 +18,25 @@ const pickOpenStatus = (
   return "later";
 };
 
+const pickTestsStatus = (
+  isAppOpened: boolean,
+  hasRun: boolean,
+): SetupStepStatus => {
+  if (hasRun) return "done";
+  if (isAppOpened) return "now";
+  return "later";
+};
+
 export const pickSetupStepProgress = (
   liveStatus: ConnectionStatus,
   hasScreenImage: boolean,
+  hasRun: boolean,
 ): SetupStepProgress[] => {
   const isHubOpen = liveStatus === "open";
   const hubStatus: SetupStepStatus = isHubOpen ? "done" : "now";
   const openStatus = pickOpenStatus(isHubOpen, hasScreenImage);
   const isAppOpened = openStatus === "done";
-  const testsStatus: SetupStepStatus = isAppOpened ? "now" : "later";
+  const testsStatus = pickTestsStatus(isAppOpened, hasRun);
 
   return [
     { stepKey: "startHub", status: hubStatus },
@@ -43,3 +53,5 @@ export const isOpenAppCardShown = (
   const openStatus = pickOpenStatus(isHubOpen, hasScreenImage);
   return openStatus !== "done";
 };
+
+export const isSetupGuideShown = (hasRun: boolean): boolean => !hasRun;

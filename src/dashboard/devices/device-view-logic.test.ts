@@ -6,7 +6,7 @@ import {
   listDeviceGroups,
   pickDeviceGroup,
   pickDeviceName,
-  pickPreviewScreenWidth,
+  pickFrameGroup,
 } from "@/dashboard/devices/device-view-logic";
 
 const createGridDevice = (
@@ -16,6 +16,11 @@ const createGridDevice = (
   name: "Pixel 8",
   browserName: "chromium",
   frameShape: "punch-hole",
+  platform: "android",
+  cutout: null,
+  cornerRadius: 36,
+  safeAreaInsets: { top: 24, bottom: 0, left: 0, right: 0 },
+  viewportMode: "full-screen",
   isCustom: false,
   use: {
     viewport: { width: 412, height: 915 },
@@ -30,8 +35,15 @@ const createView = (overrides: Partial<DeviceView> = {}): DeviceView => ({
   name: "Pixel 8",
   browserName: "chromium",
   frameShape: "punch-hole",
+  platform: "android",
+  cutout: null,
+  cornerRadius: 36,
+  safeAreaInsets: { top: 24, bottom: 0, left: 0, right: 0 },
+  viewportMode: "full-screen",
   viewportWidth: 412,
   viewportHeight: 915,
+  screenWidth: 412,
+  screenHeight: 915,
   pixelRatio: 2.6,
   hasTouch: true,
   isCustom: false,
@@ -65,6 +77,21 @@ describe("createDeviceView", () => {
 
     expect(deviceView.pixelRatio).toBe(1);
     expect(deviceView.hasTouch).toBe(false);
+  });
+
+  test("reads the full screen apart from a browser viewport", () => {
+    const browserGridDevice = createGridDevice({
+      viewportMode: "browser",
+      use: {
+        viewport: { width: 393, height: 659 },
+        screen: { width: 393, height: 852 },
+      },
+    });
+
+    const deviceView = createDeviceView(browserGridDevice);
+
+    expect(deviceView.viewportHeight).toBe(659);
+    expect(deviceView.screenHeight).toBe(852);
   });
 
   test("throws when the device has no viewport", () => {
@@ -141,6 +168,14 @@ describe("listDeviceGroups", () => {
   });
 });
 
+describe("pickFrameGroup", () => {
+  test("names the group of a frame shape", () => {
+    expect(pickFrameGroup("punch-hole")).toBe("phones");
+    expect(pickFrameGroup("tablet")).toBe("tablets");
+    expect(pickFrameGroup("laptop")).toBe("desktop");
+  });
+});
+
 describe("pickDeviceName", () => {
   test("returns the name of a device in the grid", () => {
     expect(pickDeviceName([createView()], "pixel-8")).toBe("Pixel 8");
@@ -148,19 +183,5 @@ describe("pickDeviceName", () => {
 
   test("returns the id of a device that left the grid", () => {
     expect(pickDeviceName([createView()], "iphone-se")).toBe("iphone-se");
-  });
-});
-
-describe("pickPreviewScreenWidth", () => {
-  test("fits a tall phone inside the preview height", () => {
-    const previewWidth = pickPreviewScreenWidth(createView());
-
-    expect(previewWidth).toBe(50);
-  });
-
-  test("fits a wide laptop inside the preview width", () => {
-    const laptop = createView({ viewportWidth: 1440, viewportHeight: 900 });
-
-    expect(pickPreviewScreenWidth(laptop)).toBe(150);
   });
 });

@@ -148,6 +148,41 @@ test.describe("devices routes", () => {
     expect(gridDevices[1].viewportMode).toBe("browser");
   });
 
+  test("replaces the grid in the yaml file on a put", async () => {
+    const devicesRoutes = createDevicesRoutes(rootFolder);
+
+    const putReply = await devicesRoutes.request("/grid", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ deviceIds: ["iphone-se", "pixel-9", "pixel-9"] }),
+    });
+    const listReply = await devicesRoutes.request("/");
+    const gridDevices = await listReply.json();
+    const devicesYaml = await readFile(
+      join(rootFolder, DEVICES_FILE_PATH),
+      "utf8",
+    );
+
+    expect(putReply.status).toBe(200);
+    expect(
+      gridDevices.map((gridDevice: { id: string }) => gridDevice.id),
+    ).toEqual(["iphone-se", "pixel-9"]);
+    expect(devicesYaml).toContain("pixel-9");
+  });
+
+  test("answers 422 on a put with an unknown grid id and leaves the grid alone", async () => {
+    const devicesRoutes = createDevicesRoutes(rootFolder);
+
+    const putReply = await devicesRoutes.request("/grid", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ deviceIds: ["nokia-3310"] }),
+    });
+
+    expect(putReply.status).toBe(422);
+    expect(existsSync(join(rootFolder, DEVICES_FILE_PATH))).toBe(false);
+  });
+
   test("answers 422 and names an unknown grid id", async () => {
     const devicesRoutes = createDevicesRoutes(rootFolder);
     await writeFile(

@@ -2,17 +2,30 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useHasScreenImage } from "@/dashboard/device-feed/use-has-screen-image";
 import { useLiveStatus } from "@/dashboard/device-feed/use-live-status";
+import { useRunTotals } from "@/dashboard/device-feed/use-run-totals";
 import { SetupStep } from "@/dashboard/grid/setup-step";
-import { pickSetupStepProgress } from "@/dashboard/grid/setup-steps-logic";
+import {
+  isSetupGuideShown,
+  pickSetupStepProgress,
+} from "@/dashboard/grid/setup-steps-logic";
 
-export const SetupSteps = (): ReactElement => {
+export const SetupSteps = (): ReactElement | null => {
   const { t } = useTranslation();
   const liveStatus = useLiveStatus();
   const hasScreenImage = useHasScreenImage();
-  const setupStepProgress = pickSetupStepProgress(liveStatus, hasScreenImage);
+  const runTotals = useRunTotals();
+  const hasRun = runTotals !== null;
+  const setupStepProgress = pickSetupStepProgress(
+    liveStatus,
+    hasScreenImage,
+    hasRun,
+  );
   const stepsLabel = t("grid.empty.stepsLabel", {
     count: setupStepProgress.length,
   });
+
+  const isGuideShown = isSetupGuideShown(hasRun);
+  if (!isGuideShown) return null;
 
   return (
     <section

@@ -1,20 +1,25 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { DEVICE_CATALOG } from "@/devices/device-catalog";
-import { customDeviceSchema } from "@/devices/device-schema";
+import { customDeviceSchema, gridUpdateSchema } from "@/devices/device-schema";
 import {
   checkDeviceRemoval,
   checkNewDevice,
   createPresetFromCustomDevice,
+  type GridSync,
   listCatalogReplies,
   pickGridDevices,
+  replaceGrid,
 } from "@/devices/devices-logic";
 import { readDevicesFile, updateDevicesFile } from "@/devices/devices-store";
 import { rejectInvalidRequest } from "@/hub/problem-reply";
 
 const CREATED_STATUS = 201;
 
-export const createDevicesRoutes = (rootFolder: string) =>
+export const createDevicesRoutes = (
+  rootFolder: string,
+  syncGrid: GridSync | null = null,
+) =>
   new Hono()
     .get("/", async (c) => {
       const devicesFile = await readDevicesFile(rootFolder);
@@ -40,6 +45,19 @@ export const createDevicesRoutes = (rootFolder: string) =>
         });
         const devicePreset = createPresetFromCustomDevice(customDevice);
         return c.json(devicePreset, CREATED_STATUS);
+      },
+    )
+    .put(
+      "/grid",
+      zValidator("json", gridUpdateSchema, rejectInvalidRequest),
+      async (c) => {
+        const { deviceIds } = c.req.valid("json");
+        const changedFile = await updateDevicesFile(rootFolder, (devicesFile) =>
+          replaceGrid(devicesFile, deviceIds),
+        );
+        const isGridSyncWired = syncGrid !== null;
+        if (isGridSyncWired) await syncGrid(pickGridDevices(changedFile));
+        return c.json({ deviceIds: changedFile.grid });
       },
     )
     .delete("/:deviceId", async (c) => {

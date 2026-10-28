@@ -15,6 +15,7 @@ const JPEG_BASE64_PREFIX = "/9j/";
 const PHONE_USER_AGENT = "Mozilla/5.0 (Spike phone) Everyscreen";
 const PHONE_VIEWPORT = { width: 375, height: 667 };
 const PHONE_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+const NO_TOP_INSET = "0px";
 const PHONE_FRAME = {
   isCustom: false,
   viewportMode: "full-screen",
@@ -145,7 +146,7 @@ test.describe("startDeviceBrowser", () => {
         height: PHONE_VIEWPORT.height,
         userAgent: PHONE_USER_AGENT,
         hasTouch: true,
-        insetPaddings: [`${PHONE_INSETS.top}px`, `${PHONE_INSETS.bottom}px`],
+        insetPaddings: [NO_TOP_INSET, `${PHONE_INSETS.bottom}px`],
       });
   });
 

@@ -13,6 +13,7 @@ import { type HubCommand, hubCommandSchema } from "@/commands/commands-schema";
 import type { DevicePage } from "@/devices/device-browsers";
 import { rejectInvalidRequest } from "@/hub/problem-reply";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
+import { commandNoticeSchema } from "@/live/live-command-schema";
 import { broadcast } from "@/live/live-feed";
 import { pickRunningRun, pickStepId, type Run } from "@/runs/runs-logic";
 import { createRun, listRuns, saveRunEvent } from "@/runs/runs-store";
@@ -80,6 +81,13 @@ export const createCommandsRoutes = (
         const commandReply = await runOneAtATime(`commands:${rootFolder}`, () =>
           runCommand(rootFolder, devicePages, hubCommand),
         );
+        const commandNotice = commandNoticeSchema.parse({
+          commandName: hubCommand.commandName,
+          status: commandReply.status,
+          line: commandReply.line,
+          sentAt: Date.now(),
+        });
+        broadcast({ kind: "command", commandNotice });
         return c.json(commandReply);
       },
     );

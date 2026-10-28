@@ -6,7 +6,14 @@
       "grid": "Grid",
       "runs": "Runs",
       "devices": "Devices"
-    }
+    },
+    "hubConnected": "Connected",
+    "hubOffline": "Offline",
+    "urlLabel": "App URL",
+    "searchLabel": "Search devices",
+    "searchPlaceholder": "Search devices",
+    "searchShortcutMac": "⌘K",
+    "searchShortcutOther": "Ctrl K"
   },
   "runBar": {
     "label": "Test run",
@@ -52,6 +59,23 @@
         "done": "Done",
         "now": "Now"
       }
+    },
+    "noMatch": "No device matches your search",
+    "strip": {
+      "sizeMode": "Size mode",
+      "fit": "Fit",
+      "trueSize": "True size",
+      "density": "Density",
+      "comfortable": "Comfortable",
+      "compact": "Compact",
+      "scale": "Scale",
+      "smaller": "Smaller",
+      "larger": "Larger"
+    },
+    "activity": {
+      "label": "Agent activity",
+      "title": "Agent activity",
+      "empty": "No commands yet"
     }
   },
   "tile": {
@@ -76,7 +100,9 @@
       "chromium": "Chromium",
       "webkit": "WebKit",
       "firefox": "Firefox"
-    }
+    },
+    "zoom": "Zoom in on {{name}}",
+    "expand": "Expand {{name}}"
   },
   "findings": {
     "dismiss": "Dismiss",
@@ -264,5 +290,28 @@
     "noRoutes": "No routes match",
     "showing": "Showing {{shownCount}} of {{totalCount}} routes",
     "openHint": "Click a shot to open it"
+  },
+  "picker": {
+    "open": "Add device",
+    "title": "Choose devices for the grid",
+    "close": "Done",
+    "failed": "Could not update the grid",
+    "inGrid": "In grid",
+    "add": "Add",
+    "makers": {
+      "apple": "Apple",
+      "samsung": "Samsung",
+      "google": "Google",
+      "xiaomi": "Xiaomi",
+      "oneplus": "OnePlus",
+      "generic": "Other"
+    }
+  },
+  "zoom": {
+    "label": "Device zoom",
+    "sizeMode": "Zoom size",
+    "fit": "Fit",
+    "trueSize": "True size",
+    "close": "Close"
   }
 }

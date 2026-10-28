@@ -1,13 +1,16 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  type DeviceView,
-  pickPreviewScreenWidth,
-} from "@/dashboard/devices/device-view-logic";
+import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import { useRemoveDevice } from "@/dashboard/devices/use-remove-device";
+import { DeviceFrame } from "@/dashboard/frames/device-frame";
+import {
+  pickFitScale,
+  pickFrameLayout,
+} from "@/dashboard/frames/frame-layout-logic";
 import { Button } from "@/dashboard/ui/button";
 import { cn } from "@/dashboard/ui/cn";
-import { DeviceFrame } from "@/dashboard/ui/device-frame";
+
+const PREVIEW_BOX = { width: 200, height: 128 };
 
 interface DeviceCardProps {
   device: DeviceView;
@@ -17,6 +20,8 @@ export const DeviceCard = ({ device }: DeviceCardProps): ReactElement => {
   const { t } = useTranslation();
   const removeDeviceMutation = useRemoveDevice();
   const { deviceId, name, isCustom } = device;
+  const frameLayout = pickFrameLayout(device);
+  const previewScale = pickFitScale(frameLayout, PREVIEW_BOX);
   const touchLabel = device.hasTouch
     ? t("devices.touch")
     : t("devices.noTouch");
@@ -30,12 +35,7 @@ export const DeviceCard = ({ device }: DeviceCardProps): ReactElement => {
       )}
     >
       <div className="grid h-36 place-items-center rounded-xl bg-soft">
-        <DeviceFrame
-          frameShape={device.frameShape}
-          viewportWidth={device.viewportWidth}
-          viewportHeight={device.viewportHeight}
-          screenWidth={pickPreviewScreenWidth(device)}
-        >
+        <DeviceFrame layout={frameLayout} scale={previewScale}>
           <span />
         </DeviceFrame>
       </div>

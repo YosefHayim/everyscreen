@@ -16,4 +16,16 @@ export const deviceQueries = {
       },
       select: (gridDevices) => gridDevices.map(createDeviceView),
     }),
+  catalog: () =>
+    queryOptions({
+      queryKey: ["devices", "catalog"],
+      queryFn: async () => {
+        const catalogReply = await hubApi.api.devices.catalog.$get();
+        const isReplyBad = !catalogReply.ok;
+        if (isReplyBad) {
+          throw new Error(`Catalog failed: ${catalogReply.status}`);
+        }
+        return catalogReply.json();
+      },
+    }),
 };

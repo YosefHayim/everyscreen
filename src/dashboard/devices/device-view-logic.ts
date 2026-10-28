@@ -1,4 +1,11 @@
-import type { BrowserName, FrameShape } from "@/devices/devices-logic";
+import type {
+  BrowserName,
+  DeviceCutout,
+  DevicePlatform,
+  FrameShape,
+  SafeAreaInsets,
+  ViewportMode,
+} from "@/devices/devices-logic";
 
 export type DeviceGroup = "phones" | "tablets" | "desktop" | "custom";
 
@@ -7,8 +14,15 @@ export interface DeviceView {
   name: string;
   browserName: BrowserName;
   frameShape: FrameShape;
+  platform: DevicePlatform | null;
+  cutout: DeviceCutout | null;
+  cornerRadius: number | null;
+  safeAreaInsets: SafeAreaInsets;
+  viewportMode: ViewportMode;
   viewportWidth: number;
   viewportHeight: number;
+  screenWidth: number;
+  screenHeight: number;
   pixelRatio: number;
   hasTouch: boolean;
   isCustom: boolean;
@@ -19,9 +33,15 @@ export interface GridDeviceReply {
   name: string;
   browserName: BrowserName;
   frameShape: FrameShape;
+  platform: DevicePlatform | null;
+  cutout: DeviceCutout | null;
+  cornerRadius: number | null;
+  safeAreaInsets: SafeAreaInsets;
+  viewportMode: ViewportMode;
   isCustom: boolean;
   use: {
     viewport?: { width: number; height: number } | null;
+    screen?: { width: number; height: number } | null;
     deviceScaleFactor?: number;
     hasTouch?: boolean;
   };
@@ -42,20 +62,29 @@ export const createDeviceView = (gridDevice: GridDeviceReply): DeviceView => {
     throw new Error(`The device ${gridDevice.id} has no viewport`);
   }
 
+  const screen = gridDevice.use.screen ?? viewport;
+
   return {
     deviceId: gridDevice.id,
     name: gridDevice.name,
     browserName: gridDevice.browserName,
     frameShape: gridDevice.frameShape,
+    platform: gridDevice.platform,
+    cutout: gridDevice.cutout,
+    cornerRadius: gridDevice.cornerRadius,
+    safeAreaInsets: gridDevice.safeAreaInsets,
+    viewportMode: gridDevice.viewportMode,
     viewportWidth: viewport.width,
     viewportHeight: viewport.height,
+    screenWidth: screen.width,
+    screenHeight: screen.height,
     pixelRatio: gridDevice.use.deviceScaleFactor ?? DEFAULT_PIXEL_RATIO,
     hasTouch: gridDevice.use.hasTouch === true,
     isCustom: gridDevice.isCustom,
   };
 };
 
-const pickFrameGroup = (frameShape: FrameShape): DeviceGroup => {
+export const pickFrameGroup = (frameShape: FrameShape): DeviceGroup => {
   switch (frameShape) {
     case "home-button":
     case "dynamic-island":
@@ -92,15 +121,4 @@ export const pickDeviceName = (
     (deviceView) => deviceView.deviceId === deviceId,
   );
   return foundDevice?.name ?? deviceId;
-};
-
-const PREVIEW_BOX_WIDTH = 150;
-const PREVIEW_BOX_HEIGHT = 110;
-
-export const pickPreviewScreenWidth = (deviceView: DeviceView): number => {
-  const widthScale = PREVIEW_BOX_WIDTH / deviceView.viewportWidth;
-  const heightScale = PREVIEW_BOX_HEIGHT / deviceView.viewportHeight;
-  return Math.round(
-    deviceView.viewportWidth * Math.min(widthScale, heightScale),
-  );
 };

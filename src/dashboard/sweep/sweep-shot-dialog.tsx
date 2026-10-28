@@ -1,7 +1,8 @@
-import { type ReactElement, useEffect, useRef } from "react";
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import type { OpenedShot } from "@/dashboard/sweep/sweep-matrix-logic";
 import { Button } from "@/dashboard/ui/button";
+import { ModalDialog } from "@/dashboard/ui/modal-dialog";
 import { StatusChip } from "@/dashboard/ui/status-chip";
 
 interface SweepShotDialogProps {
@@ -14,7 +15,6 @@ export const SweepShotDialog = ({
   onClose,
 }: SweepShotDialogProps): ReactElement => {
   const { t } = useTranslation();
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const { routePath, deviceView, cell } = openedShot;
   const { status, shotUrl, failureMessage } = cell;
   const hasShot = shotUrl !== null;
@@ -27,19 +27,16 @@ export const SweepShotDialog = ({
     deviceName: deviceView.name,
   });
 
-  useEffect(() => {
-    dialogRef.current?.showModal();
-  }, []);
-
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      aria-label={t("sweep.dialogLabel", {
+    <ModalDialog
+      isOpen
+      label={t("sweep.dialogLabel", {
         route: routePath,
         deviceName: deviceView.name,
       })}
-      className="m-auto max-h-[90vh] w-[min(92vw,64rem)] overflow-auto rounded-2xl border border-line bg-card p-5 text-ink backdrop:bg-ink/50"
+      onClose={onClose}
+      onKeyDown={null}
+      className="w-[min(92vw,64rem)] overflow-auto p-5"
     >
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="m-0 font-mono text-xl font-medium">{routePath}</h2>
@@ -102,6 +99,6 @@ export const SweepShotDialog = ({
           )}
         </div>
       </div>
-    </dialog>
+    </ModalDialog>
   );
 };

@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { DEFAULT_GRID_IDS } from "@/devices/default-grid-ids";
 import { DEVICE_CATALOG } from "@/devices/device-catalog";
 import type { CustomDevice, DevicesFile } from "@/devices/device-schema";
+import type { CutoutKind, DeviceCutout } from "@/devices/devices-logic";
 import {
   checkDeviceIds,
   checkDeviceRemoval,
@@ -13,7 +14,10 @@ import {
   pickDeviceId,
   pickDeviceScreen,
   pickDeviceViewport,
+  pickGridChanges,
   pickGridDevices,
+  pickStatusBarHeight,
+  replaceGrid,
 } from "@/devices/devices-logic";
 import { CPU_TIERS } from "@/environment";
 
@@ -77,6 +81,20 @@ describe("createPresetFromCustomDevice", () => {
     });
   });
 
+  test("takes the status bar off a custom phone and keeps its size as the screen", () => {
+    const islandPhone: CustomDevice = {
+      ...TOUCH_KIOSK,
+      width: 390,
+      height: 844,
+      frameShape: "dynamic-island",
+    };
+
+    const devicePreset = createPresetFromCustomDevice(islandPhone);
+
+    expect(devicePreset.use.viewport).toEqual({ width: 390, height: 785 });
+    expect(devicePreset.use.screen).toEqual({ width: 390, height: 844 });
+  });
+
   test("makes a device without touch a desktop-speed preset", () => {
     const devicePreset = createPresetFromCustomDevice(MOUSE_SCREEN);
 
@@ -111,11 +129,11 @@ describe("createPresetFromCustomDevice", () => {
 });
 
 describe("findCatalogPreset", () => {
-  test("uses the full screen as the viewport and the screen", () => {
+  test("takes the status bar off the full screen to get the viewport and keeps the screen", () => {
     const devicePreset = findCatalogPreset("iphone-15", "full-screen");
 
     expect(devicePreset.viewportMode).toBe("full-screen");
-    expect(devicePreset.use.viewport).toEqual({ width: 393, height: 852 });
+    expect(devicePreset.use.viewport).toEqual({ width: 393, height: 793 });
     expect(devicePreset.use.screen).toEqual({ width: 393, height: 852 });
     expect(devicePreset.isCustom).toBe(false);
   });
@@ -342,7 +360,7 @@ describe("pickDeviceViewport", () => {
 
     const deviceViewport = pickDeviceViewport(pixelPreset);
 
-    expect(deviceViewport).toEqual({ width: 412, height: 915 });
+    expect(deviceViewport).toEqual({ width: 412, height: 865 });
   });
 
   test("throws when the preset has no viewport", () => {
@@ -372,5 +390,147 @@ describe("pickDeviceScreen", () => {
     const deviceScreen = pickDeviceScreen(customPreset);
 
     expect(deviceScreen).toEqual({ width: 800, height: 1280 });
+  });
+});
+
+describe("replaceGrid", () => {
+  test("replaces the grid and drops repeated ids", () => {
+    const devicesFile = createDevicesFile({ grid: ["iphone-se"] });
+
+    const changedFile = replaceGrid(devicesFile, [
+      "pixel-9",
+      "iphone-17",
+      "pixel-9",
+    ]);
+
+    expect(changedFile.grid).toEqual(["pixel-9", "iphone-17"]);
+  });
+
+  test("rejects an unknown id with 422 naming the id", () => {
+    const devicesFile = createDevicesFile({});
+
+    const changeGrid = () => replaceGrid(devicesFile, ["iphone-se", "nokia"]);
+
+    expect(changeGrid).toThrow("grid: no device with id nokia");
+    expect(readStatus(changeGrid)).toBe(422);
+  });
+});
+
+describe("pickGridChanges", () => {
+  const phonePreset = createPresetFromCustomDevice(TOUCH_KIOSK);
+  const screenPreset = createPresetFromCustomDevice(MOUSE_SCREEN);
+
+  test("adds a grid device that has no browser yet", () => {
+    const gridChanges = pickGridChanges(
+      [phonePreset.id],
+      [phonePreset, screenPreset],
+    );
+
+    expect(gridChanges.addDevices).toEqual([screenPreset]);
+    expect(gridChanges.removeDeviceIds).toEqual([]);
+  });
+
+  test("removes a running device that left the grid", () => {
+    const gridChanges = pickGridChanges(
+      [phonePreset.id, screenPreset.id],
+      [screenPreset],
+    );
+
+    expect(gridChanges.addDevices).toEqual([]);
+    expect(gridChanges.removeDeviceIds).toEqual([phonePreset.id]);
+  });
+
+  test("changes nothing when the grid already runs", () => {
+    const gridChanges = pickGridChanges([phonePreset.id], [phonePreset]);
+
+    expect(gridChanges).toEqual({ addDevices: [], removeDeviceIds: [] });
+  });
+});
+
+const NO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
+
+const createCutout = (kind: CutoutKind): DeviceCutout => ({
+  kind,
+  width: null,
+  height: null,
+  top: null,
+  left: null,
+});
+
+describe("pickStatusBarHeight", () => {
+  test("returns 0 for a laptop window", () => {
+    const statusBarHeight = pickStatusBarHeight({
+      frameShape: "laptop",
+      platform: "ios",
+      cutout: null,
+      safeAreaInsets: { ...NO_INSETS, top: 40 },
+    });
+
+    expect(statusBarHeight).toBe(0);
+  });
+
+  test("returns 0 for a desktop platform and for a tablet without a platform", () => {
+    const desktopHeight = pickStatusBarHeight({
+      frameShape: "tablet",
+      platform: "windows",
+      cutout: null,
+      safeAreaInsets: NO_INSETS,
+    });
+    const unknownTabletHeight = pickStatusBarHeight({
+      frameShape: "tablet",
+      platform: null,
+      cutout: null,
+      safeAreaInsets: NO_INSETS,
+    });
+
+    expect(desktopHeight).toBe(0);
+    expect(unknownTabletHeight).toBe(0);
+  });
+
+  test("returns the published top inset rounded to whole pixels", () => {
+    const statusBarHeight = pickStatusBarHeight({
+      frameShape: "punch-hole",
+      platform: "android",
+      cutout: createCutout("punch-hole-center"),
+      safeAreaInsets: { ...NO_INSETS, top: 47.6 },
+    });
+
+    expect(statusBarHeight).toBe(48);
+  });
+
+  test("returns the height of the cutout when no inset is published", () => {
+    const notchHeight = pickStatusBarHeight({
+      frameShape: "dynamic-island",
+      platform: "ios",
+      cutout: createCutout("notch"),
+      safeAreaInsets: NO_INSETS,
+    });
+    const homeButtonHeight = pickStatusBarHeight({
+      frameShape: "home-button",
+      platform: "ios",
+      cutout: createCutout("home-button"),
+      safeAreaInsets: NO_INSETS,
+    });
+
+    expect(notchHeight).toBe(47);
+    expect(homeButtonHeight).toBe(20);
+  });
+
+  test("returns the height of the shape when the cutout has none", () => {
+    const holeHeight = pickStatusBarHeight({
+      frameShape: "punch-hole",
+      platform: "android",
+      cutout: createCutout("punch-hole-center"),
+      safeAreaInsets: NO_INSETS,
+    });
+    const customIslandHeight = pickStatusBarHeight({
+      frameShape: "dynamic-island",
+      platform: null,
+      cutout: null,
+      safeAreaInsets: NO_INSETS,
+    });
+
+    expect(holeHeight).toBe(24);
+    expect(customIslandHeight).toBe(59);
   });
 });
