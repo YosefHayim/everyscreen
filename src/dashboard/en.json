@@ -236,7 +236,6 @@
     "viewport": "{{width}}×{{height}}",
     "shotCount_one": "{{count}} shot",
     "shotCount_other": "{{count}} shots",
-    "failedCount": "{{count}} failed",
     "clean": "clean",
     "moreFindings": "+{{count}}",
     "openShot": "Open the shot of {{route}} on {{deviceName}}",

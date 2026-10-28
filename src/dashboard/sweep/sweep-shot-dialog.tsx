@@ -15,14 +15,17 @@ export const SweepShotDialog = ({
 }: SweepShotDialogProps): ReactElement => {
   const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const { route, deviceView, cell } = openedShot;
+  const { routePath, deviceView, cell } = openedShot;
   const { status, shotUrl, failureMessage } = cell;
   const hasShot = shotUrl !== null;
   const hasStatusChip = status !== "none";
   const hasFailureMessage = failureMessage !== null;
   const hasFindings = cell.findings.length > 0;
   const isCellClean = !hasFindings && !hasFailureMessage;
-  const shotAlt = t("sweep.shotAlt", { route, deviceName: deviceView.name });
+  const shotAlt = t("sweep.shotAlt", {
+    route: routePath,
+    deviceName: deviceView.name,
+  });
 
   useEffect(() => {
     dialogRef.current?.showModal();
@@ -33,13 +36,13 @@ export const SweepShotDialog = ({
       ref={dialogRef}
       onClose={onClose}
       aria-label={t("sweep.dialogLabel", {
-        route,
+        route: routePath,
         deviceName: deviceView.name,
       })}
       className="m-auto max-h-[90vh] w-[min(92vw,64rem)] overflow-auto rounded-2xl border border-line bg-card p-5 text-ink backdrop:bg-ink/50"
     >
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="m-0 font-mono text-xl font-medium">{route}</h2>
+        <h2 className="m-0 font-mono text-xl font-medium">{routePath}</h2>
         <p className="m-0 text-base text-ink-2">{deviceView.name}</p>
         {hasStatusChip && (
           <StatusChip status={status} label={t(`sweep.cellStatus.${status}`)} />

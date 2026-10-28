@@ -1,6 +1,5 @@
 import { type UseMutationResult, useMutation } from "@tanstack/react-query";
 import type { CommandReply } from "@/commands/commands-logic";
-import { saveAppUrl } from "@/dashboard/app-url-store";
 import { hubApi } from "@/dashboard/hub-api";
 
 const sendOpenCommand = async (url: string): Promise<CommandReply> => {
@@ -16,7 +15,6 @@ const sendOpenCommand = async (url: string): Promise<CommandReply> => {
   if (hasOpenFailed) {
     throw new Error(openReply.line);
   }
-  saveAppUrl(url);
   return openReply;
 };
 

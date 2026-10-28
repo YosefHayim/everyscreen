@@ -1,6 +1,5 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import type { CellStatus } from "@/dashboard/runs/run-report-logic";
 import { SweepCellCaption } from "@/dashboard/sweep/sweep-cell-caption";
 import {
@@ -20,26 +19,27 @@ const CELL_CLASS_NAMES = {
 
 interface SweepCellProps {
   cell: SweepCellView;
-  deviceView: DeviceView;
-  route: string;
+  routePath: string;
   onOpen: () => void;
 }
 
 export const SweepCell = ({
   cell,
-  deviceView,
-  route,
+  routePath,
   onOpen,
 }: SweepCellProps): ReactElement => {
   const { t } = useTranslation();
-  const { status, shotUrl } = cell;
+  const { status, shotUrl, deviceView } = cell;
   const hasShot = shotUrl !== null;
   const hasStatusChip = status !== "none";
   const openLabel = t("sweep.openShot", {
-    route,
+    route: routePath,
     deviceName: deviceView.name,
   });
-  const shotAlt = t("sweep.shotAlt", { route, deviceName: deviceView.name });
+  const shotAlt = t("sweep.shotAlt", {
+    route: routePath,
+    deviceName: deviceView.name,
+  });
 
   return (
     <td className="w-44 min-w-44 max-w-44 p-1.5 align-top">

@@ -11,28 +11,35 @@ import { pickFrameLayout } from "@/dashboard/ui/device-frame-logic";
 import type { Run, RunStep } from "@/runs/runs-logic";
 
 export interface SweepCell {
-  deviceId: string;
+  deviceView: DeviceView;
   status: CellStatus;
   shotUrl: string | null;
   failureMessage: string | null;
   findings: Finding[];
 }
 
-type RowVerdict = "findings" | "failed" | "clean";
+type RouteVerdict = "findings" | "failed" | "clean";
 
-export interface SweepRow {
+type RouteChipStatus = "ok" | "warn" | "failed";
+
+export interface RouteChip {
+  status: RouteChipStatus;
+  cellCount: number;
+  isRouteClean: boolean;
+}
+
+export interface SweepRoute {
   stepId: string;
-  route: string;
+  path: string;
   shotCount: number;
   findingCount: number;
-  failedCount: number;
-  verdict: RowVerdict;
+  verdict: RouteVerdict;
   cells: SweepCell[];
 }
 
 export interface SweepMatrix {
   columns: DeviceView[];
-  rows: SweepRow[];
+  routes: SweepRoute[];
 }
 
 export interface SweepTotals {
@@ -45,9 +52,9 @@ export interface SweepTotals {
   failedCount: number;
 }
 
-export interface SweepRowFilter {
+export interface SweepRouteFilter {
   isFindingsOnly: boolean;
-  routeFilter: string;
+  pathText: string;
 }
 
 export interface ShotChoice {
@@ -56,7 +63,7 @@ export interface ShotChoice {
 }
 
 export interface OpenedShot {
-  route: string;
+  routePath: string;
   deviceView: DeviceView;
   cell: SweepCell;
 }
@@ -67,6 +74,7 @@ export type CellCaption =
   | { kind: "status"; status: CellStatus };
 
 const SWEEP_TITLE_PREFIX = "sweep ";
+const CHIP_STATUSES = ["ok", "warn", "failed"] as const;
 const THUMB_BOX_WIDTH = 150;
 const THUMB_BOX_HEIGHT = 108;
 const PROBE_SCREEN_WIDTH = 100;
@@ -79,14 +87,15 @@ const pickFailureMessage = (
   return null;
 };
 
-const createSweepCell = (step: RunStep, deviceId: string): SweepCell => {
+const createSweepCell = (step: RunStep, deviceView: DeviceView): SweepCell => {
+  const { deviceId } = deviceView;
   const deviceAnswer = step.deviceAnswers.find(
     (answer) => answer.deviceId === deviceId,
   );
   const failureMessage = pickFailureMessage(deviceAnswer);
   const shotPath = deviceAnswer?.shotPath ?? null;
   return {
-    deviceId,
+    deviceView,
     status: pickCellStatus(step, deviceId),
     shotUrl: pickShotUrl(shotPath),
     failureMessage,
@@ -94,10 +103,10 @@ const createSweepCell = (step: RunStep, deviceId: string): SweepCell => {
   };
 };
 
-const pickRowVerdict = (
+const pickRouteVerdict = (
   findingCount: number,
   failedCount: number,
-): RowVerdict => {
+): RouteVerdict => {
   const hasFindings = findingCount > 0;
   if (hasFindings) return "findings";
   const hasFailures = failedCount > 0;
@@ -105,8 +114,8 @@ const pickRowVerdict = (
   return "clean";
 };
 
-const createSweepRow = (step: RunStep, columns: DeviceView[]): SweepRow => {
-  const cells = columns.map(({ deviceId }) => createSweepCell(step, deviceId));
+const createSweepRoute = (step: RunStep, columns: DeviceView[]): SweepRoute => {
+  const cells = columns.map((deviceView) => createSweepCell(step, deviceView));
   const findingCount = cells.reduce(
     (total, cell) => total + cell.findings.length,
     0,
@@ -114,11 +123,10 @@ const createSweepRow = (step: RunStep, columns: DeviceView[]): SweepRow => {
   const failedCount = cells.filter((cell) => cell.status === "failed").length;
   return {
     stepId: step.stepId,
-    route: step.title.replace(SWEEP_TITLE_PREFIX, ""),
+    path: step.title.replace(SWEEP_TITLE_PREFIX, ""),
     shotCount: cells.filter((cell) => cell.shotUrl !== null).length,
     findingCount,
-    failedCount,
-    verdict: pickRowVerdict(findingCount, failedCount),
+    verdict: pickRouteVerdict(findingCount, failedCount),
     cells,
   };
 };
@@ -133,37 +141,50 @@ export const createSweepMatrix = (
   );
   return {
     columns,
-    rows: run.steps.map((step) => createSweepRow(step, columns)),
+    routes: run.steps.map((step) => createSweepRoute(step, columns)),
   };
 };
 
 export const pickSweepTotals = (sweepMatrix: SweepMatrix): SweepTotals => {
-  const { rows, columns } = sweepMatrix;
-  const cells = rows.flatMap((row) => row.cells);
+  const { routes, columns } = sweepMatrix;
+  const cells = routes.flatMap((route) => route.cells);
   const countCells = (status: CellStatus): number =>
     cells.filter((cell) => cell.status === status).length;
   return {
-    routeCount: rows.length,
+    routeCount: routes.length,
     deviceCount: columns.length,
-    shotCount: rows.reduce((total, row) => total + row.shotCount, 0),
-    findingCount: rows.reduce((total, row) => total + row.findingCount, 0),
+    shotCount: routes.reduce((total, route) => total + route.shotCount, 0),
+    findingCount: routes.reduce(
+      (total, route) => total + route.findingCount,
+      0,
+    ),
     okCount: countCells("ok"),
     warnCount: countCells("warn"),
     failedCount: countCells("failed"),
   };
 };
 
-export const listShownRows = (
-  rows: SweepRow[],
-  rowFilter: SweepRowFilter,
-): SweepRow[] => {
-  const routeQuery = rowFilter.routeFilter.trim().toLowerCase();
-  return rows.filter((row) => {
-    const isRowFlagged = row.verdict !== "clean";
-    const isHiddenByFindings = rowFilter.isFindingsOnly && !isRowFlagged;
-    const isRouteMatching = row.route.toLowerCase().includes(routeQuery);
-    return !isHiddenByFindings && isRouteMatching;
+export const listShownRoutes = (
+  routes: SweepRoute[],
+  routeFilter: SweepRouteFilter,
+): SweepRoute[] => {
+  const pathQuery = routeFilter.pathText.trim().toLowerCase();
+  return routes.filter((route) => {
+    const isRouteFlagged = route.verdict !== "clean";
+    const isHiddenByFindings = routeFilter.isFindingsOnly && !isRouteFlagged;
+    const isPathMatching = route.path.toLowerCase().includes(pathQuery);
+    return !isHiddenByFindings && isPathMatching;
   });
+};
+
+export const listRouteChips = (route: SweepRoute): RouteChip[] => {
+  const { cells } = route;
+  const hasNoIssue = route.verdict === "clean";
+  return CHIP_STATUSES.map((status) => ({
+    status,
+    cellCount: cells.filter((cell) => cell.status === status).length,
+    isRouteClean: hasNoIssue,
+  })).filter((routeChip) => routeChip.cellCount > 0);
 };
 
 export const pickCellCaption = (cell: SweepCell): CellCaption => {
@@ -202,17 +223,13 @@ export const pickOpenedShot = (
 ): OpenedShot | null => {
   const hasNoChoice = shotChoice === null;
   if (hasNoChoice) return null;
-  const row = sweepMatrix.rows.find(
+  const route = sweepMatrix.routes.find(
     ({ stepId }) => stepId === shotChoice.stepId,
   );
-  const cell = row?.cells.find(
-    ({ deviceId }) => deviceId === shotChoice.deviceId,
+  const cell = route?.cells.find(
+    ({ deviceView }) => deviceView.deviceId === shotChoice.deviceId,
   );
-  const deviceView = sweepMatrix.columns.find(
-    ({ deviceId }) => deviceId === shotChoice.deviceId,
-  );
-  const isShotMissing =
-    row === undefined || cell === undefined || deviceView === undefined;
+  const isShotMissing = route === undefined || cell === undefined;
   if (isShotMissing) return null;
-  return { route: row.route, deviceView, cell };
+  return { routePath: route.path, deviceView: cell.deviceView, cell };
 };

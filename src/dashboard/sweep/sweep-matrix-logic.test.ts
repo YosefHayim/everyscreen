@@ -3,7 +3,8 @@ import type { Finding } from "@/checks/checks-logic";
 import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import {
   createSweepMatrix,
-  listShownRows,
+  listRouteChips,
+  listShownRoutes,
   pickCellCaption,
   pickOpenedShot,
   pickSweepTotals,
@@ -47,9 +48,9 @@ const OVERFLOW_FINDING: Finding = {
   message: "div runs 20px past the edge",
 };
 
-const createStep = (stepNumber: number, route: string): RunStep => ({
+const createStep = (stepNumber: number, path: string): RunStep => ({
   stepId: `step-${stepNumber}`,
-  title: `sweep ${route}`,
+  title: `sweep ${path}`,
   startedAt: stepNumber,
   deviceAnswers: [
     {
@@ -114,25 +115,24 @@ describe("createSweepMatrix", () => {
     ]);
   });
 
-  test("makes one row per route with its shots, findings and verdict", () => {
+  test("makes one route per step with its shots, findings and verdict", () => {
     const sweepMatrix = createSweepMatrix(SWEEP_RUN, DEVICE_VIEWS);
 
-    const [cleanRow, findingRow, failedRow] = sweepMatrix.rows;
+    const [cleanRoute, findingRoute, failedRoute] = sweepMatrix.routes;
 
-    expect(cleanRow.route).toBe("/");
-    expect(cleanRow.shotCount).toBe(1);
-    expect(cleanRow.verdict).toBe("clean");
-    expect(findingRow.findingCount).toBe(2);
-    expect(findingRow.verdict).toBe("findings");
-    expect(failedRow.failedCount).toBe(1);
-    expect(failedRow.verdict).toBe("failed");
+    expect(cleanRoute.path).toBe("/");
+    expect(cleanRoute.shotCount).toBe(1);
+    expect(cleanRoute.verdict).toBe("clean");
+    expect(findingRoute.findingCount).toBe(2);
+    expect(findingRoute.verdict).toBe("findings");
+    expect(failedRoute.verdict).toBe("failed");
   });
 
   test("points a cell at its shot and keeps its failure message", () => {
     const sweepMatrix = createSweepMatrix(SWEEP_RUN, DEVICE_VIEWS);
 
-    const [, phoneCell] = sweepMatrix.rows[0].cells;
-    const [laptopFailedCell, phoneFailedCell] = sweepMatrix.rows[2].cells;
+    const [, phoneCell] = sweepMatrix.routes[0].cells;
+    const [laptopFailedCell, phoneFailedCell] = sweepMatrix.routes[2].cells;
 
     expect(phoneCell.shotUrl).toBe("/api/shots/run-0001-step-1-iphone-se.png");
     expect(phoneFailedCell.failureMessage).toBe("left the app origin");
@@ -160,49 +160,83 @@ describe("pickSweepTotals", () => {
   });
 });
 
-describe("listShownRows", () => {
-  const { rows } = createSweepMatrix(SWEEP_RUN, DEVICE_VIEWS);
+describe("listShownRoutes", () => {
+  const { routes } = createSweepMatrix(SWEEP_RUN, DEVICE_VIEWS);
 
-  test("keeps every row when nothing is filtered", () => {
-    const shownRows = listShownRows(rows, {
+  test("keeps every route when nothing is filtered", () => {
+    const shownRoutes = listShownRoutes(routes, {
       isFindingsOnly: false,
-      routeFilter: "",
+      pathText: "",
     });
 
-    expect(shownRows).toHaveLength(3);
+    expect(shownRoutes).toHaveLength(3);
   });
 
-  test("hides clean rows when only findings are wanted", () => {
-    const shownRows = listShownRows(rows, {
+  test("hides clean routes when only findings are wanted", () => {
+    const shownRoutes = listShownRoutes(routes, {
       isFindingsOnly: true,
-      routeFilter: "",
+      pathText: "",
     });
 
-    expect(shownRows.map(({ route }) => route)).toEqual(["/login", "/Orders"]);
+    expect(shownRoutes.map(({ path }) => path)).toEqual(["/login", "/Orders"]);
   });
 
-  test("filters rows by path text, ignoring case and spaces around it", () => {
-    const shownRows = listShownRows(rows, {
+  test("filters routes by path text, ignoring case and spaces around it", () => {
+    const shownRoutes = listShownRoutes(routes, {
       isFindingsOnly: false,
-      routeFilter: " ORDERS ",
+      pathText: " ORDERS ",
     });
 
-    expect(shownRows.map(({ route }) => route)).toEqual(["/Orders"]);
+    expect(shownRoutes.map(({ path }) => path)).toEqual(["/Orders"]);
   });
 
   test("shows nothing when no path matches", () => {
-    const shownRows = listShownRows(rows, {
+    const shownRoutes = listShownRoutes(routes, {
       isFindingsOnly: false,
-      routeFilter: "cart",
+      pathText: "cart",
     });
 
-    expect(shownRows).toEqual([]);
+    expect(shownRoutes).toEqual([]);
+  });
+});
+
+describe("listRouteChips", () => {
+  const { routes } = createSweepMatrix(SWEEP_RUN, DEVICE_VIEWS);
+
+  test("gives a clean route one ok chip marked clean", () => {
+    const routeChips = listRouteChips(routes[0]);
+
+    expect(routeChips).toEqual([
+      { status: "ok", cellCount: 2, isRouteClean: true },
+    ]);
+  });
+
+  test("gives a route with warn and failed cells a chip for each status", () => {
+    const [phoneCell, laptopCell] = routes[0].cells;
+    const mixedRoute = {
+      ...routes[0],
+      verdict: "findings" as const,
+      cells: [
+        { ...phoneCell, status: "warn" as const },
+        { ...laptopCell, status: "failed" as const },
+        { ...phoneCell, status: "ok" as const },
+        { ...laptopCell, status: "none" as const },
+      ],
+    };
+
+    const routeChips = listRouteChips(mixedRoute);
+
+    expect(routeChips).toEqual([
+      { status: "ok", cellCount: 1, isRouteClean: false },
+      { status: "warn", cellCount: 1, isRouteClean: false },
+      { status: "failed", cellCount: 1, isRouteClean: false },
+    ]);
   });
 });
 
 describe("pickCellCaption", () => {
   const baseCell: SweepCell = {
-    deviceId: PHONE.deviceId,
+    deviceView: PHONE,
     status: "ok",
     shotUrl: null,
     failureMessage: null,
@@ -271,7 +305,7 @@ describe("pickOpenedShot", () => {
       deviceId: PHONE.deviceId,
     });
 
-    expect(openedShot?.route).toBe("/login");
+    expect(openedShot?.routePath).toBe("/login");
     expect(openedShot?.deviceView.name).toBe("iPhone SE");
     expect(openedShot?.cell.findings).toHaveLength(2);
   });

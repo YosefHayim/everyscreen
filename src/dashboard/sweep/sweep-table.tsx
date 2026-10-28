@@ -3,19 +3,19 @@ import { useTranslation } from "react-i18next";
 import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import type {
   ShotChoice,
-  SweepRow as SweepRowView,
+  SweepRoute as SweepRouteView,
 } from "@/dashboard/sweep/sweep-matrix-logic";
-import { SweepRow } from "@/dashboard/sweep/sweep-row";
+import { SweepRoute } from "@/dashboard/sweep/sweep-route";
 
 interface SweepTableProps {
   columns: DeviceView[];
-  rows: SweepRowView[];
+  routes: SweepRouteView[];
   onOpenShot: (shotChoice: ShotChoice) => void;
 }
 
 export const SweepTable = ({
   columns,
-  rows,
+  routes,
   onOpenShot,
 }: SweepTableProps): ReactElement => {
   const { t } = useTranslation();
@@ -51,11 +51,10 @@ export const SweepTable = ({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <SweepRow
-              key={row.stepId}
-              row={row}
-              columns={columns}
+          {routes.map((route) => (
+            <SweepRoute
+              key={route.stepId}
+              route={route}
               onOpenShot={onOpenShot}
             />
           ))}

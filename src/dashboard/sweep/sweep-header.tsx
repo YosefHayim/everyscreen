@@ -12,19 +12,19 @@ const FINDINGS_ONLY_ID = "sweep-findings-only";
 interface SweepHeaderProps {
   sweepTotals: SweepTotals;
   isFindingsOnly: boolean;
-  routeFilter: string;
+  pathText: string;
   runSweep: RunSweep;
   onChangeFindingsOnly: (event: ChangeEvent<HTMLInputElement>) => void;
-  onChangeRouteFilter: (event: ChangeEvent<HTMLInputElement>) => void;
+  onChangePathText: (event: ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const SweepHeader = ({
   sweepTotals,
   isFindingsOnly,
-  routeFilter,
+  pathText,
   runSweep,
   onChangeFindingsOnly,
-  onChangeRouteFilter,
+  onChangePathText,
 }: SweepHeaderProps): ReactElement => {
   const { t } = useTranslation();
   const statusChips = [
@@ -71,8 +71,8 @@ export const SweepHeader = ({
           <Icon name="search" size={16} />
           <input
             type="search"
-            value={routeFilter}
-            onChange={onChangeRouteFilter}
+            value={pathText}
+            onChange={onChangePathText}
             placeholder={t("sweep.filterRoutes")}
             aria-label={t("sweep.filterRoutes")}
             className="min-w-0 flex-1 border-0 bg-transparent font-mono text-sm text-ink outline-offset-4"

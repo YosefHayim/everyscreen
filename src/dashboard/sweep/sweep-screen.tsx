@@ -18,26 +18,26 @@ export const SweepScreen = ({
 }: SweepScreenProps): ReactElement => {
   const { t } = useTranslation();
   const sweepScreen = useSweepScreen(run, deviceViews);
-  const { shownRows, openedShot } = sweepScreen;
+  const { shownRoutes, openedShot } = sweepScreen;
   const isShotOpened = openedShot !== null;
-  const hasNoShownRows = shownRows.length === 0;
+  const hasNoShownRoutes = shownRoutes.length === 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <SweepHeader
         sweepTotals={sweepScreen.sweepTotals}
         isFindingsOnly={sweepScreen.isFindingsOnly}
-        routeFilter={sweepScreen.routeFilter}
+        pathText={sweepScreen.pathText}
         runSweep={sweepScreen.runSweep}
         onChangeFindingsOnly={sweepScreen.changeFindingsOnly}
-        onChangeRouteFilter={sweepScreen.changeRouteFilter}
+        onChangePathText={sweepScreen.changePathText}
       />
       <SweepTable
         columns={sweepScreen.columns}
-        rows={shownRows}
+        routes={shownRoutes}
         onOpenShot={sweepScreen.openShot}
       />
-      {hasNoShownRows && (
+      {hasNoShownRoutes && (
         <p role="status" className="m-0 px-5 py-6 text-sm text-ink-2">
           {t("sweep.noRoutes")}
         </p>
@@ -45,8 +45,8 @@ export const SweepScreen = ({
       <footer className="flex flex-wrap justify-between gap-2 border-t border-line bg-card px-4 py-3 font-mono text-sm text-ink-2 md:px-5">
         <span>
           {t("sweep.showing", {
-            shownCount: shownRows.length,
-            totalCount: sweepScreen.totalRowCount,
+            shownCount: shownRoutes.length,
+            totalCount: sweepScreen.totalRouteCount,
           })}
         </span>
         <span>{t("sweep.openHint")}</span>
