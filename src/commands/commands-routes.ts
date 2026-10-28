@@ -6,6 +6,7 @@ import {
   createCommandRunStep,
   createStepTitle,
   pickChosenPages,
+  pickOpenApp,
   summarizeCommand,
 } from "@/commands/commands-logic";
 import { type HubCommand, hubCommandSchema } from "@/commands/commands-schema";
@@ -20,7 +21,7 @@ import { runSweep } from "@/sweep/sweep-run";
 const readRunningRun = async (rootFolder: string): Promise<Run> => {
   const runs = await listRuns(rootFolder);
   const runningRun = pickRunningRun(runs);
-  return runningRun ?? (await createRun(rootFolder, "cli"));
+  return runningRun ?? (await createRun(rootFolder, "cli", "steps"));
 };
 
 const runCommand = async (
@@ -66,14 +67,19 @@ export const createCommandsRoutes = (
   rootFolder: string,
   devicePages: DevicePage[],
 ) =>
-  new Hono().post(
-    "/",
-    zValidator("json", hubCommandSchema, rejectInvalidRequest),
-    async (c) => {
-      const hubCommand = c.req.valid("json");
-      const commandReply = await runOneAtATime(`commands:${rootFolder}`, () =>
-        runCommand(rootFolder, devicePages, hubCommand),
-      );
-      return c.json(commandReply);
-    },
-  );
+  new Hono()
+    .get("/app", (c) => {
+      const pageUrls = devicePages.map(({ page }) => page.url());
+      return c.json(pickOpenApp(pageUrls));
+    })
+    .post(
+      "/",
+      zValidator("json", hubCommandSchema, rejectInvalidRequest),
+      async (c) => {
+        const hubCommand = c.req.valid("json");
+        const commandReply = await runOneAtATime(`commands:${rootFolder}`, () =>
+          runCommand(rootFolder, devicePages, hubCommand),
+        );
+        return c.json(commandReply);
+      },
+    );

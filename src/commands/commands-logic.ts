@@ -207,3 +207,20 @@ export const createCommandRunStep = (runStepStart: RunStepStart): RunStep => {
     proof: pickStepProof(deviceAnswers),
   };
 };
+
+const WEB_PAGE_PROTOCOLS = ["http:", "https:"];
+
+export interface OpenApp {
+  appUrl: string | null;
+}
+
+export const pickOpenApp = (pageUrls: string[]): OpenApp => {
+  const webPageUrl = pageUrls.find(
+    (pageUrl) =>
+      URL.canParse(pageUrl) &&
+      WEB_PAGE_PROTOCOLS.includes(new URL(pageUrl).protocol),
+  );
+  const isNoAppOpen = webPageUrl === undefined;
+  if (isNoAppOpen) return { appUrl: null };
+  return { appUrl: `${new URL(webPageUrl).origin}/` };
+};

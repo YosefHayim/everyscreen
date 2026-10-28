@@ -6,6 +6,8 @@ export type RunStatus = "running" | "ok" | "failed";
 
 export type RunOrigin = "cli" | "flow" | "playwright";
 
+export type RunKind = "steps" | "sweep";
+
 export interface StepProof {
   shotPath: string | null;
   errorMessage: string;
@@ -25,13 +27,14 @@ export interface RunStep {
 export interface Run {
   runId: string;
   origin: RunOrigin;
+  runKind: RunKind;
   status: RunStatus;
   startedAt: number;
   steps: RunStep[];
 }
 
 export type RunEvent =
-  | { kind: "run-start"; origin: RunOrigin }
+  | { kind: "run-start"; origin: RunOrigin; runKind: RunKind }
   | { kind: "step-end"; step: RunStep }
   | { kind: "run-end"; status: "ok" | "failed" };
 
@@ -88,7 +91,12 @@ export const checkRunEvent = (
 export const mergeRunEvent = (run: Run, runEvent: RunEvent): Run => {
   switch (runEvent.kind) {
     case "run-start":
-      return { ...run, origin: runEvent.origin, status: "running" };
+      return {
+        ...run,
+        origin: runEvent.origin,
+        runKind: runEvent.runKind,
+        status: "running",
+      };
     case "step-end":
       return { ...run, steps: [...run.steps, runEvent.step] };
     case "run-end": {

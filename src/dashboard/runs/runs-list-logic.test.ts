@@ -28,6 +28,7 @@ const createStep = (overrides: Partial<RunStep> = {}): RunStep => ({
 const createRun = (overrides: Partial<Run> = {}): Run => ({
   runId: "run-0001",
   origin: "cli",
+  runKind: "steps",
   status: "ok",
   startedAt: 1,
   steps: [createStep()],

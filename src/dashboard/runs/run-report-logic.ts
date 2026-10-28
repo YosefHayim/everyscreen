@@ -42,7 +42,7 @@ export const listRunDeviceIds = (run: Run): string[] => {
   return [...new Set(deviceIds)];
 };
 
-const pickCellStatus = (step: RunStep, deviceId: string): CellStatus => {
+export const pickCellStatus = (step: RunStep, deviceId: string): CellStatus => {
   const deviceAnswer = step.deviceAnswers.find(
     (answer) => answer.deviceId === deviceId,
   );

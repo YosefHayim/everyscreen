@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { RunRow } from "@/dashboard/runs/run-row";
+import { RunLine } from "@/dashboard/runs/run-line";
 import {
   countRuns,
   ORIGIN_FILTERS,
@@ -62,7 +62,7 @@ export const RunsScreen = (): ReactElement => {
         {hasShownRuns && (
           <ul className="m-0 list-none overflow-hidden rounded-2xl border border-line bg-card p-0">
             {shownRuns.map((run) => (
-              <RunRow key={run.runId} run={run} />
+              <RunLine key={run.runId} run={run} />
             ))}
           </ul>
         )}

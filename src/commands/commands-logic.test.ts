@@ -13,6 +13,7 @@ import {
   pickDeviceIds,
   pickErrorMessage,
   pickFailureMessage,
+  pickOpenApp,
   pickStepProof,
   summarizeCommand,
 } from "@/commands/commands-logic";
@@ -359,5 +360,29 @@ describe("createCommandRunStep", () => {
     expect(runStep.findings).toEqual([finding]);
     expect(runStep.proof?.errorMessage).toBe('cookie bar covers "Checkout"');
     expect(runStep.title).toBe("sweep /about");
+  });
+});
+
+describe("pickOpenApp", () => {
+  test("returns no app url when no page is open", () => {
+    const openApp = pickOpenApp([]);
+
+    expect(openApp).toEqual({ appUrl: null });
+  });
+
+  test("skips blank and malformed pages", () => {
+    const openApp = pickOpenApp(["about:blank", "not a url"]);
+
+    expect(openApp).toEqual({ appUrl: null });
+  });
+
+  test("returns the origin of the first web page", () => {
+    const openApp = pickOpenApp([
+      "about:blank",
+      "http://127.0.0.1:5173/cart?step=2",
+      "https://example.com/",
+    ]);
+
+    expect(openApp).toEqual({ appUrl: "http://127.0.0.1:5173/" });
   });
 });

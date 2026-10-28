@@ -4,6 +4,7 @@ import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { createServer as createViteServer, type ViteDevServer } from "vite";
 import type { CommandReply } from "@/commands/commands-logic";
 import { type RunningHub, startHub } from "@/hub/hub-server";
 import type { Run } from "@/runs/runs-logic";
@@ -21,6 +22,9 @@ const EXPECTED_ROUTES = [
   "/orders/123",
 ];
 const WIDE_ROUTE = "/wide";
+const FIXTURE_HOST = "127.0.0.1";
+const PHONE_NAME = "iPhone SE";
+const WIDE_CELL_NAME = `Open the shot of ${WIDE_ROUTE} on ${PHONE_NAME}`;
 
 const createPage = (title: string, bodyHtml: string): string =>
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><style>body{margin:0;font:16px sans-serif}a{display:block;min-height:48px;padding:12px}</style></head><body><h1>${title}</h1>${bodyHtml}`;
@@ -65,6 +69,8 @@ test.describe("sweep command", () => {
   let siteUrl = "";
   let runningHub: RunningHub;
   let sweepReply: CommandReply;
+  let viteServer: ViteDevServer;
+  let dashboardUrl = "";
 
   test.beforeAll(async () => {
     test.setTimeout(STARTUP_TIMEOUT_MS);
@@ -93,9 +99,24 @@ test.describe("sweep command", () => {
     siteUrl = await listenOnFreePort(fixtureSite);
 
     runningHub = await startHub({ rootFolder, port: 0, dashboardFolder });
+    viteServer = await createViteServer({
+      server: {
+        host: FIXTURE_HOST,
+        port: 0,
+        proxy: { "/api": { target: runningHub.url, ws: true } },
+      },
+      logLevel: "silent",
+    });
+    await viteServer.listen();
+    const dashboardAddress = viteServer.httpServer?.address() ?? null;
+    const isDashboardAddressMissing =
+      dashboardAddress === null || typeof dashboardAddress === "string";
+    if (isDashboardAddressMissing) throw new Error("dashboard did not start");
+    dashboardUrl = `http://${FIXTURE_HOST}:${dashboardAddress.port}`;
   });
 
   test.afterAll(async () => {
+    await viteServer?.close();
     await runningHub?.stop();
     fixtureSite?.close();
     await rm(rootFolder, { recursive: true, force: true });
@@ -175,5 +196,117 @@ test.describe("sweep command", () => {
       .filter(({ kind }) => kind === "overflow")
       .map(({ deviceId }) => deviceId);
     expect(overflowDeviceIds.toSorted()).toEqual(DEVICE_IDS.toSorted());
+  });
+
+  test("marks the sweep run in the runs list", async ({ page }) => {
+    await page.goto(`${dashboardUrl}/runs`);
+
+    const sweepRunLink = page.getByRole("link", { name: "Open run-0001" });
+
+    await expect(sweepRunLink).toContainText("Sweep");
+  });
+
+  test("shows the sweep as a matrix with a line per route and a column per device", async ({
+    page,
+  }) => {
+    await page.goto(`${dashboardUrl}/runs/run-0001`);
+
+    await expect(
+      page.getByRole("heading", { name: "Route sweep" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/^6 routes · 2 devices · 12 shots/),
+    ).toBeVisible();
+    await expect(page.getByRole("columnheader")).toHaveCount(
+      DEVICE_IDS.length + 1,
+    );
+    await expect(page.getByRole("rowheader")).toHaveCount(
+      EXPECTED_ROUTES.length,
+    );
+    await expect(
+      page.getByRole("button", { name: /^Open the shot of/ }),
+    ).toHaveCount(EXPECTED_ROUTES.length * DEVICE_IDS.length);
+    await expect(page.getByText("Showing 6 of 6 routes")).toBeVisible();
+  });
+
+  test("words the wide page cell as a finding or failure, not as ok", async ({
+    page,
+  }) => {
+    await page.goto(`${dashboardUrl}/runs/run-0001`);
+
+    const wideCell = page.getByRole("button", { name: WIDE_CELL_NAME });
+
+    await expect(wideCell).toContainText("px past the edge");
+    await expect(wideCell).toContainText("failed");
+    await expect(wideCell).not.toContainText("ok");
+  });
+
+  test("hides the clean routes when Findings only is on", async ({ page }) => {
+    await page.goto(`${dashboardUrl}/runs/run-0001`);
+
+    await page.getByLabel("Findings only").check();
+
+    await expect(page.getByRole("rowheader")).toHaveCount(1);
+    await expect(page.getByRole("rowheader")).toContainText(WIDE_ROUTE);
+    await expect(page.getByText("Showing 1 of 6 routes")).toBeVisible();
+  });
+
+  test("filters the routes by path text", async ({ page }) => {
+    await page.goto(`${dashboardUrl}/runs/run-0001`);
+
+    await page.getByLabel("Filter routes").fill("orders");
+
+    await expect(page.getByRole("rowheader")).toHaveCount(1);
+    await expect(page.getByRole("rowheader")).toContainText("/orders/123");
+  });
+
+  test("opens the full shot with the findings when a cell is clicked", async ({
+    page,
+  }) => {
+    await page.goto(`${dashboardUrl}/runs/run-0001`);
+
+    await page.getByRole("button", { name: WIDE_CELL_NAME }).click();
+
+    const shotDialog = page.getByRole("dialog");
+    await expect(shotDialog).toBeVisible();
+    await expect(
+      shotDialog.getByRole("heading", { name: WIDE_ROUTE }),
+    ).toBeVisible();
+    await expect(shotDialog.getByRole("img")).toBeVisible();
+    await expect(shotDialog.getByText("Past the screen edge")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(shotDialog).toBeHidden();
+  });
+
+  test("keeps Run sweep off with a reason while the hub has no app open", async ({
+    page,
+  }) => {
+    await page.route("**/api/commands/app", (route) =>
+      route.fulfill({ json: { appUrl: null } }),
+    );
+    await page.goto(`${dashboardUrl}/runs/run-0001`);
+
+    await expect(
+      page.getByRole("button", { name: "Run sweep" }),
+    ).toBeDisabled();
+    await expect(
+      page.getByText("Open your app on the grid first."),
+    ).toBeVisible();
+  });
+
+  test("runs a new sweep from a reloaded run page and shows its matrix", async ({
+    page,
+  }) => {
+    test.setTimeout(SWEEP_TIMEOUT_MS);
+    await page.goto(`${dashboardUrl}/runs/run-0001`);
+
+    await page.getByRole("button", { name: "Run sweep" }).click();
+
+    await expect(page).toHaveURL(/\/runs\/run-0002$/, {
+      timeout: SWEEP_TIMEOUT_MS,
+    });
+    await expect(page.getByRole("rowheader")).toHaveCount(
+      EXPECTED_ROUTES.length,
+    );
   });
 });

@@ -12,6 +12,8 @@ export const ICON_PATHS = {
   ],
   "chevron-left": ["M15 5l-7 7 7 7"],
   "chevron-right": ["M9 5l7 7-7 7"],
+  search: ["M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14z", "M20 20l-4-4"],
+  refresh: ["M20 11a8 8 0 1 0-2.3 5.7", "M20 4.5V11h-6.5"],
   plus: ["M12 5v14M5 12h14"],
   trash: ["M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13"],
   "device-add": [

@@ -5,7 +5,7 @@ const MIN_TAP_SIZE = 44;
 const REQUEST_FAILURE_ECHO = "Failed to load resource";
 const FAVICON_PATH = "/favicon.ico";
 
-type FindingKind =
+export type FindingKind =
   | "overflow"
   | "clipped-text"
   | "safe-area"

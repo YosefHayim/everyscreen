@@ -37,6 +37,7 @@ const FAILED_ANSWER: DeviceAnswer = {
 const EMPTY_RUN: Run = {
   runId: "run-0001",
   origin: "cli",
+  runKind: "steps",
   status: "running",
   startedAt: 1,
   steps: [],
@@ -114,13 +115,15 @@ describe("checkRunEvent", () => {
 });
 
 describe("mergeRunEvent", () => {
-  test("sets the origin on run start", () => {
+  test("sets the origin and the run kind on run start", () => {
     const mergedRun = mergeRunEvent(EMPTY_RUN, {
       kind: "run-start",
       origin: "flow",
+      runKind: "sweep",
     });
 
     expect(mergedRun.origin).toBe("flow");
+    expect(mergedRun.runKind).toBe("sweep");
     expect(mergedRun.status).toBe("running");
   });
 
@@ -185,6 +188,7 @@ describe("pickRunningRun", () => {
   const createRun = (runId: string, status: Run["status"]): Run => ({
     runId,
     origin: "cli",
+    runKind: "steps",
     status,
     startedAt: 1,
     steps: [],

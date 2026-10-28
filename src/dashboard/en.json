@@ -170,7 +170,8 @@
       "codeTitle": "Failing code",
       "noCode": "No code block was saved for this step",
       "errorTitle": "Error"
-    }
+    },
+    "sweepBadge": "Sweep"
   },
   "devices": {
     "title": "Devices",
@@ -210,5 +211,40 @@
       }
     },
     "removeLabel": "Remove"
+  },
+  "sweep": {
+    "title": "Route sweep",
+    "stats": "{{routeCount}} routes · {{deviceCount}} devices · {{shotCount}} shots · {{findingCount}} findings",
+    "chips": {
+      "ok": "{{count}} ok",
+      "warn": "{{count}} warn",
+      "failed": "{{count}} failed"
+    },
+    "cellStatus": {
+      "ok": "ok",
+      "warn": "warn",
+      "failed": "failed",
+      "none": "not run"
+    },
+    "findingsOnly": "Findings only",
+    "filterRoutes": "Filter routes",
+    "run": "Run sweep",
+    "running": "Running sweep",
+    "needsAppUrl": "Open your app on the grid first.",
+    "runFailed": "The sweep could not run.",
+    "routeColumn": "Route",
+    "viewport": "{{width}}×{{height}}",
+    "shotCount_one": "{{count}} shot",
+    "shotCount_other": "{{count}} shots",
+    "clean": "clean",
+    "moreFindings": "+{{count}}",
+    "openShot": "Open the shot of {{route}} on {{deviceName}}",
+    "shotAlt": "Shot of {{route}} on {{deviceName}}",
+    "dialogLabel": "Shot of {{route}} on {{deviceName}}",
+    "dialogClose": "Close",
+    "noFindings": "No findings on this shot",
+    "noRoutes": "No routes match",
+    "showing": "Showing {{shownCount}} of {{totalCount}} routes",
+    "openHint": "Click a shot to open it"
   }
 }

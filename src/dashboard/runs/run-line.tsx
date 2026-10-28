@@ -27,17 +27,18 @@ const STATUS_CLASS_NAMES = {
   failed: "text-failed",
 } satisfies Record<RunStatus, string>;
 
-interface RunRowProps {
+interface RunLineProps {
   run: Run;
 }
 
-export const RunRow = ({ run }: RunRowProps): ReactElement => {
+export const RunLine = ({ run }: RunLineProps): ReactElement => {
   const { t } = useTranslation();
   const headline = pickRunHeadline(run) ?? t("runs.noSteps");
   const failedDeviceId = pickFirstFailedDeviceId(run);
   const hasFailedDevice = failedDeviceId !== null;
   const findingCount = countRunFindings(run);
   const hasFindings = findingCount > 0;
+  const isSweepRun = run.runKind === "sweep";
   const durationLabel = createDurationLabel(pickRunDurationMs(run));
   const startedLabel = createStartedLabel(run.startedAt);
 
@@ -63,6 +64,11 @@ export const RunRow = ({ run }: RunRowProps): ReactElement => {
             </span>
           )}
         </span>
+        {isSweepRun && (
+          <span className="inline-flex h-6 items-center rounded-full bg-ink px-2.5 text-xs text-card">
+            {t("runs.sweepBadge")}
+          </span>
+        )}
         <RunOriginBadge origin={run.origin} />
         {hasFindings && (
           <span className="inline-flex h-6 items-center rounded-full bg-warn-soft px-2.5 text-xs text-warn">
