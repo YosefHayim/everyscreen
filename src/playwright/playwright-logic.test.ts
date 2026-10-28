@@ -71,7 +71,7 @@ describe("createDeviceProject", () => {
 
     expect(project.name).toBe("iphone-se");
     expect(project.use?.browserName).toBe("webkit");
-    expect(project.use?.viewport).toEqual({ width: 375, height: 667 });
+    expect(project.use?.viewport).toEqual({ width: 375, height: 647 });
     expect(project.use?.screenshot).toBe("on");
     expect(project.use?.connectOptions).toBeUndefined();
   });

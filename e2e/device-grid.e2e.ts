@@ -24,8 +24,8 @@ const FIRST_SCREEN_BASE64 =
 const SECOND_SCREEN_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg==";
 const TOP_BAR_WIDTHS = [390, 768, 1440];
+const MIN_SEARCH_WIDTH = 200;
 const MIN_URL_WIDTH = 120;
-const TWO_LINE_HEADER_HEIGHT = 36;
 const SHOP_URL = "https://shop.example/cart";
 const WINDOW_FAMILIES = ["window-macos", "window-windows", "window-linux"];
 const GRID_VIEW_STORAGE_KEY = "everyscreen.gridView";
@@ -296,18 +296,74 @@ test.describe("device grid", () => {
     await expect(page.locator("kbd")).toHaveText(/^(⌘K|Ctrl K)$/);
   });
 
-  test("the hub pill is green when connected and the tile header stays on one line", async ({
-    page,
-  }) => {
+  test("the setup guide goes away once a run exists", async ({ page }) => {
+    await page.goto(dashboardUrl);
+    const setupGuide = page.getByRole("region", { name: /steps/i });
+    await expect(setupGuide).toBeVisible();
+
+    liveSocket?.send(
+      JSON.stringify({
+        kind: "run-totals",
+        phase: "start",
+        totalTests: 2,
+        startedAt: Date.now(),
+        endedAt: null,
+        okCount: 0,
+        failedCount: 0,
+        outcome: null,
+        endReason: null,
+      }),
+    );
+
+    await expect(setupGuide).toHaveCount(0);
+  });
+
+  test("the hub pill is green when connected", async ({ page }) => {
     await page.goto(dashboardUrl);
 
     const hubDot = page.locator("header span:has-text('Connected') > span");
-    const headerHeight = (
-      await page.locator("article header").first().boundingBox()
-    )?.height;
 
     await expect(hubDot).toHaveClass(/bg-ok/);
-    expect(headerHeight).toBeLessThan(TWO_LINE_HEADER_HEIGHT);
+  });
+
+  for (const width of TOP_BAR_WIDTHS) {
+    test(`no tile header clips its name or its size line at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(dashboardUrl);
+      await expect(page.getByRole("article").first()).toBeVisible();
+
+      const clippedHeaders = await page
+        .locator("article header")
+        .evaluateAll((headers) =>
+          headers
+            .flatMap((header) => [
+              header.querySelector("h3"),
+              header.querySelector("p"),
+            ])
+            .filter(
+              (element) =>
+                element !== null && element.scrollWidth > element.clientWidth,
+            )
+            .map((element) => element?.textContent),
+        );
+
+      expect(clippedHeaders).toEqual([]);
+    });
+  }
+
+  test("the search box and the url bar each get a full row at 390px", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto(dashboardUrl);
+
+    const searchBox = await page
+      .getByRole("searchbox", { name: "Search devices" })
+      .boundingBox();
+
+    expect(searchBox?.width).toBeGreaterThan(MIN_SEARCH_WIDTH);
   });
 
   test("the iPhone island is drawn on top of the page and the desktop window bars show the app URL", async ({

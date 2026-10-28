@@ -126,6 +126,15 @@ export const createPresetFromCustomDevice = (
   const isMobile = isTouchDevice && !isFirefoxDevice;
   const cpuSlowdown = isTouchDevice ? CPU_TIERS.phone : CPU_TIERS.desktop;
   const { frameShape } = customDevice;
+  const safeAreaInsets = FRAME_SHAPE_INSETS[frameShape];
+  const statusBarHeight = pickStatusBarHeight({
+    frameShape,
+    platform: null,
+    cutout: null,
+    safeAreaInsets,
+  });
+  const hasStatusBar = statusBarHeight > 0;
+  const screen = { width: customDevice.width, height: customDevice.height };
 
   return {
     id: pickDeviceId(customDevice.name),
@@ -137,11 +146,15 @@ export const createPresetFromCustomDevice = (
     maker: "generic",
     cornerRadius: null,
     cutout: null,
-    safeAreaInsets: FRAME_SHAPE_INSETS[frameShape],
+    safeAreaInsets,
     isCustom: true,
     viewportMode: "full-screen",
     use: {
-      viewport: { width: customDevice.width, height: customDevice.height },
+      viewport: {
+        width: screen.width,
+        height: screen.height - statusBarHeight,
+      },
+      ...(hasStatusBar && { screen }),
       deviceScaleFactor: customDevice.pixelRatio,
       isMobile,
       hasTouch: customDevice.hasTouch,
@@ -149,13 +162,68 @@ export const createPresetFromCustomDevice = (
   };
 };
 
+const STATUS_BAR_HEIGHTS_BY_SHAPE = {
+  "home-button": 20,
+  "dynamic-island": 59,
+  "punch-hole": 24,
+  tablet: 24,
+  laptop: 0,
+  kiosk: 0,
+} as const satisfies Record<FrameShape, number>;
+
+const STATUS_BAR_HEIGHTS_BY_CUTOUT = {
+  none: null,
+  notch: 47,
+  "dynamic-island": 59,
+  "punch-hole-center": null,
+  "punch-hole-corner": null,
+  "home-button": 20,
+} as const satisfies Record<CutoutKind, number | null>;
+
+const STATUS_BAR_PLATFORMS: DevicePlatform[] = ["ios", "ipados", "android"];
+const PHONE_SHAPES: FrameShape[] = [
+  "home-button",
+  "dynamic-island",
+  "punch-hole",
+];
+
+// The page sits below this strip in full-screen mode, so the strip never covers it.
+export const pickStatusBarHeight = (
+  deviceIdentity: Pick<
+    DeviceIdentity,
+    "frameShape" | "platform" | "cutout" | "safeAreaInsets"
+  >,
+): number => {
+  const { frameShape, platform, cutout, safeAreaInsets } = deviceIdentity;
+  const isPlatformKnown = platform !== null;
+  const isMobilePlatform =
+    isPlatformKnown && STATUS_BAR_PLATFORMS.includes(platform);
+  const isPhoneShape = PHONE_SHAPES.includes(frameShape);
+  const isWindowShape = frameShape === "laptop" || frameShape === "kiosk";
+  const isStatusBarShown =
+    !isWindowShape && (isPlatformKnown ? isMobilePlatform : isPhoneShape);
+  if (!isStatusBarShown) return 0;
+
+  const publishedHeight = Math.round(safeAreaInsets.top);
+  const isHeightPublished = publishedHeight > 0;
+  if (isHeightPublished) return publishedHeight;
+
+  const isCutoutMissing = cutout === null;
+  const cutoutHeight = isCutoutMissing
+    ? null
+    : STATUS_BAR_HEIGHTS_BY_CUTOUT[cutout.kind];
+  return cutoutHeight ?? STATUS_BAR_HEIGHTS_BY_SHAPE[frameShape];
+};
+
 const pickModeViewport = (
   catalogDevice: CatalogDevice,
   viewportMode: ViewportMode,
 ): DeviceViewport => {
   switch (viewportMode) {
-    case "full-screen":
-      return catalogDevice.fullScreen;
+    case "full-screen": {
+      const { width, height } = catalogDevice.fullScreen;
+      return { width, height: height - pickStatusBarHeight(catalogDevice) };
+    }
     case "browser":
       return catalogDevice.browserViewport ?? catalogDevice.fullScreen;
   }

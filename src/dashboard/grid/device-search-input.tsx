@@ -14,7 +14,7 @@ export const DeviceSearchInput = (): ReactElement => {
   const isSearchEmpty = searchQuery === "";
 
   return (
-    <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-line bg-soft px-3 text-ink-2 md:h-9 md:w-56 md:flex-none">
+    <label className="order-last flex h-11 w-full min-w-0 items-center gap-2 rounded-full border border-line bg-soft px-3 text-ink-2 md:order-none md:h-9 md:w-56 md:flex-none">
       <Icon name="search" size={16} />
       <input
         ref={searchInputRef}

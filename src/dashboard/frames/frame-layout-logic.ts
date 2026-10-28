@@ -530,6 +530,12 @@ const pickStatusHeight = (
 ): number => {
   const hasNoStatusBar = statusStyle === null || look.statusBarHeight === 0;
   if (hasNoStatusBar) return 0;
+
+  const isBrowserMode = frameSpec.viewportMode === "browser";
+  if (!isBrowserMode) {
+    return Math.max(0, frameSpec.screenHeight - frameSpec.viewportHeight);
+  }
+
   const { top: insetTop } = frameSpec.safeAreaInsets;
   const isInsetPublished = insetTop > 0;
   if (isInsetPublished) return insetTop;
@@ -546,9 +552,11 @@ const pickChromeHeights = (
   look: FamilyLook,
   statusHeight: number,
 ): ChromeHeights => {
+  const hasNoStatusBar = statusHeight === 0;
+  if (hasNoStatusBar) return { total: 0, toolbar: 0 };
+
   const isBrowserMode = frameSpec.viewportMode === "browser";
-  const hasNoChrome = !isBrowserMode || statusHeight === 0;
-  if (hasNoChrome) return { total: 0, toolbar: 0 };
+  if (!isBrowserMode) return { total: statusHeight, toolbar: 0 };
 
   const gap = frameSpec.screenHeight - frameSpec.viewportHeight;
   const isGapKnown = gap > statusHeight;

@@ -13,10 +13,11 @@ export const emulateDevice = async (
   const viewport = pickDeviceViewport(devicePreset);
   const screen = pickDeviceScreen(devicePreset);
 
-  const { top, bottom, left, right } = devicePreset.safeAreaInsets;
+  const { bottom, left, right } = devicePreset.safeAreaInsets;
   // Chrome accepts whole CSS px only, and AOSP numbers are fractional.
+  // The page always sits below the status bar, so no top inset reaches it.
   const wholeInsets = {
-    top: Math.round(top),
+    top: 0,
     bottom: Math.round(bottom),
     left: Math.round(left),
     right: Math.round(right),

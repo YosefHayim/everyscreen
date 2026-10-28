@@ -16,7 +16,7 @@ const createFrameSpec = (changes: Partial<FrameSpec>): FrameSpec => ({
   safeAreaInsets: { top: 0, bottom: 0, left: 0, right: 0 },
   viewportMode: "full-screen",
   viewportWidth: 393,
-  viewportHeight: 852,
+  viewportHeight: 793,
   screenWidth: 393,
   screenHeight: 852,
   ...changes,
@@ -153,9 +153,9 @@ describe("pickFrameLayout", () => {
     });
     expect(frameLayout.page).toEqual({
       left: 0,
-      top: 0,
+      top: 59,
       width: 393,
-      height: 852,
+      height: 793,
     });
     expect(frameLayout.cutout?.drawing).toBe("island");
     expect(frameLayout.cutout?.box).toEqual({
@@ -169,6 +169,7 @@ describe("pickFrameLayout", () => {
       startZoneWidth: 133.5,
       endZoneWidth: 133.5,
       centerY: 11 + 18.5,
+      box: { left: 0, top: 0, width: 393, height: 59 },
     });
     expect(frameLayout.homeIndicator).toEqual({
       left: 129.5,
@@ -189,7 +190,7 @@ describe("pickFrameLayout", () => {
         top: 5,
         left: 100,
       }),
-      safeAreaInsets: { top: 30, bottom: 0, left: 0, right: 0 },
+      viewportHeight: 822,
     });
 
     const frameLayout = pickFrameLayout(frameSpec);
@@ -209,6 +210,7 @@ describe("pickFrameLayout", () => {
       frameShape: "punch-hole",
       platform: "android",
       cutout: createCutout("punch-hole-corner"),
+      viewportHeight: 828,
     });
 
     const frameLayout = pickFrameLayout(frameSpec);
@@ -223,7 +225,7 @@ describe("pickFrameLayout", () => {
       frameShape: "punch-hole",
       platform: "android",
       cutout: createCutout("punch-hole-center", { top: 40 }),
-      safeAreaInsets: { top: 10, bottom: 0, left: 0, right: 0 },
+      viewportHeight: 842,
     });
 
     const frameLayout = pickFrameLayout(frameSpec);
@@ -236,6 +238,7 @@ describe("pickFrameLayout", () => {
       frameShape: "punch-hole",
       platform: "android",
       cutout: createCutout("none"),
+      viewportHeight: 828,
     });
 
     const frameLayout = pickFrameLayout(frameSpec);
@@ -249,6 +252,7 @@ describe("pickFrameLayout", () => {
     const frameSpec = createFrameSpec({
       cutout: createCutout("notch"),
       frameShape: "dynamic-island",
+      viewportHeight: 805,
     });
 
     const frameLayout = pickFrameLayout(frameSpec);
@@ -262,10 +266,9 @@ describe("pickFrameLayout", () => {
     const frameSpec = createFrameSpec({
       frameShape: "home-button",
       viewportWidth: 375,
-      viewportHeight: 667,
+      viewportHeight: 647,
       screenWidth: 375,
       screenHeight: 667,
-      safeAreaInsets: { top: 20, bottom: 0, left: 0, right: 0 },
     });
 
     const frameLayout = pickFrameLayout(frameSpec);
@@ -289,7 +292,7 @@ describe("pickFrameLayout", () => {
       frameShape: "tablet",
       platform: "ipados",
       viewportWidth: 820,
-      viewportHeight: 1180,
+      viewportHeight: 1156,
       screenWidth: 820,
       screenHeight: 1180,
     });
@@ -300,6 +303,28 @@ describe("pickFrameLayout", () => {
     expect(frameLayout.cutout?.drawing).toBe("camera");
     expect(frameLayout.cutout?.box.top).toBe((52 - 8) / 2);
     expect(frameLayout.statusBar?.style).toBe("ios");
+  });
+
+  test("stacks the status bar above the page so it never covers it in full-screen mode", () => {
+    const frameSpec = createFrameSpec({});
+
+    const frameLayout = pickFrameLayout(frameSpec);
+
+    expect(frameLayout.statusBar?.box.height).toBe(59);
+    expect(frameLayout.page.top).toBe(frameLayout.statusBar?.box.height);
+    expect(frameLayout.screen.height).toBe(
+      frameLayout.page.top + frameLayout.page.height,
+    );
+    expect(frameLayout.toolbar).toBeNull();
+  });
+
+  test("draws no status bar when the page fills the whole screen", () => {
+    const frameSpec = createFrameSpec({ viewportHeight: 852 });
+
+    const frameLayout = pickFrameLayout(frameSpec);
+
+    expect(frameLayout.statusBar).toBeNull();
+    expect(frameLayout.page.top).toBe(0);
   });
 
   test("adds a bottom toolbar under the page for an iOS browser view with a known gap", () => {

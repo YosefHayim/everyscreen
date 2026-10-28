@@ -43,7 +43,7 @@ export const DeviceTile = ({
 }: DeviceTileProps): ReactElement => {
   const { t } = useTranslation();
   const { deviceId, name, browserName } = device;
-  const { viewportWidth, viewportHeight } = device;
+  const { screenWidth, screenHeight } = device;
   const screenImageUrl = useScreenImage(deviceId);
   const deviceLoad = useDeviceLoad(deviceId);
   const deviceTest = useDeviceTest(deviceId);
@@ -72,37 +72,39 @@ export const DeviceTile = ({
         isTrueSize && "w-fit flex-none",
       )}
     >
-      <header className="flex min-h-7 items-center gap-x-2 overflow-hidden px-2 py-0.5">
-        <h3 className="m-0 min-w-[9ch] flex-1 truncate text-xs font-semibold">
-          <Link
-            to="/focus/$deviceId"
-            params={{ deviceId }}
-            title={name}
-            className="text-ink no-underline"
+      <header className="flex flex-col gap-0.5 px-2 py-1">
+        <div className="flex items-center gap-x-2">
+          <h3 className="m-0 min-w-0 flex-1 truncate text-xs font-semibold">
+            <Link
+              to="/focus/$deviceId"
+              params={{ deviceId }}
+              title={name}
+              className="text-ink no-underline"
+            >
+              {name}
+            </Link>
+          </h3>
+          <StatusChip
+            status={status}
+            label={t(`tile.status.${status}`)}
+            isLabelHidden
+          />
+          <button
+            type="button"
+            onClick={onZoom}
+            aria-label={t("tile.expand", { name })}
+            className="grid size-6 flex-none cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-ink-2 opacity-0 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:hidden"
           >
-            {name}
-          </Link>
-        </h3>
-        <span className="min-w-0 truncate font-mono text-[10px] text-ink-2">
-          {viewportWidth}&times;{viewportHeight}
-        </span>
-        <span className="inline-flex min-w-0 items-center gap-1 truncate font-mono text-[10px] text-ink-2">
+            <Icon name="expand" size={14} />
+          </button>
+        </div>
+        <p className="m-0 flex items-center gap-1.5 font-mono text-[10px] text-ink-2">
           <span aria-hidden="true" className={liveDotClassName} />
-          {t(`tile.engines.${browserName}`)}
-        </span>
-        <StatusChip
-          status={status}
-          label={t(`tile.status.${status}`)}
-          isLabelHidden
-        />
-        <button
-          type="button"
-          onClick={onZoom}
-          aria-label={t("tile.expand", { name })}
-          className="grid size-6 flex-none cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-ink-2 opacity-0 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:hidden"
-        >
-          <Icon name="expand" size={14} />
-        </button>
+          <span>
+            {screenWidth}&times;{screenHeight} &middot;{" "}
+            {t(`tile.engines.${browserName}`)}
+          </span>
+        </p>
       </header>
       <div
         className="flex flex-1 items-start justify-center bg-soft"

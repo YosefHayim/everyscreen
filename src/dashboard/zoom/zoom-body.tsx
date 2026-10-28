@@ -49,7 +49,7 @@ export const ZoomBody = ({
       <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2">
         <h2 className="m-0 text-sm font-semibold">{name}</h2>
         <span className="font-mono text-xs text-ink-2">
-          {device.viewportWidth}&times;{device.viewportHeight} &middot;{" "}
+          {device.screenWidth}&times;{device.screenHeight} &middot;{" "}
           {t(`tile.engines.${browserName}`)}
         </span>
         <span className="ms-auto flex items-center gap-2">
