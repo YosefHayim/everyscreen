@@ -13,11 +13,16 @@ const watchdog: { silenceTimer: ReturnType<typeof setTimeout> | null } = {
 
 const endSilentRun = (): void => {
   watchdog.silenceTimer = null;
-  const silentRunEnd = pickSilentRunEnd(readRunTotals(), Date.now());
+  const runningTests = listRunningTests();
+  const silentRunEnd = pickSilentRunEnd(
+    readRunTotals(),
+    runningTests.length,
+    Date.now(),
+  );
   const isRunAlreadyOver = silentRunEnd === null;
   if (isRunAlreadyOver) return;
 
-  const stoppedTests = listStoppedTests(listRunningTests());
+  const stoppedTests = listStoppedTests(runningTests);
   for (const stoppedTest of stoppedTests) {
     broadcast({ kind: "test", ...stoppedTest });
   }

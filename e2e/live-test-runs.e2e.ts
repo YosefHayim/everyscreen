@@ -397,6 +397,10 @@ liveTest.describe("live test runs", () => {
         await expect(
           runBar.getByText("Failed", { exact: true }).first(),
         ).toBeVisible();
+        const failedCounter = runBar
+          .locator("dt", { hasText: "Failed" })
+          .locator("xpath=following-sibling::dd");
+        await expect(failedCounter).toHaveText("1");
         await expect(iphoneTile).toContainText("failed");
         await expect(iphoneTile).toContainText("Run stopped without a report");
         await expect(iphoneTile).not.toContainText("running");

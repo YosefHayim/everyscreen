@@ -57,17 +57,17 @@ describe("listStoppedTests", () => {
 
 describe("pickSilentRunEnd", () => {
   test("gives nothing when no run is known", () => {
-    expect(pickSilentRunEnd(null, 5000)).toBeNull();
+    expect(pickSilentRunEnd(null, 0, 5000)).toBeNull();
   });
 
   test("gives nothing when the run already ended", () => {
     const endedTotals = createTotals({ outcome: "ok", endedAt: 3000 });
 
-    expect(pickSilentRunEnd(endedTotals, 5000)).toBeNull();
+    expect(pickSilentRunEnd(endedTotals, 2, 5000)).toBeNull();
   });
 
-  test("ends a live run as failed and stopped, keeping its counts", () => {
-    const silentEnd = pickSilentRunEnd(createTotals(), 5000);
+  test("ends a live run as failed and stopped, keeping its counts when no test was running", () => {
+    const silentEnd = pickSilentRunEnd(createTotals(), 0, 5000);
 
     expect(silentEnd).toEqual(
       createTotals({
@@ -76,5 +76,22 @@ describe("pickSilentRunEnd", () => {
         endReason: "stopped",
       }),
     );
+  });
+
+  test("counts the one running test as failed", () => {
+    const liveTotals = createTotals({ failedCount: 1 });
+
+    const silentEnd = pickSilentRunEnd(liveTotals, 1, 5000);
+
+    expect(silentEnd?.failedCount).toBe(2);
+  });
+
+  test("counts every running test as failed on top of the earlier failures", () => {
+    const liveTotals = createTotals({ okCount: 1, failedCount: 1 });
+
+    const silentEnd = pickSilentRunEnd(liveTotals, 3, 5000);
+
+    expect(silentEnd?.failedCount).toBe(4);
+    expect(silentEnd?.okCount).toBe(1);
   });
 });
