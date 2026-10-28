@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { pickZoomChange } from "@/live/zoom-logic";
+import { pickZoomChange, pickZoomOwnerId } from "@/live/zoom-logic";
 
 const KNOWN_DEVICE_IDS = ["iphone-17", "pixel-9"];
 
@@ -47,5 +47,19 @@ describe("pickZoomChange", () => {
     const zoomUnknown = () => pickZoomChange(null, "nokia", KNOWN_DEVICE_IDS);
 
     expect(zoomUnknown).toThrow("no live device with id nokia");
+  });
+});
+
+describe("pickZoomOwnerId", () => {
+  test("names the client as owner when a device is zoomed", () => {
+    const zoomOwnerId = pickZoomOwnerId("pixel-9", "tab-1");
+
+    expect(zoomOwnerId).toBe("tab-1");
+  });
+
+  test("names no owner when zoom ends", () => {
+    const zoomOwnerId = pickZoomOwnerId(null, "tab-1");
+
+    expect(zoomOwnerId).toBeNull();
   });
 });

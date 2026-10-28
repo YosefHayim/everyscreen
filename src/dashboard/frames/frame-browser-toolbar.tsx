@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import type { Box } from "@/dashboard/frames/frame-layout-logic";
+import { FramePageUrl } from "@/dashboard/frames/frame-page-url";
 
 const ADDRESS_PILL_WIDTH_SHARE = 0.62;
 const ADDRESS_PILL_HEIGHT_SHARE = 0.5;
@@ -22,11 +23,13 @@ export const FrameBrowserToolbar = ({
     }}
   >
     <span
-      className="rounded-full bg-line"
+      className="flex items-center rounded-full bg-line"
       style={{
         width: box.width * ADDRESS_PILL_WIDTH_SHARE,
         height: box.height * ADDRESS_PILL_HEIGHT_SHARE,
       }}
-    />
+    >
+      <FramePageUrl />
+    </span>
   </div>
 );

@@ -115,6 +115,11 @@ export const broadcast = (
   for (const listener of listeners) listener(message);
 };
 
+export const forgetDeviceScreen = (deviceId: string): void => {
+  lastScreens.delete(deviceId);
+  screenPhases.delete(deviceId);
+};
+
 export const releaseDeviceScreen = (deviceId: string): void => {
   screenPhases.delete(deviceId);
 };

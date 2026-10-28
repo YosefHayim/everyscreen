@@ -21,7 +21,7 @@ export const ZoomDialog = (zoomRequest: ZoomRequest): ReactElement => {
       onClose={zoomControls.closeZoom}
       onKeyDown={zoomControls.moveWithArrowKey}
     >
-      {zoomView !== null && (
+      {isOpen && (
         <ZoomBody
           zoomView={zoomView}
           zoomMode={zoomMode}

@@ -10,16 +10,24 @@ import {
   type DevicePage,
   startDeviceBrowser,
 } from "@/devices/device-browsers";
-import { type DevicePreset, pickGridDevices } from "@/devices/devices-logic";
+import {
+  type DevicePreset,
+  type GridSync,
+  pickGridChanges,
+  pickGridDevices,
+} from "@/devices/devices-logic";
 import { readDevicesFile } from "@/devices/devices-store";
 import { HUB_FILE_PATH, HUB_HOST } from "@/environment";
 import { createHubApp } from "@/hub/hub-app";
 import type { HubFile } from "@/hub/hub-file";
 import { writeProblem } from "@/hub/problem-reply";
+import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { writeStoredFile } from "@/hub/stored-files";
+import { forgetDeviceScreen } from "@/live/live-feed";
 import { liveRoutes } from "@/live/live-routes";
 
 const HUB_FILE_MODE = 0o600;
+const GRID_SYNC_QUEUE_KEY = "grid-sync";
 const NOT_FOUND_STATUS = 404;
 const API_PATH = "/api/*";
 const CLIENT_ROUTE_PATH = "*";
@@ -112,10 +120,53 @@ const writeHubFile = async (
   await writeStoredFile(hubFilePath, serializedHubFile, HUB_FILE_MODE);
 };
 
-const createHubServerApp = (hubStart: HubStart, devicePages: DevicePage[]) => {
+const removeFromList = <Listed>(
+  list: Listed[],
+  isRemoved: (listed: Listed) => boolean,
+): void => {
+  const keptEntries = list.filter((listed) => !isRemoved(listed));
+  list.splice(0, list.length, ...keptEntries);
+};
+
+// The lists stay the same arrays because the command routes and the hub file read them live.
+const createGridSync =
+  (
+    gridDevices: GridDevice[],
+    devicePages: DevicePage[],
+    writeCurrentHubFile: () => Promise<void>,
+  ): GridSync =>
+  (nextDevices) =>
+    runOneAtATime(GRID_SYNC_QUEUE_KEY, async () => {
+      const runningDeviceIds = gridDevices.map(({ device }) => device.id);
+      const gridChanges = pickGridChanges(runningDeviceIds, nextDevices);
+      const { addDevices, removeDeviceIds } = gridChanges;
+      const goneDevices = gridDevices.filter(({ device }) =>
+        removeDeviceIds.includes(device.id),
+      );
+      removeFromList(gridDevices, ({ device }) =>
+        removeDeviceIds.includes(device.id),
+      );
+      removeFromList(devicePages, ({ device }) =>
+        removeDeviceIds.includes(device.id),
+      );
+      await stopGridDevices(goneDevices);
+      for (const removeDeviceId of removeDeviceIds) {
+        forgetDeviceScreen(removeDeviceId);
+      }
+      const startedDevices = await startGridDevices(addDevices);
+      gridDevices.push(...startedDevices);
+      devicePages.push(...startedDevices.map(({ devicePage }) => devicePage));
+      await writeCurrentHubFile();
+    });
+
+const createHubServerApp = (
+  hubStart: HubStart,
+  devicePages: DevicePage[],
+  syncGrid: GridSync,
+) => {
   const { rootFolder, dashboardFolder } = hubStart;
   return new Hono()
-    .route("/", createHubApp(rootFolder, devicePages))
+    .route("/", createHubApp(rootFolder, devicePages, syncGrid))
     .route("/", liveRoutes)
     .all(API_PATH, () => {
       throw new HTTPException(NOT_FOUND_STATUS, { message: "No such route" });
@@ -179,7 +230,14 @@ export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
   const hubFilePath = join(rootFolder, HUB_FILE_PATH);
 
   const websocketServer = new WebSocketServer({ noServer: true });
-  const hubServerApp = createHubServerApp(hubStart, devicePages);
+  const writeCurrentHubFile = () =>
+    writeHubFile(hubFilePath, createHubFile(listeningServer.port, gridDevices));
+  const syncGrid = createGridSync(
+    gridDevices,
+    devicePages,
+    writeCurrentHubFile,
+  );
+  const hubServerApp = createHubServerApp(hubStart, devicePages, syncGrid);
   const listeningServer = await listenOrStopDevices(
     hubServerApp,
     websocketServer,
@@ -187,8 +245,7 @@ export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
     gridDevices,
   );
   try {
-    const hubFile = createHubFile(listeningServer.port, gridDevices);
-    await writeHubFile(hubFilePath, hubFile);
+    await writeCurrentHubFile();
 
     const stop = async (): Promise<void> => {
       await rm(hubFilePath, { force: true });

@@ -334,3 +334,24 @@ export const replaceGrid = (
   const uniqueIds = [...new Set(deviceIds)];
   return checkDeviceIds({ ...devicesFile, grid: uniqueIds });
 };
+
+export type GridSync = (gridDevices: DevicePreset[]) => Promise<void>;
+
+export interface GridChanges {
+  addDevices: DevicePreset[];
+  removeDeviceIds: string[];
+}
+
+export const pickGridChanges = (
+  runningDeviceIds: string[],
+  gridDevices: DevicePreset[],
+): GridChanges => {
+  const gridDeviceIds = gridDevices.map(({ id }) => id);
+  const addDevices = gridDevices.filter(
+    ({ id }) => !runningDeviceIds.includes(id),
+  );
+  const removeDeviceIds = runningDeviceIds.filter(
+    (runningDeviceId) => !gridDeviceIds.includes(runningDeviceId),
+  );
+  return { addDevices, removeDeviceIds };
+};

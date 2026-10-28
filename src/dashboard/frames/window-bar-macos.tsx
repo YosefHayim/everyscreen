@@ -1,4 +1,6 @@
 import type { ReactElement } from "react";
+import { FramePageUrl } from "@/dashboard/frames/frame-page-url";
+import { cn } from "@/dashboard/ui/cn";
 
 const TRAFFIC_LIGHT_CLASS_NAMES = [
   "bg-window-close",
@@ -12,11 +14,13 @@ export const WindowBarMacos = (): ReactElement => (
       {TRAFFIC_LIGHT_CLASS_NAMES.map((lightClassName) => (
         <span
           key={lightClassName}
-          className={`size-3 rounded-full ${lightClassName}`}
+          className={cn("size-3 rounded-full", lightClassName)}
         />
       ))}
     </span>
-    <span className="mx-auto h-7 w-[46%] rounded-md bg-line" />
+    <span className="mx-auto flex h-7 w-[46%] items-center rounded-md bg-line">
+      <FramePageUrl />
+    </span>
     <span className="w-[79px]" />
   </div>
 );

@@ -43,7 +43,13 @@ export const useZoomDialog = (zoomRequest: ZoomRequest): ZoomDialogControls => {
     keyboardEvent: KeyboardEvent<HTMLDialogElement>,
   ) => {
     const readingDirection: ReadingDirection = i18n.dir();
-    const arrowStep = pickArrowStep(keyboardEvent.key, readingDirection);
+    const { key, altKey, metaKey, ctrlKey, shiftKey } = keyboardEvent;
+    const isModified = altKey || metaKey || ctrlKey || shiftKey;
+    const arrowStep = pickArrowStep({
+      key,
+      direction: readingDirection,
+      isModified,
+    });
     const isNotArrow = arrowStep === null;
     if (isNotArrow || zoomedDeviceId === null) return;
     const deviceIds = deviceViews.map((deviceView) => deviceView.deviceId);

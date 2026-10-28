@@ -13,6 +13,7 @@ import {
   pickDeviceId,
   pickDeviceScreen,
   pickDeviceViewport,
+  pickGridChanges,
   pickGridDevices,
   replaceGrid,
 } from "@/devices/devices-logic";
@@ -396,5 +397,36 @@ describe("replaceGrid", () => {
 
     expect(changeGrid).toThrow("grid: no device with id nokia");
     expect(readStatus(changeGrid)).toBe(422);
+  });
+});
+
+describe("pickGridChanges", () => {
+  const phonePreset = createPresetFromCustomDevice(TOUCH_KIOSK);
+  const screenPreset = createPresetFromCustomDevice(MOUSE_SCREEN);
+
+  test("adds a grid device that has no browser yet", () => {
+    const gridChanges = pickGridChanges(
+      [phonePreset.id],
+      [phonePreset, screenPreset],
+    );
+
+    expect(gridChanges.addDevices).toEqual([screenPreset]);
+    expect(gridChanges.removeDeviceIds).toEqual([]);
+  });
+
+  test("removes a running device that left the grid", () => {
+    const gridChanges = pickGridChanges(
+      [phonePreset.id, screenPreset.id],
+      [screenPreset],
+    );
+
+    expect(gridChanges.addDevices).toEqual([]);
+    expect(gridChanges.removeDeviceIds).toEqual([phonePreset.id]);
+  });
+
+  test("changes nothing when the grid already runs", () => {
+    const gridChanges = pickGridChanges([phonePreset.id], [phonePreset]);
+
+    expect(gridChanges).toEqual({ addDevices: [], removeDeviceIds: [] });
   });
 });

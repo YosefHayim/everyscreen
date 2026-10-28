@@ -11,7 +11,9 @@
     "hubOffline": "Offline",
     "urlLabel": "App URL",
     "searchLabel": "Search devices",
-    "searchPlaceholder": "Search devices"
+    "searchPlaceholder": "Search devices",
+    "searchShortcutMac": "⌘K",
+    "searchShortcutOther": "Ctrl K"
   },
   "runBar": {
     "label": "Test run",

@@ -4,6 +4,7 @@ import { FrameCutout } from "@/dashboard/frames/frame-cutout";
 import type { FrameLayout } from "@/dashboard/frames/frame-layout-logic";
 import { FrameStatusBar } from "@/dashboard/frames/frame-status-bar";
 import { FrameWindowBar } from "@/dashboard/frames/frame-window-bar";
+import { cn } from "@/dashboard/ui/cn";
 
 interface DeviceFrameProps {
   layout: FrameLayout;
@@ -20,7 +21,10 @@ export const DeviceFrame = ({
   const { statusBar, toolbar, cutout, homeIndicator } = layout;
   const hasBody = layout.hasBody;
   const hasWindowBar = windowBar !== null;
-  const windowClassName = hasWindowBar ? "border border-line shadow-lift" : "";
+  const hasToolbar = toolbar !== null;
+  const hasStatusBar = statusBar !== null;
+  const hasHomeIndicator = homeIndicator !== null;
+  const hasCutout = cutout !== null;
 
   return (
     <div
@@ -41,7 +45,10 @@ export const DeviceFrame = ({
           />
         )}
         <div
-          className={`absolute overflow-hidden bg-card ${windowClassName}`}
+          className={cn(
+            "absolute overflow-hidden bg-card",
+            hasWindowBar && "border border-line shadow-lift",
+          )}
           style={{
             left: screen.left,
             top: screen.top,
@@ -65,9 +72,9 @@ export const DeviceFrame = ({
           {hasWindowBar && (
             <FrameWindowBar kind={windowBar.kind} box={windowBar.box} />
           )}
-          {toolbar !== null && <FrameBrowserToolbar box={toolbar} />}
-          {statusBar !== null && <FrameStatusBar statusBar={statusBar} />}
-          {homeIndicator !== null && (
+          {hasToolbar && <FrameBrowserToolbar box={toolbar} />}
+          {hasStatusBar && <FrameStatusBar statusBar={statusBar} />}
+          {hasHomeIndicator && (
             <span
               aria-hidden="true"
               className="absolute rounded-full bg-ink"
@@ -80,9 +87,7 @@ export const DeviceFrame = ({
             />
           )}
         </div>
-        {cutout !== null && (
-          <FrameCutout drawing={cutout.drawing} box={cutout.box} />
-        )}
+        {hasCutout && <FrameCutout drawing={cutout.drawing} box={cutout.box} />}
       </div>
     </div>
   );

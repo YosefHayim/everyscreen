@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { FramePageUrl } from "@/dashboard/frames/frame-page-url";
 import { Icon } from "@/dashboard/ui/icon";
 
 const CAPTION_BUTTONS = [
@@ -26,7 +27,9 @@ export const WindowBarWindows = (): ReactElement => (
     </div>
     <div className="flex h-10 items-center gap-2 border-line border-b bg-card px-3">
       <span className="h-6 w-16 rounded bg-soft" />
-      <span className="h-7 flex-1 rounded-full bg-soft" />
+      <span className="flex h-7 min-w-0 flex-1 items-center rounded-full bg-soft">
+        <FramePageUrl />
+      </span>
     </div>
   </div>
 );

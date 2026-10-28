@@ -21,6 +21,11 @@ export const ModalDialog = ({
 }: ModalDialogProps): ReactElement => {
   const dialogRef = useModalDialog(isOpen);
 
+  // Closing through isOpen also fires the close event; only a close the dialog started itself reports.
+  const reportDialogClose = () => {
+    if (isOpen) onClose();
+  };
+
   // A click that lands on the dialog itself, not its content, hit the backdrop.
   const closeOnBackdropClick = (clickEvent: MouseEvent<HTMLDialogElement>) => {
     const isBackdropClicked = clickEvent.target === clickEvent.currentTarget;
@@ -31,7 +36,7 @@ export const ModalDialog = ({
     <dialog
       ref={dialogRef}
       aria-label={label}
-      onClose={onClose}
+      onClose={reportDialogClose}
       onClick={closeOnBackdropClick}
       onKeyDown={onKeyDown ?? undefined}
       className={cn(

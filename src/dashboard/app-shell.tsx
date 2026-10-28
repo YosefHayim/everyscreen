@@ -26,8 +26,9 @@ export const AppShell = (): ReactElement => {
   const isGridRoute = pathname === "/";
   const hubLabelKey = isLive ? "shell.hubConnected" : "shell.hubOffline";
   const liveDotClassName = cn(
-    "size-2 rounded-full bg-pink",
-    isLive && "live-dot",
+    "size-2 rounded-full",
+    isLive && "live-dot bg-ok",
+    !isLive && "bg-failed",
   );
 
   return (

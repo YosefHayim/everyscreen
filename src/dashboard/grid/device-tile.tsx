@@ -72,20 +72,21 @@ export const DeviceTile = ({
         isTrueSize && "w-fit flex-none",
       )}
     >
-      <header className="flex min-h-7 flex-wrap items-center gap-x-2 gap-y-0 px-2 py-0.5">
-        <h3 className="m-0 min-w-16 flex-1 truncate text-xs font-semibold">
+      <header className="flex min-h-7 items-center gap-x-2 overflow-hidden px-2 py-0.5">
+        <h3 className="m-0 min-w-[9ch] flex-1 truncate text-xs font-semibold">
           <Link
             to="/focus/$deviceId"
             params={{ deviceId }}
+            title={name}
             className="text-ink no-underline"
           >
             {name}
           </Link>
         </h3>
-        <span className="flex-none font-mono text-[10px] text-ink-2">
+        <span className="min-w-0 truncate font-mono text-[10px] text-ink-2">
           {viewportWidth}&times;{viewportHeight}
         </span>
-        <span className="inline-flex flex-none items-center gap-1 font-mono text-[10px] text-ink-2">
+        <span className="inline-flex min-w-0 items-center gap-1 truncate font-mono text-[10px] text-ink-2">
           <span aria-hidden="true" className={liveDotClassName} />
           {t(`tile.engines.${browserName}`)}
         </span>

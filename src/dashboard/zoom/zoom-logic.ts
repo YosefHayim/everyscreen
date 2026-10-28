@@ -10,6 +10,12 @@ export type ZoomMode = "fit" | "true-size";
 export type ArrowStep = 1 | -1;
 export type ReadingDirection = "ltr" | "rtl";
 
+export interface ArrowPress {
+  key: string;
+  direction: ReadingDirection;
+  isModified: boolean;
+}
+
 export interface ZoomView {
   device: DeviceView;
   frameLayout: FrameLayout;
@@ -54,14 +60,13 @@ export const pickNeighborDeviceId = (
 };
 
 // The right arrow always points to the right on screen, which is the previous device in right-to-left.
-export const pickArrowStep = (
-  key: string,
-  direction: ReadingDirection,
-): ArrowStep | null => {
+export const pickArrowStep = (arrowPress: ArrowPress): ArrowStep | null => {
+  const { key, direction, isModified } = arrowPress;
   const isRightArrow = key === "ArrowRight";
   const isLeftArrow = key === "ArrowLeft";
   const isArrowKey = isRightArrow || isLeftArrow;
-  if (!isArrowKey) return null;
+  const isPlainArrowKey = isArrowKey && !isModified;
+  if (!isPlainArrowKey) return null;
   const isLeftToRight = direction === "ltr";
   const isNextForRightArrow = isLeftToRight === isRightArrow;
   if (isNextForRightArrow) return NEXT_STEP;

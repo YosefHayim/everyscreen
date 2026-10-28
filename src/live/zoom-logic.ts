@@ -25,3 +25,12 @@ export const pickZoomChange = (
   if (isNothingChanging) return { restoreDeviceId: null, zoomDeviceId: null };
   return { restoreDeviceId: previousDeviceId, zoomDeviceId: nextDeviceId };
 };
+
+export const pickZoomOwnerId = (
+  nextDeviceId: string | null,
+  clientId: string,
+): string | null => {
+  const isZoomEnding = nextDeviceId === null;
+  if (isZoomEnding) return null;
+  return clientId;
+};

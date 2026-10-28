@@ -72,19 +72,31 @@ describe("pickNeighborDeviceId", () => {
   });
 });
 
+const PLAIN_RIGHT = {
+  key: "ArrowRight",
+  direction: "ltr",
+  isModified: false,
+} as const;
+
 describe("pickArrowStep", () => {
   test("follows the screen side in left-to-right pages", () => {
-    expect(pickArrowStep("ArrowRight", "ltr")).toBe(1);
-    expect(pickArrowStep("ArrowLeft", "ltr")).toBe(-1);
+    expect(pickArrowStep(PLAIN_RIGHT)).toBe(1);
+    expect(pickArrowStep({ ...PLAIN_RIGHT, key: "ArrowLeft" })).toBe(-1);
   });
 
   test("follows the reading direction in right-to-left pages", () => {
-    expect(pickArrowStep("ArrowRight", "rtl")).toBe(-1);
-    expect(pickArrowStep("ArrowLeft", "rtl")).toBe(1);
+    expect(pickArrowStep({ ...PLAIN_RIGHT, direction: "rtl" })).toBe(-1);
+    expect(
+      pickArrowStep({ key: "ArrowLeft", direction: "rtl", isModified: false }),
+    ).toBe(1);
   });
 
   test("ignores other keys", () => {
-    expect(pickArrowStep("Enter", "ltr")).toBeNull();
+    expect(pickArrowStep({ ...PLAIN_RIGHT, key: "Enter" })).toBeNull();
+  });
+
+  test("ignores an arrow pressed with alt, cmd, ctrl or shift", () => {
+    expect(pickArrowStep({ ...PLAIN_RIGHT, isModified: true })).toBeNull();
   });
 });
 

@@ -1,4 +1,5 @@
 import type { Finding } from "@/checks/checks-logic";
+import { LIVE_CLIENT_ID } from "@/dashboard/device-feed/live-client-id";
 import {
   addDeviceStep,
   type DeviceStep,
@@ -22,7 +23,7 @@ const MAX_FINDINGS = 20;
 const MAX_COMMAND_NOTICES = 8;
 const IS_PAGE_SECURE = location.protocol === "https:";
 const LIVE_SCHEME = IS_PAGE_SECURE ? "wss:" : "ws:";
-const LIVE_URL = `${LIVE_SCHEME}//${location.host}${LIVE_PATH}`;
+const LIVE_URL = `${LIVE_SCHEME}//${location.host}${LIVE_PATH}?clientId=${LIVE_CLIENT_ID}`;
 
 interface Connection {
   status: ConnectionStatus;

@@ -23,6 +23,11 @@ const FIRST_SCREEN_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 const SECOND_SCREEN_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg==";
+const TOP_BAR_WIDTHS = [390, 768, 1440];
+const MIN_URL_WIDTH = 120;
+const TWO_LINE_HEADER_HEIGHT = 36;
+const SHOP_URL = "https://shop.example/cart";
+const WINDOW_FAMILIES = ["window-macos", "window-windows", "window-linux"];
 const GRID_VIEW_STORAGE_KEY = "everyscreen.gridView";
 const FRAME_FAMILIES_BY_DEVICE = [
   { name: "iPhone SE", family: "phone-home-button" },
@@ -244,6 +249,93 @@ test.describe("device grid", () => {
     await page.getByRole("article").first().hover();
 
     await expect(expandButton).toHaveCSS("opacity", "1");
+  });
+
+  for (const viewportWidth of TOP_BAR_WIDTHS) {
+    test(`the top bar parts never overlap at ${viewportWidth} wide`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: viewportWidth, height: 900 });
+      await page.goto(dashboardUrl);
+      await expect(page.getByRole("article").first()).toBeVisible();
+
+      const partBoxes = await page
+        .locator("header > *")
+        .evaluateAll((parts) =>
+          parts.map((part) => part.getBoundingClientRect().toJSON()),
+        );
+      const urlWidth = (
+        await page.getByRole("textbox", { name: "App URL" }).boundingBox()
+      )?.width;
+
+      for (const [firstIndex, firstBox] of partBoxes.entries()) {
+        for (const secondBox of partBoxes.slice(firstIndex + 1)) {
+          const isSideBySide =
+            firstBox.right <= secondBox.left + 1 ||
+            secondBox.right <= firstBox.left + 1;
+          const isStacked =
+            firstBox.bottom <= secondBox.top + 1 ||
+            secondBox.bottom <= firstBox.top + 1;
+          expect(isSideBySide || isStacked).toBe(true);
+        }
+      }
+      expect(urlWidth).toBeGreaterThan(MIN_URL_WIDTH);
+    });
+  }
+
+  test("Ctrl+K focuses the device search and the box shows the hint", async ({
+    page,
+  }) => {
+    await page.goto(dashboardUrl);
+    const searchBox = page.getByRole("searchbox", { name: "Search devices" });
+    await expect(page.getByRole("article").first()).toBeVisible();
+
+    await page.keyboard.press("ControlOrMeta+k");
+
+    await expect(searchBox).toBeFocused();
+    await expect(page.locator("kbd")).toHaveText(/^(⌘K|Ctrl K)$/);
+  });
+
+  test("the hub pill is green when connected and the tile header stays on one line", async ({
+    page,
+  }) => {
+    await page.goto(dashboardUrl);
+
+    const hubDot = page.locator("header span:has-text('Connected') > span");
+    const headerHeight = (
+      await page.locator("article header").first().boundingBox()
+    )?.height;
+
+    await expect(hubDot).toHaveClass(/bg-ok/);
+    expect(headerHeight).toBeLessThan(TWO_LINE_HEADER_HEIGHT);
+  });
+
+  test("the iPhone island is drawn on top of the page and the desktop window bars show the app URL", async ({
+    page,
+  }) => {
+    await page.goto(dashboardUrl);
+    const phoneCutout = page
+      .locator('[data-frame-family="phone-island"] [data-frame-cutout]')
+      .first();
+    await expect(phoneCutout).toBeVisible();
+
+    const isCutoutOnTop = await phoneCutout.evaluate((cutoutElement) => {
+      const { left, top, width, height } =
+        cutoutElement.getBoundingClientRect();
+      const topElement = document.elementFromPoint(
+        left + width / 2,
+        top + height / 2,
+      );
+      return topElement === cutoutElement;
+    });
+    await page.getByRole("textbox", { name: "App URL" }).fill(SHOP_URL);
+
+    expect(isCutoutOnTop).toBe(true);
+    for (const windowFamily of WINDOW_FAMILIES) {
+      await expect(
+        page.locator(`[data-frame-family="${windowFamily}"]`).first(),
+      ).toContainText(SHOP_URL);
+    }
   });
 
   test.describe("zoom dialog", () => {

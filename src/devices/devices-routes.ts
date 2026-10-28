@@ -6,6 +6,7 @@ import {
   checkDeviceRemoval,
   checkNewDevice,
   createPresetFromCustomDevice,
+  type GridSync,
   listCatalogReplies,
   pickGridDevices,
   replaceGrid,
@@ -15,7 +16,10 @@ import { rejectInvalidRequest } from "@/hub/problem-reply";
 
 const CREATED_STATUS = 201;
 
-export const createDevicesRoutes = (rootFolder: string) =>
+export const createDevicesRoutes = (
+  rootFolder: string,
+  syncGrid: GridSync | null = null,
+) =>
   new Hono()
     .get("/", async (c) => {
       const devicesFile = await readDevicesFile(rootFolder);
@@ -51,6 +55,8 @@ export const createDevicesRoutes = (rootFolder: string) =>
         const changedFile = await updateDevicesFile(rootFolder, (devicesFile) =>
           replaceGrid(devicesFile, deviceIds),
         );
+        const isGridSyncWired = syncGrid !== null;
+        if (isGridSyncWired) await syncGrid(pickGridDevices(changedFile));
         return c.json({ deviceIds: changedFile.grid });
       },
     )
