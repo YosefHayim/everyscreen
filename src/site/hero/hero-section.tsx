@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { Fragment, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { GITHUB_URL } from "@/site/site-links";
 import { CommandPill } from "@/site/ui/command-pill";
@@ -17,13 +17,11 @@ export const HeroSection = (): ReactElement => {
         {titleWords.map((word, index) => {
           const wordDelay = { animationDelay: `${index * WORD_DELAY_MS}ms` };
           return (
-            <span
-              key={`${word}-${index.toString()}`}
-              className="rise inline-block pe-[0.25em]"
-              style={wordDelay}
-            >
-              {word}
-            </span>
+            <Fragment key={`${word}-${index.toString()}`}>
+              <span className="rise inline-block" style={wordDelay}>
+                {word}
+              </span>{" "}
+            </Fragment>
           );
         })}
       </h1>
