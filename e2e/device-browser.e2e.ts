@@ -3,7 +3,6 @@ import type { Browser, Page } from "playwright";
 import { chromium } from "playwright";
 import type { DeviceBrowser } from "@/devices/device-browsers";
 import { startDeviceBrowser } from "@/devices/device-browsers";
-import { SAFE_AREA_INSETS } from "@/devices/device-emulation";
 import type { DevicePreset } from "@/devices/devices-logic";
 import type { LiveMessage } from "@/live/live-feed";
 import { subscribe } from "@/live/live-feed";
@@ -15,6 +14,22 @@ const MOVING_SCREEN_COUNT = 4;
 const JPEG_BASE64_PREFIX = "/9j/";
 const PHONE_USER_AGENT = "Mozilla/5.0 (Spike phone) Everyscreen";
 const PHONE_VIEWPORT = { width: 375, height: 667 };
+const PHONE_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+const PHONE_FRAME = {
+  isCustom: false,
+  viewportMode: "full-screen",
+  platform: "ios",
+  maker: "apple",
+  cornerRadius: null,
+  cutout: {
+    kind: "dynamic-island",
+    width: null,
+    height: null,
+    top: null,
+    left: null,
+  },
+  safeAreaInsets: PHONE_INSETS,
+} as const satisfies Partial<DevicePreset>;
 
 const devicePreset: DevicePreset = {
   id: "spike-phone",
@@ -22,6 +37,7 @@ const devicePreset: DevicePreset = {
   browserName: "chromium",
   frameShape: "dynamic-island",
   cpuSlowdown: 2,
+  ...PHONE_FRAME,
   use: {
     viewport: PHONE_VIEWPORT,
     deviceScaleFactor: 2,
@@ -129,10 +145,7 @@ test.describe("startDeviceBrowser", () => {
         height: PHONE_VIEWPORT.height,
         userAgent: PHONE_USER_AGENT,
         hasTouch: true,
-        insetPaddings: [
-          `${SAFE_AREA_INSETS["dynamic-island"].top}px`,
-          `${SAFE_AREA_INSETS["dynamic-island"].bottom}px`,
-        ],
+        insetPaddings: [`${PHONE_INSETS.top}px`, `${PHONE_INSETS.bottom}px`],
       });
   });
 
@@ -172,6 +185,7 @@ test.describe("startDeviceBrowser", () => {
       browserName: "webkit",
       frameShape: "dynamic-island",
       cpuSlowdown: 1,
+      ...PHONE_FRAME,
       use: {
         viewport: { width: 393, height: 852 },
         deviceScaleFactor: 3,

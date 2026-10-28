@@ -101,7 +101,7 @@ test.describe("playwright reporter", () => {
     const suiteRun = await runSuite(
       rootFolder,
       hollisUrl,
-      "pixel-8,iphone-se",
+      "pixel-10,iphone-se",
       [],
     );
 
@@ -121,7 +121,7 @@ test.describe("playwright reporter", () => {
     }
     expect(
       passedStep.deviceAnswers.map((answer) => answer.deviceId).sort(),
-    ).toEqual(["iphone-se", "pixel-8"]);
+    ).toEqual(["iphone-se", "pixel-10"]);
     expect(
       passedStep.deviceAnswers.every((answer) => answer.status === "ok"),
     ).toBe(true);
@@ -153,12 +153,12 @@ test.describe("playwright reporter", () => {
     const listRun = await runSuite(
       rootFolder,
       hollisUrl,
-      "pixel-8,tiny-webkit",
+      "pixel-10,tiny-webkit",
       ["--list", "--reporter=json"],
     );
 
     const listing = listingSchema.parse(JSON.parse(listRun.stdout));
     const projectNames = listing.config.projects.map(({ name }) => name);
-    expect(projectNames).toEqual(["pixel-8", "tiny-webkit"]);
+    expect(projectNames).toEqual(["pixel-10", "tiny-webkit"]);
   });
 });

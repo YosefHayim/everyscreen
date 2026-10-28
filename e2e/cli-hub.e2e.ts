@@ -20,12 +20,12 @@ const TSX_LOADER_URL = import.meta.resolve("tsx");
 const STARTUP_TIMEOUT_MS = 240_000;
 const EXIT_TIMEOUT_MS = 15_000;
 const EXIT_POLL_MS = 100;
-const DEVICE_COUNT = 9;
+const DEVICE_COUNT = 12;
 const FORM_PATH = "/form";
 const FORM_HTML =
   '<!doctype html><meta name="viewport" content="width=device-width"><body><label>Email <input type="email" aria-label="Email"></label><p>Welcome back</p>';
 const FLOW_PIXEL = `name: Form on a Pixel
-devices: [pixel-8]
+devices: [pixel-10]
 steps:
   - open: FORM_URL
   - expect: { text: Welcome back }
@@ -241,7 +241,7 @@ test.describe("the everyscreen command line", () => {
 
     expect(statusRun.exitCode).toBe(0);
     expect(statusRun.commandReply.line).toMatch(
-      /^hub running at http:\/\/127\.0\.0\.1:\d+ · 9 devices$/,
+      /^hub running at http:\/\/127\.0\.0\.1:\d+ · 12 devices$/,
     );
   });
 
@@ -284,13 +284,13 @@ test.describe("the everyscreen command line", () => {
       "--name",
       "Close",
       "--device",
-      "pixel-8",
+      "pixel-10",
       "--json",
     ]);
 
     expect(openRun.stdout.trimEnd().split("\n")).toHaveLength(1);
     expect(openRun.commandReply.line).toMatch(
-      /^9 devices · .*report run-0001$/,
+      /^12 devices · .*report run-0001$/,
     );
     expect(openRun.commandReply.runId).toBe("run-0001");
     expect(tapRun.stdout.trimEnd().split("\n")).toHaveLength(1);
@@ -305,12 +305,12 @@ test.describe("the everyscreen command line", () => {
       "--text",
       "This text is nowhere on the page",
       "--device",
-      "pixel-8",
+      "pixel-10",
     ]);
 
     expect(expectRun.exitCode).toBe(1);
     expect(expectRun.commandReply.status).toBe("failed");
-    expect(expectRun.commandReply.failures[0].deviceId).toBe("pixel-8");
+    expect(expectRun.commandReply.failures[0].deviceId).toBe("pixel-10");
   });
 
   test("runs two flows in parallel and counts both", async ({ cliWorld }) => {
@@ -382,7 +382,7 @@ test.describe("the everyscreen command line", () => {
     ]);
 
     expect(addRun.commandReply.line).toContain("device added · tiny-phone");
-    expect(listRun.commandReply.line).toMatch(/^10 devices · .*tiny-phone$/);
+    expect(listRun.commandReply.line).toMatch(/^13 devices · .*tiny-phone$/);
     expect(removeWithoutYesRun.exitCode).toBe(1);
     expect(removeWithoutYesRun.commandReply.line).toContain("--yes");
     expect(removeRun.commandReply.line).toContain(

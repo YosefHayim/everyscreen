@@ -1,5 +1,10 @@
 import { z } from "zod";
-import type { BrowserName, FrameShape } from "@/devices/devices-logic";
+import { DEFAULT_GRID_IDS } from "@/devices/default-grid-ids";
+import type {
+  BrowserName,
+  FrameShape,
+  ViewportMode,
+} from "@/devices/devices-logic";
 
 const BROWSER_NAMES = [
   "chromium",
@@ -15,6 +20,11 @@ const FRAME_SHAPES = [
   "laptop",
   "kiosk",
 ] as const satisfies readonly FrameShape[];
+
+const VIEWPORT_MODES = [
+  "full-screen",
+  "browser",
+] as const satisfies readonly ViewportMode[];
 
 // The device id is made from the name, so the name needs a letter or digit.
 const DEVICE_NAME_PATTERN = /[\p{L}\p{N}]/u;
@@ -58,6 +68,8 @@ export const devicesFileSchema = z.object({
         ),
     )
     .default([]),
+  grid: z.array(z.string()).default(DEFAULT_GRID_IDS),
+  viewportModes: z.record(z.string(), z.enum(VIEWPORT_MODES)).default({}),
 });
 
 export type CustomDevice = z.infer<typeof customDeviceSchema>;

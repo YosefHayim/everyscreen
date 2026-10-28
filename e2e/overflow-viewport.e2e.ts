@@ -10,8 +10,7 @@ import { measurePage } from "@/checks/check-probes";
 import { listFindings } from "@/checks/checks-logic";
 import { pickCheckDevice } from "@/commands/commands-logic";
 import { emulateDevice } from "@/devices/device-emulation";
-import { DEVICE_PRESETS } from "@/devices/device-presets";
-import { pickDeviceViewport } from "@/devices/devices-logic";
+import { findCatalogPreset, pickDeviceViewport } from "@/devices/devices-logic";
 
 const WIDE_BLOCK_PATH = pathToFileURL("e2e/wide-block.html").href;
 const OVERFLOW_CASES_PATH = pathToFileURL("e2e/overflow-cases.html").href;
@@ -33,11 +32,7 @@ const OVERFLOW_ENGINES: OverflowEngine[] = [
 
 for (const { deviceId, engine, isEmulatedByCdp } of OVERFLOW_ENGINES) {
   test(`a block 84px wider than the ${deviceId} screen gives one overflow finding`, async () => {
-    const devicePreset = DEVICE_PRESETS.find(
-      (preset) => preset.id === deviceId,
-    );
-    const isPresetMissing = devicePreset === undefined;
-    if (isPresetMissing) throw new Error(`No preset ${deviceId}`);
+    const devicePreset = findCatalogPreset(deviceId, "full-screen");
     const engineBrowser = await engine.launch();
     const devicePlaywrightUse = isEmulatedByCdp ? {} : devicePreset.use;
     const browserContext = await engineBrowser.newContext(devicePlaywrightUse);
@@ -105,11 +100,7 @@ const OVERFLOW_CASES: OverflowCase[] = [
 
 for (const { name, caseName, blockWidth, expectedMessages } of OVERFLOW_CASES) {
   test(`on pixel-8, ${name}`, async () => {
-    const devicePreset = DEVICE_PRESETS.find(
-      (preset) => preset.id === "pixel-8",
-    );
-    const isPresetMissing = devicePreset === undefined;
-    if (isPresetMissing) throw new Error("No preset pixel-8");
+    const devicePreset = findCatalogPreset("pixel-8", "full-screen");
     const engineBrowser = await chromium.launch();
     const browserContext = await engineBrowser.newContext();
     const page = await browserContext.newPage();

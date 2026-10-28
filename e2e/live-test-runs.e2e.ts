@@ -25,7 +25,7 @@ const COLOR_TOLERANCE = 20;
 // WebKit tests send a screen image every tick; Chromium sends one per load and per switch back to the hub page.
 const SCREEN_EXPECTATIONS = [
   { deviceId: "iphone-se", minScreenCount: 3 },
-  { deviceId: "pixel-8", minScreenCount: 1 },
+  { deviceId: "pixel-10", minScreenCount: 1 },
 ];
 
 type ScreenMessage = Extract<LiveMessage, { kind: "screen" }>;

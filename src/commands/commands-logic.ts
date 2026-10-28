@@ -3,7 +3,6 @@ import type { CheckDevice, Finding } from "@/checks/checks-logic";
 import type { DeviceStep } from "@/commands/command-steps";
 import type { HubCommand } from "@/commands/commands-schema";
 import type { DevicePage } from "@/devices/device-browsers";
-import { SAFE_AREA_INSETS } from "@/devices/device-emulation";
 import type { DevicePreset } from "@/devices/devices-logic";
 import { STORE_FOLDER } from "@/environment";
 import type { RunStep, StepProof } from "@/runs/runs-logic";
@@ -89,7 +88,7 @@ export const summarizeCommand = (
 export const pickCheckDevice = (devicePreset: DevicePreset): CheckDevice => ({
   id: devicePreset.id,
   hasTouch: devicePreset.use.hasTouch === true,
-  safeAreaInsets: SAFE_AREA_INSETS[devicePreset.frameShape],
+  safeAreaInsets: devicePreset.safeAreaInsets,
 });
 
 export const pickDeviceIds = (

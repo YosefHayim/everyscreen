@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { DEVICE_PRESETS } from "@/devices/device-presets";
+import { DEFAULT_GRID_IDS } from "@/devices/default-grid-ids";
+import { pickGridDevices } from "@/devices/devices-logic";
 import {
   createDeviceProject,
   createHubUrl,
@@ -18,6 +19,12 @@ import {
   STEP_TITLE_SEPARATOR,
 } from "@/playwright/playwright-logic";
 
+const DEVICE_PRESETS = pickGridDevices({
+  devices: [],
+  routes: [],
+  grid: DEFAULT_GRID_IDS,
+  viewportModes: {},
+});
 const [iphoneSe] = DEVICE_PRESETS;
 const ANSI_RED = "\u001b[31m";
 const ANSI_RESET = "\u001b[39m";
@@ -87,12 +94,12 @@ describe("pickProjectDevices", () => {
 
   test("returns the asked devices in the asked order", () => {
     const projectDevices = pickProjectDevices(DEVICE_PRESETS, [
-      "pixel-8",
+      "pixel-10",
       "iphone-se",
     ]);
 
     expect(projectDevices.map(({ id }) => id)).toEqual([
-      "pixel-8",
+      "pixel-10",
       "iphone-se",
     ]);
   });
@@ -100,7 +107,7 @@ describe("pickProjectDevices", () => {
   test("throws and names the id of an unknown device", () => {
     const pickUnknown = () => pickProjectDevices(DEVICE_PRESETS, ["nokia"]);
 
-    expect(pickUnknown).toThrow(/Unknown device nokia.*pixel-8/);
+    expect(pickUnknown).toThrow(/Unknown device nokia.*pixel-10/);
   });
 });
 
