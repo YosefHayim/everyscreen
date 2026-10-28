@@ -59,12 +59,12 @@ describe("pickNextRunId", () => {
 });
 
 describe("pickRunStatus", () => {
-  test("returns passed when there are no steps", () => {
-    expect(pickRunStatus([])).toBe("passed");
+  test("returns ok when there are no steps", () => {
+    expect(pickRunStatus([])).toBe("ok");
   });
 
-  test("returns passed when every device answer is ok", () => {
-    expect(pickRunStatus([createStep([OK_ANSWER])])).toBe("passed");
+  test("returns ok when every device answer is ok", () => {
+    expect(pickRunStatus([createStep([OK_ANSWER])])).toBe("ok");
   });
 
   test("returns failed when any device answer failed", () => {
@@ -87,13 +87,13 @@ describe("checkRunEvent", () => {
   });
 
   test("throws 404 when the run is missing", () => {
-    const runEvent = { kind: "run-end", status: "passed" } as const;
+    const runEvent = { kind: "run-end", status: "ok" } as const;
 
     expect(() => checkRunEvent(null, runEvent)).toThrow("No run with that id");
   });
 
   test("throws 409 for a step after the run ended", () => {
-    const endedRun: Run = { ...EMPTY_RUN, status: "passed" };
+    const endedRun: Run = { ...EMPTY_RUN, status: "ok" };
     const step = createStep([OK_ANSWER]);
 
     expect(() => checkRunEvent(endedRun, { kind: "step-end", step })).toThrow(
@@ -102,11 +102,11 @@ describe("checkRunEvent", () => {
   });
 
   test("accepts a second run end on an ended run", () => {
-    const endedRun: Run = { ...EMPTY_RUN, status: "passed" };
+    const endedRun: Run = { ...EMPTY_RUN, status: "ok" };
 
     const checkedRun = checkRunEvent(endedRun, {
       kind: "run-end",
-      status: "passed",
+      status: "ok",
     });
 
     expect(checkedRun).toBe(endedRun);
@@ -151,21 +151,21 @@ describe("mergeRunEvent", () => {
 
     const mergedRun = mergeRunEvent(failedRun, {
       kind: "run-end",
-      status: "passed",
+      status: "ok",
     });
 
     expect(mergedRun.status).toBe("failed");
   });
 
-  test("ends passed when every step passed", () => {
-    const passedRun: Run = { ...EMPTY_RUN, steps: [createStep([OK_ANSWER])] };
+  test("ends ok when every step is ok", () => {
+    const okRun: Run = { ...EMPTY_RUN, steps: [createStep([OK_ANSWER])] };
 
-    const mergedRun = mergeRunEvent(passedRun, {
+    const mergedRun = mergeRunEvent(okRun, {
       kind: "run-end",
-      status: "passed",
+      status: "ok",
     });
 
-    expect(mergedRun.status).toBe("passed");
+    expect(mergedRun.status).toBe("ok");
   });
 });
 
@@ -195,7 +195,7 @@ describe("pickRunningRun", () => {
   });
 
   test("returns null when every run has ended", () => {
-    expect(pickRunningRun([createRun("run-0001", "passed")])).toBeNull();
+    expect(pickRunningRun([createRun("run-0001", "ok")])).toBeNull();
   });
 
   test("returns the latest run that is still running", () => {

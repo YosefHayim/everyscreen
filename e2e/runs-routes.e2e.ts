@@ -64,7 +64,7 @@ test.describe("runs routes", () => {
     );
     const endReply = await app.request(
       `/api/runs/${firstRunId}/events`,
-      postJson({ kind: "run-end", status: "passed" }),
+      postJson({ kind: "run-end", status: "ok" }),
     );
     const runReply = await app.request(`/api/runs/${firstRunId}`);
     const listReply = await app.request("/api/runs");
@@ -153,7 +153,7 @@ test.describe("runs routes", () => {
     const missingReply = await app.request("/api/runs/run-0099");
     const orphanReply = await app.request(
       "/api/runs/run-0099/events",
-      postJson({ kind: "run-end", status: "passed" }),
+      postJson({ kind: "run-end", status: "ok" }),
     );
 
     expect(missingReply.status).toBe(404);
@@ -169,7 +169,7 @@ test.describe("runs routes", () => {
     const runId = await startRun("cli");
     await app.request(
       `/api/runs/${runId}/events`,
-      postJson({ kind: "run-end", status: "passed" }),
+      postJson({ kind: "run-end", status: "ok" }),
     );
 
     const lateReply = await app.request(

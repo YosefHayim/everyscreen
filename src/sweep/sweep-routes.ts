@@ -43,7 +43,8 @@ const readRouteLinks = async (
   try {
     await page.goto(routeUrl, { timeout: ACTION_TIMEOUT_MS });
     await waitForPaintedPage(page);
-    const hasLeftApp = hasLeftOrigin(page.url(), startUrl);
+    const pageUrl = page.url();
+    const hasLeftApp = hasLeftOrigin(pageUrl, startUrl);
     if (hasLeftApp) return [];
     const pageLinks = await readPageLinks(page);
     return pickLinkRoutes(pageLinks, startUrl);

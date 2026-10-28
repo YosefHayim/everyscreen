@@ -17,13 +17,13 @@ import type { Run, RunStatus } from "@/runs/runs-logic";
 
 const STATUS_ICONS = {
   running: "open-url",
-  passed: "tick",
+  ok: "tick",
   failed: "close",
 } satisfies Record<RunStatus, IconName>;
 
 const STATUS_CLASS_NAMES = {
   running: "text-pink",
-  passed: "text-ok",
+  ok: "text-ok",
   failed: "text-failed",
 } satisfies Record<RunStatus, string>;
 

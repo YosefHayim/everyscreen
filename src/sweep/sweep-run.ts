@@ -41,15 +41,13 @@ const runRouteOnDevice = async (
   const startedAt = Date.now();
   try {
     const deviceStep = await runStepOnDevice(devicePage, stepStart);
-    const hasLeftApp = hasLeftOrigin(devicePage.page.url(), routeUrl);
+    const pageUrl = devicePage.page.url();
+    const hasLeftApp = hasLeftOrigin(pageUrl, routeUrl);
     return hasLeftApp ? createLeftOriginStep(deviceStep) : deviceStep;
   } catch (error) {
     console.error({ deviceId: devicePage.device.id, error });
-    return createCrashedStep(
-      devicePage.device.id,
-      Date.now() - startedAt,
-      error,
-    );
+    const durationMs = Date.now() - startedAt;
+    return createCrashedStep(devicePage.device.id, durationMs, error);
   }
 };
 
@@ -85,7 +83,7 @@ const saveSweepRun = async (
     await saveRunEvent(rootFolder, runId, { kind: "step-end", step: runStep });
   }
   const isSweepOk = sweepReply.status === "ok";
-  const runStatus = isSweepOk ? "passed" : "failed";
+  const runStatus = isSweepOk ? "ok" : "failed";
   await saveRunEvent(rootFolder, runId, { kind: "run-end", status: runStatus });
 };
 
