@@ -27,7 +27,7 @@ const findingSchema = z.object({
     "console-error",
     "failed-request",
   ]),
-  severity: z.enum(["fail", "warn"]),
+  severity: z.enum(["failed", "warn"]),
   deviceId: z.string(),
   selector: z.string().nullable(),
   message: z.string(),
