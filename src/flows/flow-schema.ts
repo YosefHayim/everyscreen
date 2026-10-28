@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { pickCommandSchema } from "@/flows/pick-command-schema";
-
-const openCommand = pickCommandSchema("open");
-const tapCommand = pickCommandSchema("tap");
-const fillCommand = pickCommandSchema("fill");
-const scrollCommand = pickCommandSchema("scroll");
-const expectCommand = pickCommandSchema("expect");
+import {
+  expectCommandSchema,
+  fillCommandSchema,
+  openCommandSchema,
+  scrollCommandSchema,
+  tapCommandSchema,
+} from "@/commands/commands-schema";
 
 const STEP_WITHOUT_COMMAND_FIELDS = {
   commandName: true,
@@ -13,21 +13,35 @@ const STEP_WITHOUT_COMMAND_FIELDS = {
 } as const;
 
 const flowStepSchema = z.union([
-  z.strictObject({ open: openCommand.shape.url }),
-  z.strictObject({
-    tap: tapCommand.omit(STEP_WITHOUT_COMMAND_FIELDS).strict(),
-  }),
-  z.strictObject({
-    fill: fillCommand.omit(STEP_WITHOUT_COMMAND_FIELDS).strict(),
-  }),
-  z.strictObject({
-    scroll: scrollCommand.omit(STEP_WITHOUT_COMMAND_FIELDS).strict(),
-  }),
-  z.strictObject({
-    expect: expectCommand.omit(STEP_WITHOUT_COMMAND_FIELDS).strict(),
-  }),
-  z.strictObject({ check: z.null() }),
-  z.strictObject({ shot: z.null() }),
+  z
+    .strictObject({ open: openCommandSchema.shape.url })
+    .transform(({ open }) => ({ commandName: "open" as const, url: open })),
+  z
+    .strictObject({
+      tap: tapCommandSchema.omit(STEP_WITHOUT_COMMAND_FIELDS).strict(),
+    })
+    .transform(({ tap }) => ({ commandName: "tap" as const, ...tap })),
+  z
+    .strictObject({
+      fill: fillCommandSchema.omit(STEP_WITHOUT_COMMAND_FIELDS).strict(),
+    })
+    .transform(({ fill }) => ({ commandName: "fill" as const, ...fill })),
+  z
+    .strictObject({
+      scroll: scrollCommandSchema.omit(STEP_WITHOUT_COMMAND_FIELDS).strict(),
+    })
+    .transform(({ scroll }) => ({ commandName: "scroll" as const, ...scroll })),
+  z
+    .strictObject({
+      expect: expectCommandSchema.omit(STEP_WITHOUT_COMMAND_FIELDS).strict(),
+    })
+    .transform(({ expect }) => ({ commandName: "expect" as const, ...expect })),
+  z
+    .strictObject({ check: z.null() })
+    .transform(() => ({ commandName: "check" as const })),
+  z
+    .strictObject({ shot: z.null() })
+    .transform(() => ({ commandName: "shot" as const })),
 ]);
 
 export const flowSchema = z.strictObject({

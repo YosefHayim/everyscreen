@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { flowSchema, flowsPerBatchSchema } from "@/flows/flow-schema";
 
 describe("flowSchema", () => {
-  test("accepts every step kind and keeps the device list", () => {
+  test("turns every step kind into its command and keeps the device list", () => {
     const flow = {
       name: "All steps",
       devices: ["iphone-se"],
@@ -19,7 +19,24 @@ describe("flowSchema", () => {
 
     const parsedFlow = flowSchema.parse(flow);
 
-    expect(parsedFlow).toEqual(flow);
+    expect(parsedFlow).toEqual({
+      name: "All steps",
+      devices: ["iphone-se"],
+      steps: [
+        { commandName: "open", url: "http://localhost:5173" },
+        { commandName: "tap", role: "button", name: "Apply" },
+        {
+          commandName: "fill",
+          role: "textbox",
+          name: "Coupon",
+          with: "SPRING",
+        },
+        { commandName: "scroll", to: "bottom" },
+        { commandName: "expect", text: "Total $66" },
+        { commandName: "check" },
+        { commandName: "shot" },
+      ],
+    });
   });
 
   test("sets the device list to null when the flow names none", () => {

@@ -3,18 +3,23 @@ import type { Flow } from "@/flows/flow-schema";
 import { listFlowBatches, listFlowCommands } from "@/flows/flows-logic";
 
 describe("listFlowCommands", () => {
-  test("turns every step kind into one command with the flow devices", () => {
+  test("adds the flow devices to every step", () => {
     const flow: Flow = {
       name: "All steps",
       devices: ["iphone-se", "pixel-8"],
       steps: [
-        { open: "http://localhost:5173" },
-        { tap: { role: "button", name: "Apply" } },
-        { fill: { role: "textbox", name: "Coupon", with: "SPRING" } },
-        { scroll: { to: "top" } },
-        { expect: { text: "Total $66" } },
-        { check: null },
-        { shot: null },
+        { commandName: "open", url: "http://localhost:5173" },
+        { commandName: "tap", role: "button", name: "Apply" },
+        {
+          commandName: "fill",
+          role: "textbox",
+          name: "Coupon",
+          with: "SPRING",
+        },
+        { commandName: "scroll", to: "top" },
+        { commandName: "expect", text: "Total $66" },
+        { commandName: "check" },
+        { commandName: "shot" },
       ],
     };
     const deviceIds = ["iphone-se", "pixel-8"];
@@ -42,7 +47,7 @@ describe("listFlowCommands", () => {
     const flow: Flow = {
       name: "One step",
       devices: null,
-      steps: [{ check: null }],
+      steps: [{ commandName: "check" }],
     };
 
     const commands = listFlowCommands(flow);
