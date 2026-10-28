@@ -311,6 +311,7 @@ describe("createTestEvent", () => {
 
 describe("isScreenSentByTest", () => {
   const hubFile = {
+    pid: 1234,
     port: 4100,
     devices: {
       "pixel-8": { wsEndpoint: "ws://a", cdpUrl: "http://127.0.0.1:9" },
