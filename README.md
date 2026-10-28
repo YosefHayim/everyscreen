@@ -37,6 +37,8 @@ npx everyscreen check
 
 The dashboard is at `http://127.0.0.1:4100` and shows every device live.
 
+![The dashboard grid during a live test run on 12 devices](.github/dashboard-grid.png)
+
 ## Use it with your app
 
 Everyscreen opens a URL, so it works with any web stack. Nothing is installed in your app.
@@ -184,15 +186,15 @@ The grid starts 12 of them by default, one per size class and engine:
 
 | Id                    | Name                | Viewport  |
 | --------------------- | ------------------- | --------- |
-| `iphone-se`           | iPhone SE           | 375x667   |
-| `iphone-17`           | iPhone 17           | 402x874   |
-| `iphone-17-pro-max`   | iPhone 17 Pro Max   | 440x956   |
-| `galaxy-s25`          | Galaxy S25          | 360x780   |
-| `pixel-10`            | Pixel 10            | 360x808   |
-| `xiaomi-15`           | Xiaomi 15           | 400x890   |
-| `ipad-mini`           | iPad mini           | 744x1133  |
-| `ipad-pro-11`         | iPad Pro 11         | 834x1194  |
-| `galaxy-tab-s9`       | Galaxy Tab S9       | 640x1024  |
+| `iphone-se`           | iPhone SE           | 375x647   |
+| `iphone-17`           | iPhone 17           | 402x812   |
+| `iphone-17-pro-max`   | iPhone 17 Pro Max   | 440x894   |
+| `galaxy-s25`          | Galaxy S25          | 360x756   |
+| `pixel-10`            | Pixel 10            | 360x784   |
+| `xiaomi-15`           | Xiaomi 15           | 400x866   |
+| `ipad-mini`           | iPad mini           | 744x1109  |
+| `ipad-pro-11`         | iPad Pro 11         | 834x1170  |
+| `galaxy-tab-s9`       | Galaxy Tab S9       | 640x1000  |
 | `macbook-air-13`      | MacBook Air 13      | 1470x956  |
 | `windows-laptop-1366` | Windows laptop 1366 | 1366x768  |
 | `linux-1920`          | Linux monitor 1920  | 1920x1080 |
@@ -213,10 +215,22 @@ routes: [/pricing, /account]
 ```
 
 - `grid` lists the device ids to start. Any catalog id works, and so does a custom device's id.
-- `viewportModes` sets a device to `full-screen` (the whole screen, the default) or `browser` (the smaller area left inside the browser). A device with no browser size keeps the full screen.
+- `viewportModes` sets a device to `full-screen` (the default) or `browser`. Both start below the status bar, because Playwright cannot emulate safe-area insets and so the page never sits under it. `full-screen` is a home-screen web app: the screen minus the status bar. `browser` is the screen minus the status bar and the browser toolbars. A device with no browser size keeps the full-screen size.
 - `routes` adds routes for `sweep`.
 
 The dashboard devices screen can add or remove a custom device too.
+
+The viewports above are the full-screen sizes. Phones and tablets lose the status bar height (20 px on iPhone SE, 62 px on iPhone 17, 24 px on Android phones and tablets). Mac, Windows and Linux windows have no status bar.
+
+## Dashboard
+
+Every tile draws a 1:1 device frame around the live screen, picked by the device: the iPhone island or home button, the Android punch hole, an iPad or tablet body, or a Mac, Windows or Linux window.
+
+- The run strip sets Fit or True size, Comfortable or Compact density, and a scale. Add device opens the picker, and `⌘K` (`Ctrl K` elsewhere) searches the devices.
+- Hover a tile and click expand, or press Enter, to watch that device's live test at full size. Esc closes it, and the arrow keys move to the next device.
+- The agent activity panel lists each command an agent ran, with its reply line.
+
+![The zoom view of Pixel 10 during a live test run](.github/dashboard-zoom.png)
 
 ## Checks
 
