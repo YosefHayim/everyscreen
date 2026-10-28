@@ -7,7 +7,6 @@ import { createDevicesRoutes } from "@/devices/devices-routes";
 import { DEVICES_FILE_PATH } from "@/environment";
 
 const SHOP_KIOSK = {
-  id: "shop-kiosk",
   name: "Shop kiosk",
   width: 800,
   height: 1280,
@@ -58,7 +57,7 @@ test.describe("devices routes", () => {
     expect(addReply.status).toBe(201);
     expect(gridDevices).toHaveLength(10);
     expect(gridDevices.at(-1).id).toBe("shop-kiosk");
-    expect(devicesYaml).toContain("id: shop-kiosk");
+    expect(devicesYaml).toContain("name: Shop kiosk");
   });
 
   test("rejects a second add with the same id with 409", async () => {
@@ -126,7 +125,7 @@ test.describe("devices routes", () => {
 
     const addReply = await devicesRoutes.request(
       "/",
-      postDevice({ ...SHOP_KIOSK, id: "pixel-8" }),
+      postDevice({ ...SHOP_KIOSK, name: "Pixel 8" }),
     );
 
     expect(addReply.status).toBe(409);
@@ -137,7 +136,7 @@ test.describe("devices routes", () => {
 
     const addReply = await devicesRoutes.request(
       "/",
-      postDevice({ ...SHOP_KIOSK, id: "Not Kebab", width: 50 }),
+      postDevice({ ...SHOP_KIOSK, width: 50 }),
     );
 
     expect(addReply.status).toBe(400);
@@ -170,7 +169,7 @@ test.describe("devices routes", () => {
     await devicesRoutes.request("/", postDevice(SHOP_KIOSK));
     await devicesRoutes.request(
       "/",
-      postDevice({ ...SHOP_KIOSK, id: "wall-screen", hasTouch: false }),
+      postDevice({ ...SHOP_KIOSK, name: "Wall screen", hasTouch: false }),
     );
 
     const freshRoutes = createDevicesRoutes(rootFolder);
