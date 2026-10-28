@@ -201,11 +201,6 @@ export const pickSweepDevices = (
   return splitDeviceIds(chosenIds, runningIds);
 };
 
-export const listExtraDeviceBatches = (
-  extraIds: string[],
-  batchLimit: number,
-): string[][] => listFlowBatches(extraIds, batchLimit);
-
 export const createBeforeFailure = (
   deviceFailure: DeviceFailure,
 ): DeviceFailure => {

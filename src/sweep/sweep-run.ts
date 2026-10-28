@@ -10,6 +10,7 @@ import { DEVICE_CATALOG } from "@/devices/device-catalog";
 import { type DevicePreset, findCatalogPreset } from "@/devices/devices-logic";
 import { readDevicesFile } from "@/devices/devices-store";
 import { SWEEP_EXTRA_DEVICE_LIMIT } from "@/environment";
+import { listFlowBatches } from "@/flows/flows-logic";
 import { broadcast } from "@/live/live-feed";
 import { createStepId, type RunStep } from "@/runs/runs-logic";
 import { createRun, saveRunEvent } from "@/runs/runs-store";
@@ -28,7 +29,6 @@ import {
   type DeviceVisit,
   hasLeftOrigin,
   listBeforeRunSteps,
-  listExtraDeviceBatches,
   pickBeforeFailures,
   pickSweepDevices,
   pickVisitedRouteSteps,
@@ -59,10 +59,15 @@ type PreparedPage =
   | { kind: "ready"; devicePage: DevicePage }
   | BeforeFailedDevice;
 
-interface DevicesInUse {
-  readyGridPages: DevicePage[];
-  extraPresets: DevicePreset[];
-  extraBrowsers: ExtraBrowsers;
+interface CrawlPages {
+  startUrl: string;
+  maxRoutes: number;
+  configuredRoutes: string[];
+}
+
+interface CrawlingVisit {
+  routes: string[] | null;
+  deviceVisit: DeviceVisit;
 }
 
 interface SweepVisits {
@@ -161,6 +166,15 @@ const visitReadyPage = async (
   return { kind: "visited", routeSteps };
 };
 
+const createCrawlPages = (sweepRunStart: SweepRunStart): CrawlPages => {
+  const { sweepCommand, configuredRoutes } = sweepRunStart;
+  return {
+    startUrl: sweepCommand.url,
+    maxRoutes: sweepCommand.maxRoutes,
+    configuredRoutes,
+  };
+};
+
 const visitExtraDevice = (
   extraBrowsers: ExtraBrowsers,
   extraPreset: DevicePreset,
@@ -174,31 +188,30 @@ const visitExtraDevice = (
     return visitReadyPage({ ...sweepRunStart, devicePage, routes });
   });
 
-const listRoutesFromDevices = async (
+// With no ready grid page, the first extra device that gets past the before flow crawls and sweeps in one visit.
+const visitCrawlingExtraDevice = (
+  extraBrowsers: ExtraBrowsers,
+  extraPreset: DevicePreset,
   sweepRunStart: SweepRunStart,
-  devicesInUse: DevicesInUse,
-): Promise<string[]> => {
-  const { readyGridPages, extraPresets, extraBrowsers } = devicesInUse;
-  const { sweepCommand, configuredRoutes } = sweepRunStart;
-  const routeSources = {
-    startUrl: sweepCommand.url,
-    maxRoutes: sweepCommand.maxRoutes,
-    configuredRoutes,
-  };
-  const [crawlGridPage] = readyGridPages;
-  const isGridPageReady = crawlGridPage !== undefined;
-  if (isGridPageReady) return listSweepRoutes(crawlGridPage.page, routeSources);
-
-  const [crawlPreset] = extraPresets;
-  const isNoDeviceToCrawl = crawlPreset === undefined;
-  if (isNoDeviceToCrawl) return [];
-  return withExtraDevicePage(extraBrowsers, crawlPreset, async (devicePage) => {
+): Promise<CrawlingVisit> =>
+  withExtraDevicePage(extraBrowsers, extraPreset, async (devicePage) => {
     const beforeFailure = await runBeforeSteps(sweepRunStart, devicePage);
     const hasBeforeFailed = beforeFailure !== null;
-    if (hasBeforeFailed) return [];
-    return listSweepRoutes(devicePage.page, routeSources);
+    if (hasBeforeFailed) {
+      return {
+        routes: null,
+        deviceVisit: { kind: "before-failed", beforeFailure },
+      };
+    }
+    const crawlPages = createCrawlPages(sweepRunStart);
+    const routes = await listSweepRoutes(devicePage.page, crawlPages);
+    const deviceVisit = await visitReadyPage({
+      ...sweepRunStart,
+      devicePage,
+      routes,
+    });
+    return { routes, deviceVisit };
   });
-};
 
 const visitExtraDevices = async (
   extraBrowsers: ExtraBrowsers,
@@ -207,10 +220,7 @@ const visitExtraDevices = async (
 ): Promise<DeviceVisit[]> => {
   const extraIds = extraPresets.map(({ id }) => id);
   const deviceVisits: DeviceVisit[] = [];
-  for (const batchIds of listExtraDeviceBatches(
-    extraIds,
-    SWEEP_EXTRA_DEVICE_LIMIT,
-  )) {
+  for (const batchIds of listFlowBatches(extraIds, SWEEP_EXTRA_DEVICE_LIMIT)) {
     const batchPresets = extraPresets.filter(({ id }) => batchIds.includes(id));
     const batchVisits = await Promise.all(
       batchPresets.map((extraPreset) =>
@@ -220,6 +230,35 @@ const visitExtraDevices = async (
     deviceVisits.push(...batchVisits);
   }
   return deviceVisits;
+};
+
+const visitExtraDevicesWithoutGrid = async (
+  sweepRunStart: SweepRunStart,
+  extraBrowsers: ExtraBrowsers,
+  extraPresets: DevicePreset[],
+): Promise<SweepVisits> => {
+  const deviceVisits: DeviceVisit[] = [];
+  for (const [presetIndex, extraPreset] of extraPresets.entries()) {
+    const crawlingVisit = await visitCrawlingExtraDevice(
+      extraBrowsers,
+      extraPreset,
+      sweepRunStart,
+    );
+    deviceVisits.push(crawlingVisit.deviceVisit);
+    const { routes } = crawlingVisit;
+    const isCrawlDone = routes !== null;
+    if (isCrawlDone) {
+      const restPresets = extraPresets.slice(presetIndex + 1);
+      const sweepRoutes = { sweepRunStart, routes };
+      const restVisits = await visitExtraDevices(
+        extraBrowsers,
+        restPresets,
+        sweepRoutes,
+      );
+      return { routes, deviceVisits: [...deviceVisits, ...restVisits] };
+    }
+  }
+  return { routes: [], deviceVisits };
 };
 
 const visitDevices = async (
@@ -238,8 +277,20 @@ const visitDevices = async (
   );
 
   return withExtraBrowsers(extraPresets, async (extraBrowsers) => {
-    const devicesInUse = { readyGridPages, extraPresets, extraBrowsers };
-    const routes = await listRoutesFromDevices(sweepRunStart, devicesInUse);
+    const [crawlGridPage] = readyGridPages;
+    const isGridPageReady = crawlGridPage !== undefined;
+    if (!isGridPageReady) {
+      const extraVisits = await visitExtraDevicesWithoutGrid(
+        sweepRunStart,
+        extraBrowsers,
+        extraPresets,
+      );
+      const deviceVisits = [...gridFailureVisits, ...extraVisits.deviceVisits];
+      return { routes: extraVisits.routes, deviceVisits };
+    }
+
+    const crawlPages = createCrawlPages(sweepRunStart);
+    const routes = await listSweepRoutes(crawlGridPage.page, crawlPages);
     const sweepRoutes = { sweepRunStart, routes };
     const [gridVisits, extraVisits] = await Promise.all([
       Promise.all(

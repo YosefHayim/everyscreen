@@ -10,7 +10,6 @@ import {
   createSweepSteps,
   hasLeftOrigin,
   listBeforeRunSteps,
-  listExtraDeviceBatches,
   mergeRoutes,
   type PageLink,
   parseSitemapLocs,
@@ -248,6 +247,10 @@ describe("createSweepSteps", () => {
       aboutStep.runStep.deviceAnswers.map(({ deviceId }) => deviceId),
     ).toEqual(["pixel-8", "iphone-se"]);
   });
+
+  test("makes no sweep step", () => {
+    expect(createSweepSteps(["/", "/about"], [])).toEqual([]);
+  });
 });
 
 describe("summarizeSweep", () => {
@@ -326,6 +329,29 @@ describe("summarizeSweep", () => {
     const reply = summarizeSweep(sweepSteps, "run-0009", []);
 
     expect(reply.line).toContain("0 shots");
+  });
+
+  test("counts a device whose before flow failed and keeps its message as is", () => {
+    const sweepSteps = [
+      {
+        route: "/",
+        runStep: createStep("step-1", [createOkAnswer("pixel-8", "a.png")], 0),
+      },
+    ];
+    const beforeFailure = createBeforeFailureAnswer(
+      "iphone-se",
+      "before flow failed: no login button",
+    );
+
+    const reply = summarizeSweep(sweepSteps, "run-0010", [beforeFailure]);
+
+    expect(reply.line).toBe(
+      "1 route · 2 devices · 1 shot · 0 findings · 1 failed · report run-0010",
+    );
+    expect(reply.status).toBe("failed");
+    expect(reply.failures[0].message).toBe(
+      "before flow failed: no login button",
+    );
   });
 });
 
@@ -428,24 +454,6 @@ describe("pickSweepDevices", () => {
   });
 });
 
-describe("listExtraDeviceBatches", () => {
-  test("groups the extra devices by the limit", () => {
-    const extraIds = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
-
-    const batches = listExtraDeviceBatches(extraIds, 4);
-
-    expect(batches).toEqual([
-      ["a", "b", "c", "d"],
-      ["e", "f", "g", "h"],
-      ["i"],
-    ]);
-  });
-
-  test("makes no batch for no extra devices", () => {
-    expect(listExtraDeviceBatches([], 4)).toEqual([]);
-  });
-});
-
 describe("createBeforeFailure", () => {
   test("keeps the first line of the message behind the before flow prefix", () => {
     const deviceFailure = createBeforeFailureAnswer(
@@ -462,29 +470,31 @@ describe("createBeforeFailure", () => {
   });
 });
 
-describe("pickVisitedRouteSteps and pickBeforeFailures", () => {
-  const routeSteps = [
-    {
-      startedAt: 1,
-      deviceStep: {
-        deviceAnswer: createOkAnswer("pixel-8", "a.png"),
-        findings: [],
-      },
+const routeSteps = [
+  {
+    startedAt: 1,
+    deviceStep: {
+      deviceAnswer: createOkAnswer("pixel-8", "a.png"),
+      findings: [],
     },
-  ];
-  const beforeFailure = createBeforeFailureAnswer(
-    "iphone-se",
-    "before flow failed: x",
-  );
-  const deviceVisits = [
-    { kind: "visited" as const, routeSteps },
-    { kind: "before-failed" as const, beforeFailure },
-  ];
+  },
+];
+const beforeFailure = createBeforeFailureAnswer(
+  "iphone-se",
+  "before flow failed: x",
+);
+const deviceVisits = [
+  { kind: "visited" as const, routeSteps },
+  { kind: "before-failed" as const, beforeFailure },
+];
 
+describe("pickVisitedRouteSteps", () => {
   test("lists the route steps of the visited devices only", () => {
     expect(pickVisitedRouteSteps(deviceVisits)).toEqual([routeSteps]);
   });
+});
 
+describe("pickBeforeFailures", () => {
   test("lists the failures of the devices whose before flow failed", () => {
     expect(pickBeforeFailures(deviceVisits)).toEqual([beforeFailure]);
   });
@@ -506,36 +516,5 @@ describe("listBeforeRunSteps", () => {
     expect(beforeRunStep.title).toBe("before flow");
     expect(beforeRunStep.startedAt).toBe(100);
     expect(beforeRunStep.deviceAnswers).toEqual(beforeFailures);
-  });
-});
-
-describe("summarizeSweep with before flow failures", () => {
-  test("counts the failed device and keeps its message as is", () => {
-    const sweepSteps = [
-      {
-        route: "/",
-        runStep: createStep("step-1", [createOkAnswer("pixel-8", "a.png")], 0),
-      },
-    ];
-    const beforeFailure = createBeforeFailureAnswer(
-      "iphone-se",
-      "before flow failed: no login button",
-    );
-
-    const reply = summarizeSweep(sweepSteps, "run-0010", [beforeFailure]);
-
-    expect(reply.line).toBe(
-      "1 route · 2 devices · 1 shot · 0 findings · 1 failed · report run-0010",
-    );
-    expect(reply.status).toBe("failed");
-    expect(reply.failures[0].message).toBe(
-      "before flow failed: no login button",
-    );
-  });
-});
-
-describe("createSweepSteps with no visited device", () => {
-  test("makes no sweep step", () => {
-    expect(createSweepSteps(["/", "/about"], [])).toEqual([]);
   });
 });

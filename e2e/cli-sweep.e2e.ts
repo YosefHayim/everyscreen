@@ -143,6 +143,8 @@ const listenOnFreePort = async (server: Server): Promise<string> => {
   return `http://127.0.0.1:${address.port}`;
 };
 
+const loginRequestPaths: string[] = [];
+
 const answerAppRequest = (
   appRequest: { url?: string; headers: { cookie?: string } },
   appReply: {
@@ -173,6 +175,7 @@ const answerAppRequest = (
     return;
   }
   if (pathname === "/login") {
+    loginRequestPaths.push(pathname);
     appReply.end(LOGIN_PAGE);
     return;
   }
@@ -376,5 +379,28 @@ test.describe("sweep command line", () => {
     );
     const leftoverPids = await listNewPids(pidsBeforeSweep);
     expect(leftoverPids).toEqual([]);
+  });
+
+  test("runs the before flow once per device when no grid device is swept", async () => {
+    test.setTimeout(ALL_DEVICES_TIMEOUT_MS);
+
+    loginRequestPaths.length = 0;
+    const sweepRun = await runCli(rootFolder, [
+      "sweep",
+      "--url",
+      `${appUrl}/`,
+      "--devices",
+      "galaxy-s25,ipad-mini",
+      "--max-routes",
+      "1",
+      "--before",
+      "login.yaml",
+    ]);
+
+    expect(sweepRun.commandReply.failures).toEqual([]);
+    expect(sweepRun.commandReply.line).toMatch(
+      /^1 route · 2 devices · 2 shots/,
+    );
+    expect(loginRequestPaths).toHaveLength(2);
   });
 });

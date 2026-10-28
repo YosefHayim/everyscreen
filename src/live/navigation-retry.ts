@@ -1,27 +1,37 @@
-import type { Page } from "playwright";
+import { errors, type Page } from "playwright";
 import { pickErrorMessage } from "@/commands/commands-logic";
 
-const ATTEMPTS = 5;
-const SETTLE_MS = 200;
+const NAVIGATION_SETTLE_TIMEOUT_MS = 3000;
+const NAVIGATION_SETTLE_PAUSE_MS = 200;
 const NAVIGATION_RACE_MESSAGE = "Execution context was destroyed";
 
-// A tap can start a redirect that destroys the page context mid-read; wait for the new page and read again.
+export type SettlablePage = Pick<Page, "waitForTimeout" | "waitForLoadState">;
+
+const waitForNewPage = async (page: SettlablePage): Promise<void> => {
+  await page.waitForTimeout(NAVIGATION_SETTLE_PAUSE_MS);
+  try {
+    await page.waitForLoadState("domcontentloaded", {
+      timeout: NAVIGATION_SETTLE_TIMEOUT_MS,
+    });
+  } catch (error) {
+    const isSlowPage = error instanceof errors.TimeoutError;
+    if (!isSlowPage) throw error;
+  }
+};
+
+// A tap can start a redirect that destroys the page context mid-read. Read first; only on that error wait briefly and read once more.
 export const retryAfterNavigation = async <Reading>(
-  page: Page,
+  page: SettlablePage,
   readPage: () => Promise<Reading>,
 ): Promise<Reading> => {
-  for (let attempt = 1; attempt < ATTEMPTS; attempt += 1) {
-    try {
-      await page.waitForLoadState("load");
-      return await readPage();
-    } catch (error) {
-      const isNavigationRace = pickErrorMessage(error).includes(
-        NAVIGATION_RACE_MESSAGE,
-      );
-      if (!isNavigationRace) throw error;
-      await page.waitForTimeout(SETTLE_MS);
-    }
+  try {
+    return await readPage();
+  } catch (error) {
+    const isNavigationRace = pickErrorMessage(error).includes(
+      NAVIGATION_RACE_MESSAGE,
+    );
+    if (!isNavigationRace) throw error;
+    await waitForNewPage(page);
+    return readPage();
   }
-  await page.waitForLoadState("load");
-  return readPage();
 };
