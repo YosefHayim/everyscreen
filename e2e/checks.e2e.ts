@@ -117,7 +117,12 @@ test("every selector, with its escaped Tailwind class, finds exactly one element
   expect(counts).toEqual([1, 1, 1, 1]);
 });
 
-const SAFE_AREA_ENGINES: { name: string; engine: BrowserType }[] = [
+interface SafeAreaEngine {
+  name: string;
+  engine: BrowserType;
+}
+
+const SAFE_AREA_ENGINES: SafeAreaEngine[] = [
   { name: "WebKit iphone-se", engine: webkit },
   { name: "Chromium phone", engine: chromium },
 ];

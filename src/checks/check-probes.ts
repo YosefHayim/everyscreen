@@ -70,9 +70,12 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
   const readSheetRules = (sheet: CSSStyleSheet): CSSRule[] => {
     try {
       return [...sheet.cssRules];
-    } catch {
+    } catch (error) {
       // A cross-origin sheet hides its rules from the page, so it is skipped.
-      return [];
+      const isCrossOriginSheet =
+        error instanceof DOMException && error.name === "SecurityError";
+      if (isCrossOriginSheet) return [];
+      throw error;
     }
   };
   const listStyleRules = (rules: CSSRule[]): CSSStyleRule[] =>
@@ -85,20 +88,27 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
   const isRuleMatching = (rule: CSSStyleRule, element: Element) => {
     try {
       return element.matches(rule.selectorText);
-    } catch {
+    } catch (error) {
       // A selector this browser cannot parse matches nothing.
-      return false;
+      const isUnparseableSelector =
+        error instanceof DOMException && error.name === "SyntaxError";
+      if (isUnparseableSelector) return false;
+      throw error;
     }
   };
   const styleRules = listStyleRules(
     [...document.styleSheets].flatMap(readSheetRules),
   );
-  const listOwnDeclarations = (element: Element) => [
-    element.getAttribute("style") ?? "",
-    ...styleRules
+  const listOwnDeclarations = (element: Element) => {
+    const inlineStyle = element.getAttribute("style");
+    const hasInlineStyle = inlineStyle !== null;
+    const ruleDeclarations = styleRules
       .filter((rule) => isRuleMatching(rule, element))
-      .map((rule) => rule.style.cssText),
-  ];
+      .map((rule) => rule.style.cssText);
+    return hasInlineStyle
+      ? [inlineStyle, ...ruleDeclarations]
+      : ruleDeclarations;
+  };
   const isTiedToSafeArea = (element: Element, side: "top" | "bottom") =>
     listOwnDeclarations(element).some((declarations) =>
       declarations.includes(`safe-area-inset-${side}`),
