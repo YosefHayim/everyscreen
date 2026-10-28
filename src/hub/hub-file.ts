@@ -6,7 +6,7 @@ export const hubFileSchema = z.object({
     z.string(),
     z.object({
       wsEndpoint: z.string(),
-      cdpUrl: z.string(),
+      cdpUrl: z.string().nullable(),
     }),
   ),
 });
