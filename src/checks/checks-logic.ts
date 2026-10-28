@@ -1,11 +1,11 @@
 import type { PageMeasurements } from "@/checks/check-probes";
 import type { SafeAreaInsets } from "@/devices/devices-logic";
 
-export const MIN_TAP_SIZE = 44;
+const MIN_TAP_SIZE = 44;
 const REQUEST_FAILURE_ECHO = "Failed to load resource";
 const FAVICON_PATH = "/favicon.ico";
 
-export type FindingKind =
+type FindingKind =
   | "overflow"
   | "clipped-text"
   | "safe-area"
@@ -15,7 +15,7 @@ export type FindingKind =
 
 export const SEVERITIES = ["failed", "warn"] as const;
 
-export type Severity = (typeof SEVERITIES)[number];
+type Severity = (typeof SEVERITIES)[number];
 
 export interface Finding {
   kind: FindingKind;

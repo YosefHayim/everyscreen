@@ -51,12 +51,12 @@ export const scrollCommandSchema = z.object({
   deviceIds: deviceIdsSchema,
 });
 
-export const checkCommandSchema = z.object({
+const checkCommandSchema = z.object({
   commandName: z.literal("check"),
   deviceIds: deviceIdsSchema,
 });
 
-export const shotCommandSchema = z.object({
+const shotCommandSchema = z.object({
   commandName: z.literal("shot"),
   deviceIds: deviceIdsSchema,
 });
@@ -78,5 +78,3 @@ export const hubCommandSchema = z.discriminatedUnion("commandName", [
 ]);
 
 export type HubCommand = z.infer<typeof hubCommandSchema>;
-
-export type CommandName = HubCommand["commandName"];

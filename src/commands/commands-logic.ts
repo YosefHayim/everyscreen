@@ -10,7 +10,7 @@ const NO_DEVICE_STATUS = 404;
 const SHOTS_SUBFOLDER = "shots";
 const SHOT_FILE_EXTENSION = ".png";
 
-export interface DeviceOk {
+interface DeviceOk {
   status: "ok";
   deviceId: string;
   durationMs: number;
