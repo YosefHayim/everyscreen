@@ -25,7 +25,7 @@ const parseYaml = (devicesYaml: string): unknown => {
   }
 };
 
-const parseDevicesYaml = (devicesYaml: string): DevicesFile => {
+export const parseDevicesYaml = (devicesYaml: string): DevicesFile => {
   const parsedYaml = parseYaml(devicesYaml);
   const parsedFile = devicesFileSchema.safeParse(parsedYaml ?? {});
   if (parsedFile.success) return parsedFile.data;
