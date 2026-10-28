@@ -1,24 +1,21 @@
-import { type ReactElement, useState } from "react";
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { AddDeviceForm } from "@/dashboard/devices/add-device-form";
 import { DeviceCard } from "@/dashboard/devices/device-card";
-import { listDeviceGroups } from "@/dashboard/devices/device-view-logic";
-import { useDeviceViews } from "@/dashboard/devices/use-device-views";
+import { useDevicesScreen } from "@/dashboard/devices/use-devices-screen";
 import { Button } from "@/dashboard/ui/button";
 import { ScreenBoundary } from "@/dashboard/ui/screen-boundary";
-import { pickScreenStatus } from "@/dashboard/ui/screen-status-logic";
 
 export const DevicesScreen = (): ReactElement => {
   const { t } = useTranslation();
-  const devicesQuery = useDeviceViews();
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const deviceViews = devicesQuery.data ?? [];
-  const deviceGroups = listDeviceGroups(deviceViews);
-  const hasNoDevices = deviceViews.length === 0;
-  const devicesStatus = pickScreenStatus(devicesQuery.status, hasNoDevices);
-  const toggleLabel = isFormOpen
-    ? t("devices.closeForm")
-    : t("devices.openForm");
+  const {
+    deviceCount,
+    deviceGroups,
+    devicesStatus,
+    isFormOpen,
+    toggleLabel,
+    toggleForm,
+  } = useDevicesScreen();
 
   return (
     <div className="mx-auto flex w-full max-w-290 flex-col gap-6 p-4 md:p-7">
@@ -28,7 +25,7 @@ export const DevicesScreen = (): ReactElement => {
             {t("devices.title")}
           </h1>
           <p className="mt-1 mb-0 text-sm text-ink-2">
-            {t("devices.subtitle", { count: deviceViews.length })}
+            {t("devices.subtitle", { count: deviceCount })}
           </p>
         </div>
         <Button
@@ -36,7 +33,7 @@ export const DevicesScreen = (): ReactElement => {
           variant="outline"
           size="small"
           aria-expanded={isFormOpen}
-          onClick={() => setIsFormOpen(!isFormOpen)}
+          onClick={toggleForm}
         >
           {toggleLabel}
         </Button>

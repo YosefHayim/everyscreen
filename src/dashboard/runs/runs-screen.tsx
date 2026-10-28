@@ -9,14 +9,11 @@ import {
 import { useRuns } from "@/dashboard/runs/use-runs";
 import { FilterChip } from "@/dashboard/ui/filter-chip";
 import { ScreenBoundary } from "@/dashboard/ui/screen-boundary";
-import { pickScreenStatus } from "@/dashboard/ui/screen-status-logic";
 
 export const RunsScreen = (): ReactElement => {
   const { t } = useTranslation();
   const runsView = useRuns();
-  const { runsQuery, runs, shownRuns } = runsView;
-  const hasNoRuns = runs.length === 0;
-  const runsStatus = pickScreenStatus(runsQuery.status, hasNoRuns);
+  const { runsStatus, runs, shownRuns } = runsView;
   const hasShownRuns = shownRuns.length > 0;
   const hasNoShownRuns = !hasShownRuns;
 

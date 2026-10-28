@@ -58,7 +58,7 @@ export const RunSummary = ({ run }: RunSummaryProps): ReactElement => {
           ))}
           <div className="col-span-2 md:col-span-1">
             <dt className="text-xs text-ink-2">
-              {t("runs.report.stats.result")}
+              {t("runs.report.stats.verdict")}
             </dt>
             <dd className="m-0 mt-1 flex flex-wrap gap-2">
               <StatusChip

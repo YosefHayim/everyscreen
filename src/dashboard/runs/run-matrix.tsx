@@ -62,7 +62,7 @@ export const RunMatrix = ({
                 </th>
               ))}
               <th scope="col" className="px-4 py-3 text-end font-normal">
-                {t("runs.report.matrixResult")}
+                {t("runs.report.matrixVerdict")}
               </th>
             </tr>
           </thead>
@@ -91,7 +91,7 @@ export const RunMatrix = ({
                   );
                 })}
                 <td className="px-4 py-3 text-end font-mono text-xs whitespace-nowrap text-ink-2">
-                  {t("runs.report.rowResult", {
+                  {t("runs.report.rowTally", {
                     okCount: matrixRow.okCount,
                     warnCount: matrixRow.warnCount,
                     failedCount: matrixRow.failedCount,

@@ -3,19 +3,14 @@ import { useTranslation } from "react-i18next";
 import { FailureProof } from "@/dashboard/runs/failure-proof";
 import { RunFindings } from "@/dashboard/runs/run-findings";
 import { RunMatrix } from "@/dashboard/runs/run-matrix";
-import { listFailureProofs } from "@/dashboard/runs/run-report-logic";
 import { RunSummary } from "@/dashboard/runs/run-summary";
 import { useRunReport } from "@/dashboard/runs/use-run-report";
 import { ScreenBoundary } from "@/dashboard/ui/screen-boundary";
-import { pickScreenStatus } from "@/dashboard/ui/screen-status-logic";
 
 export const RunReportScreen = (): ReactElement => {
   const { t } = useTranslation();
-  const { runQuery, deviceViews } = useRunReport();
-  const runStatus = pickScreenStatus(runQuery.status, false);
-  const run = runQuery.data;
-  const isRunLoaded = run !== undefined;
-  const failureProofs = isRunLoaded ? listFailureProofs(run) : [];
+  const { run, runStatus, failureProofs, deviceViews } = useRunReport();
+  const isRunLoaded = run !== null;
   const hasFailureProofs = failureProofs.length > 0;
 
   return (

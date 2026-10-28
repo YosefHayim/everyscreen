@@ -17,6 +17,18 @@ export const readStoredFile = async (
   }
 };
 
+export const readStoredBytes = async (
+  filePath: string,
+): Promise<Buffer | null> => {
+  try {
+    return await readFile(filePath);
+  } catch (error) {
+    const isFileMissing = isMissingFileError(error);
+    if (isFileMissing) return null;
+    throw error;
+  }
+};
+
 export const writeStoredFile = async (
   filePath: string,
   fileBytes: string | Uint8Array,

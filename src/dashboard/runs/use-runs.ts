@@ -1,4 +1,4 @@
-import { type UseQueryResult, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   listShownRuns,
@@ -6,10 +6,12 @@ import {
   type StatusFilter,
 } from "@/dashboard/runs/runs-list-logic";
 import { runQueries } from "@/dashboard/runs/runs-queries";
+import type { ScreenStatus } from "@/dashboard/ui/screen-boundary";
+import { pickScreenStatus } from "@/dashboard/ui/screen-status-logic";
 import type { Run } from "@/runs/runs-logic";
 
 interface RunsView {
-  runsQuery: UseQueryResult<Run[]>;
+  runsStatus: ScreenStatus;
   runs: Run[];
   shownRuns: Run[];
   statusFilter: StatusFilter;
@@ -24,9 +26,10 @@ export const useRuns = (): RunsView => {
   const [originFilter, chooseOriginFilter] = useState<OriginFilter>("all");
   const runs = runsQuery.data ?? [];
   const shownRuns = listShownRuns(runs, statusFilter, originFilter);
+  const hasNoRuns = runs.length === 0;
 
   return {
-    runsQuery,
+    runsStatus: pickScreenStatus(runsQuery.status, hasNoRuns),
     runs,
     shownRuns,
     statusFilter,

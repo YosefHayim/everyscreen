@@ -145,15 +145,15 @@
         "devices": "Devices",
         "duration": "Duration",
         "started": "Started",
-        "result": "Result"
+        "verdict": "Result"
       },
       "okDevices": "{{count}} ok",
       "failedDevices": "{{count}} failed",
       "matrixTitle": "Every step, on every screen",
       "matrixDevice": "Device",
-      "matrixResult": "Result",
+      "matrixVerdict": "Result",
       "stepHeader": "Step {{number}}: {{title}}",
-      "rowResult": "{{okCount}} ok · {{warnCount}} warn · {{failedCount}} failed",
+      "rowTally": "{{okCount}} ok · {{warnCount}} warn · {{failedCount}} failed",
       "findingsTitle": "Findings",
       "noFindings": "No findings in this run",
       "findingStep": "Step {{number}} · {{title}}",

@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { serve } from "@hono/node-server";
 import { expect, type Page, test } from "@playwright/test";
-import { Hono } from "hono";
 import { createServer, type ViteDevServer } from "vite";
 import { DEVICES_FILE_PATH, STORE_FOLDER } from "@/environment";
 import { createHubApp } from "@/hub/hub-app";
@@ -117,14 +116,9 @@ test.describe("dashboard screens", () => {
   test.beforeAll(async () => {
     rootFolder = await createFixtureFolder();
     const hubApp = createHubApp(rootFolder);
-    const outerApp = new Hono();
-    outerApp.get("/api/shots/:shotName", (c) =>
-      c.body(SHOT_PNG, 200, { "content-type": "image/png" }),
-    );
-    outerApp.route("/", hubApp);
     const hubPort = await new Promise<number>((done) => {
       hubServer = serve(
-        { fetch: outerApp.fetch, port: 0, hostname: HOST },
+        { fetch: hubApp.fetch, port: 0, hostname: HOST },
         (address: AddressInfo) => done(address.port),
       );
     });

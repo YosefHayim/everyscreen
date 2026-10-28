@@ -1,19 +1,15 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { useDeviceViews } from "@/dashboard/devices/use-device-views";
 import { DeviceTile } from "@/dashboard/grid/device-tile";
 import { FindingToasts } from "@/dashboard/grid/finding-toasts";
 import { OpenAppCard } from "@/dashboard/grid/open-app-card";
 import { SetupSteps } from "@/dashboard/grid/setup-steps";
+import { useGridScreen } from "@/dashboard/grid/use-grid-screen";
 import { ScreenBoundary } from "@/dashboard/ui/screen-boundary";
-import { pickScreenStatus } from "@/dashboard/ui/screen-status-logic";
 
 export const GridScreen = (): ReactElement => {
   const { t } = useTranslation();
-  const devicesQuery = useDeviceViews();
-  const deviceViews = devicesQuery.data ?? [];
-  const hasNoDevices = deviceViews.length === 0;
-  const devicesStatus = pickScreenStatus(devicesQuery.status, hasNoDevices);
+  const { deviceViews, devicesStatus } = useGridScreen();
 
   return (
     <div className="flex min-h-full flex-col items-center gap-4 p-4 md:px-7 md:pt-4 md:pb-5">
