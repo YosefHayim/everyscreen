@@ -1,10 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Flow } from "@/flows/flow-schema";
-import {
-  listFlowBatches,
-  listFlowCommands,
-  summarizeFlows,
-} from "@/flows/flows-logic";
+import { listFlowBatches, listFlowCommands } from "@/flows/flows-logic";
 
 describe("listFlowCommands", () => {
   test("turns every step kind into one command with the flow devices", () => {
@@ -64,6 +60,18 @@ describe("listFlowCommands", () => {
 });
 
 describe("listFlowBatches", () => {
+  test("makes one batch of every flow when a batch holds one flow more than needed", () => {
+    const batches = listFlowBatches(["a.yaml", "b.yaml"], 5);
+
+    expect(batches).toEqual([["a.yaml", "b.yaml"]]);
+  });
+
+  test("makes one batch per flow when a batch holds one flow", () => {
+    const batches = listFlowBatches(["a.yaml", "b.yaml"], 1);
+
+    expect(batches).toEqual([["a.yaml"], ["b.yaml"]]);
+  });
+
   test("returns no batches for no flows", () => {
     const batches = listFlowBatches([], 2);
 
@@ -87,31 +95,5 @@ describe("listFlowBatches", () => {
       ["c.yaml", "d.yaml"],
       ["e.yaml"],
     ]);
-  });
-});
-
-describe("summarizeFlows", () => {
-  test("replies ok when every flow passes", () => {
-    const reply = summarizeFlows(["pass", "pass"]);
-
-    expect(reply).toEqual({
-      status: "ok",
-      line: "2 flows, 0 failed",
-      runId: null,
-      failures: [],
-    });
-  });
-
-  test("replies failed when one flow fails", () => {
-    const reply = summarizeFlows(["pass", "fail", "pass"]);
-
-    expect(reply.status).toBe("failed");
-    expect(reply.line).toBe("3 flows, 1 failed");
-  });
-
-  test("replies ok for no flows", () => {
-    const reply = summarizeFlows([]);
-
-    expect(reply.line).toBe("0 flows, 0 failed");
   });
 });

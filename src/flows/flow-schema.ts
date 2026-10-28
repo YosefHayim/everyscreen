@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { hubCommandSchema } from "@/commands/commands-schema";
+import { pickCommandSchema } from "@/flows/pick-command-schema";
 
-const commandSchemas = hubCommandSchema.options;
-const openCommand = commandSchemas[0];
-const tapCommand = commandSchemas[1];
-const fillCommand = commandSchemas[2];
-const scrollCommand = commandSchemas[3];
-const expectCommand = commandSchemas[6];
+const openCommand = pickCommandSchema("open");
+const tapCommand = pickCommandSchema("tap");
+const fillCommand = pickCommandSchema("fill");
+const scrollCommand = pickCommandSchema("scroll");
+const expectCommand = pickCommandSchema("expect");
 
 const STEP_WITHOUT_COMMAND_FIELDS = {
   commandName: true,
@@ -33,8 +32,11 @@ const flowStepSchema = z.union([
 
 export const flowSchema = z.strictObject({
   name: z.string(),
-  devices: z.array(z.string()).nullable().default(null),
+  // null means every device in the grid.
+  devices: z.array(z.string()).min(1).nullable().default(null),
   steps: z.array(flowStepSchema),
 });
+
+export const flowsPerBatchSchema = z.number().int().min(1);
 
 export type Flow = z.infer<typeof flowSchema>;

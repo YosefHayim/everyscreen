@@ -1,6 +1,6 @@
-import { access, copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readStoredFile, writeStoredFile } from "@/hub/stored-files";
 
 export type SkillAgent = "claude" | "codex" | "cursor";
 
@@ -19,14 +19,11 @@ const SKILL_FILE_URLS = [
   new URL("../src/skill/SKILL.md", import.meta.url),
 ];
 
-const findSkillFile = async (): Promise<string> => {
+const readSkillMarkdown = async (): Promise<string> => {
   for (const skillFileUrl of SKILL_FILE_URLS) {
-    const skillFile = fileURLToPath(skillFileUrl);
-    const isSkillFileThere = await access(skillFile).then(
-      () => true,
-      () => false,
-    );
-    if (isSkillFileThere) return skillFile;
+    const skillMarkdown = await readStoredFile(fileURLToPath(skillFileUrl));
+    const isSkillMarkdownFound = skillMarkdown !== null;
+    if (isSkillMarkdownFound) return skillMarkdown;
   }
   throw new Error("SKILL.md is missing from the Everyscreen package");
 };
@@ -35,12 +32,10 @@ export const installSkill = async (
   agent: SkillAgent,
   rootFolder: string,
 ): Promise<string> => {
-  const skillFolder = join(rootFolder, SKILL_FOLDERS[agent]);
-  const installedFile = join(skillFolder, "SKILL.md");
-  const skillFile = await findSkillFile();
+  const installedFile = join(rootFolder, SKILL_FOLDERS[agent], "SKILL.md");
+  const skillMarkdown = await readSkillMarkdown();
 
-  await mkdir(skillFolder, { recursive: true });
-  await copyFile(skillFile, installedFile);
+  await writeStoredFile(installedFile, skillMarkdown);
 
   return installedFile;
 };

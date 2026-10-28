@@ -11,27 +11,31 @@ const SKILL_PATHS: Record<SkillAgent, string> = {
 };
 const AGENTS: SkillAgent[] = ["claude", "codex", "cursor"];
 
+let rootFolder = "";
+
+test.beforeEach(async () => {
+  rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-skill-"));
+});
+
+test.afterEach(async () => {
+  await rm(rootFolder, { recursive: true, force: true });
+});
+
 for (const agent of AGENTS) {
   test(`installs the skill where ${agent} reads it`, async () => {
-    const rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-skill-"));
-
     const installedFile = await installSkill(agent, rootFolder);
-    const skillText = await readFile(installedFile, "utf8");
+    const skillMarkdown = await readFile(installedFile, "utf8");
 
     expect(installedFile).toBe(join(rootFolder, SKILL_PATHS[agent]));
-    expect(skillText).toContain("name: everyscreen");
-    expect(skillText).toContain("npx everyscreen start");
-    await rm(rootFolder, { recursive: true });
+    expect(skillMarkdown).toContain("name: everyscreen");
+    expect(skillMarkdown).toContain("npx everyscreen start");
   });
 }
 
 test("installing twice keeps one skill file", async () => {
-  const rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-skill-"));
-
   await installSkill("claude", rootFolder);
   const installedFile = await installSkill("claude", rootFolder);
-  const skillText = await readFile(installedFile, "utf8");
+  const skillMarkdown = await readFile(installedFile, "utf8");
 
-  expect(skillText.match(/^name: everyscreen$/gm)).toHaveLength(1);
-  await rm(rootFolder, { recursive: true });
+  expect(skillMarkdown.match(/^name: everyscreen$/gm)).toHaveLength(1);
 });

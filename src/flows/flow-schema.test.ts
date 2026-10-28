@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { flowSchema } from "@/flows/flow-schema";
+import { flowSchema, flowsPerBatchSchema } from "@/flows/flow-schema";
 
 describe("flowSchema", () => {
   test("accepts every step kind and keeps the device list", () => {
@@ -28,6 +28,14 @@ describe("flowSchema", () => {
     const parsedFlow = flowSchema.parse(flow);
 
     expect(parsedFlow.devices).toBeNull();
+  });
+
+  test("rejects an empty device list", () => {
+    const flow = { name: "No devices named", devices: [], steps: [] };
+
+    const parsing = flowSchema.safeParse(flow);
+
+    expect(parsing.success).toBe(false);
   });
 
   test("rejects a role the commands do not know", () => {
@@ -63,5 +71,27 @@ describe("flowSchema", () => {
     const parsing = flowSchema.safeParse(flow);
 
     expect(parsing.success).toBe(false);
+  });
+});
+
+describe("flowsPerBatchSchema", () => {
+  test("rejects 0", () => {
+    const parsing = flowsPerBatchSchema.safeParse(0);
+
+    expect(parsing.success).toBe(false);
+  });
+
+  test("accepts 1", () => {
+    const parsing = flowsPerBatchSchema.safeParse(1);
+
+    expect(parsing.success).toBe(true);
+  });
+
+  test("accepts many and rejects a fraction", () => {
+    const manyParsing = flowsPerBatchSchema.safeParse(8);
+    const fractionParsing = flowsPerBatchSchema.safeParse(1.5);
+
+    expect(manyParsing.success).toBe(true);
+    expect(fractionParsing.success).toBe(false);
   });
 });

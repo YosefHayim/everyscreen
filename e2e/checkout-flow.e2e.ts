@@ -8,8 +8,8 @@ import { listFlowCommands } from "@/flows/flows-logic";
 const CHECKOUT_FLOW_PATH = new URL("./checkout.yaml", import.meta.url);
 
 test("checkout.yaml becomes four valid hub commands on three devices", async () => {
-  const flowText = await readFile(CHECKOUT_FLOW_PATH, "utf8");
-  const flow = flowSchema.parse(parse(flowText));
+  const flowYaml = await readFile(CHECKOUT_FLOW_PATH, "utf8");
+  const flow = flowSchema.parse(parse(flowYaml));
 
   const commands = listFlowCommands(flow);
 
