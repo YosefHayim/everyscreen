@@ -8,11 +8,22 @@ import type { TestStatus } from "@playwright/test/reporter";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import { createReplyLine } from "@/commands/commands-logic";
 import type { BrowserName, DevicePreset } from "@/devices/devices-logic";
+import type { HubFile } from "@/hub/hub-file";
+import type { LiveTestStatus, TestEvent } from "@/live/live-test-schema";
 import type { RunStep } from "@/runs/runs-logic";
 
 export interface HubDevice {
   wsEndpoint: string;
 }
+
+export interface DeviceProjectOptions {
+  everyscreenDeviceId: string | null;
+}
+
+export type DeviceProject = Project<
+  PlaywrightTestOptions & DeviceProjectOptions,
+  PlaywrightWorkerOptions
+>;
 
 export interface FinishedTest {
   deviceId: string;
@@ -45,7 +56,7 @@ export const pickScreenshotMode = (
 export const createDeviceProject = (
   devicePreset: DevicePreset,
   hubDevice: HubDevice | null,
-): Project<PlaywrightTestOptions, PlaywrightWorkerOptions> => {
+): DeviceProject => {
   const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } =
     devicePreset.use;
   const hasHubDevice = hubDevice !== null;
@@ -54,7 +65,10 @@ export const createDeviceProject = (
     : undefined;
   return {
     name: devicePreset.id,
+    // Every device runs at the same time, so the tests show side by side in the grid.
+    fullyParallel: true,
     use: {
+      everyscreenDeviceId: devicePreset.id,
       browserName: devicePreset.browserName,
       viewport,
       deviceScaleFactor,
@@ -182,4 +196,34 @@ export const createSuiteReplyLine = (
   const failedCount = failedDeviceIds.size;
   const okCount = deviceIds.length - failedCount;
   return createReplyLine({ unit: "device", okCount, failedCount, runId });
+};
+
+export const pickLiveTestStatus = (testStatus: TestStatus): "ok" | "failed" => {
+  const isTestGood = testStatus === "passed" || testStatus === "skipped";
+  return isTestGood ? "ok" : "failed";
+};
+
+export const createTestEvent = (
+  deviceId: string,
+  titlePath: string[],
+  status: LiveTestStatus,
+): TestEvent => ({
+  deviceId,
+  title: titlePath.join(STEP_TITLE_SEPARATOR),
+  status,
+});
+
+// Only a device browser without a CDP address is hidden from the hub, so only its tests send screen images.
+export const isScreenSentByTest = (
+  hubFile: HubFile | null,
+  deviceId: string | null,
+): boolean => {
+  const isDeviceUnknown = deviceId === null;
+  if (isDeviceUnknown) return false;
+
+  const hubDevice = hubFile?.devices[deviceId];
+  const isHubDeviceMissing = hubDevice === undefined;
+  if (isHubDeviceMissing) return false;
+
+  return hubDevice.cdpUrl === null;
 };

@@ -4,9 +4,12 @@ import {
   createDeviceProject,
   createRunStep,
   createSuiteReplyLine,
+  createTestEvent,
   type FinishedTest,
   isLastAttempt,
+  isScreenSentByTest,
   isStepComplete,
+  pickLiveTestStatus,
   pickProjectDevices,
   pickRunEndStatus,
   pickScreenshotMode,
@@ -264,5 +267,74 @@ describe("createSuiteReplyLine", () => {
     );
 
     expect(line).toBe("2 devices · 1 ok · 1 failed · report run-0007");
+  });
+});
+
+describe("createDeviceProject (live options)", () => {
+  test("names the device and runs its tests in parallel", () => {
+    const project = createDeviceProject(iphoneSe, null);
+
+    expect(project.fullyParallel).toBe(true);
+    expect(project.use?.everyscreenDeviceId).toBe(iphoneSe.id);
+  });
+});
+
+describe("pickLiveTestStatus", () => {
+  test("calls a passed test ok", () => {
+    expect(pickLiveTestStatus("passed")).toBe("ok");
+  });
+
+  test("calls a skipped test ok", () => {
+    expect(pickLiveTestStatus("skipped")).toBe("ok");
+  });
+
+  test("calls a timed out test failed", () => {
+    expect(pickLiveTestStatus("timedOut")).toBe("failed");
+  });
+});
+
+describe("createTestEvent", () => {
+  test("joins the title path into one title", () => {
+    const testEvent = createTestEvent(
+      "pixel-8",
+      ["shop.spec.ts", "cart", "adds a tote"],
+      "running",
+    );
+
+    expect(testEvent).toEqual({
+      deviceId: "pixel-8",
+      title: "shop.spec.ts › cart › adds a tote",
+      status: "running",
+    });
+  });
+});
+
+describe("isScreenSentByTest", () => {
+  const hubFile = {
+    port: 4100,
+    devices: {
+      "pixel-8": { wsEndpoint: "ws://a", cdpUrl: "http://127.0.0.1:9" },
+      "iphone-se": { wsEndpoint: "ws://b", cdpUrl: null },
+    },
+  };
+
+  test("sends nothing when the project has no device id", () => {
+    expect(isScreenSentByTest(hubFile, null)).toBe(false);
+  });
+
+  test("sends nothing when there is no hub file", () => {
+    expect(isScreenSentByTest(null, "iphone-se")).toBe(false);
+  });
+
+  test("sends nothing when the hub does not run the device", () => {
+    expect(isScreenSentByTest(hubFile, "ipad-mini")).toBe(false);
+  });
+
+  test("sends nothing for a Chromium device the hub watches", () => {
+    expect(isScreenSentByTest(hubFile, "pixel-8")).toBe(false);
+  });
+
+  test("sends screen images for a device without a CDP address", () => {
+    expect(isScreenSentByTest(hubFile, "iphone-se")).toBe(true);
   });
 });

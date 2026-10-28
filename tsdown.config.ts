@@ -5,6 +5,7 @@ export default defineConfig({
   entry: {
     cli: "src/cli/cli.ts",
     playwright: "src/playwright/playwright-devices.ts",
+    test: "src/playwright/playwright-fixture.ts",
     reporter: "src/playwright/playwright-reporter.ts",
   },
   format: "esm",

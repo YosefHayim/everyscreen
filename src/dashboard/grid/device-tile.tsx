@@ -2,12 +2,14 @@ import { Link } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeviceLoad } from "@/dashboard/device-feed/use-device-load";
+import { useDeviceTest } from "@/dashboard/device-feed/use-device-test";
 import { useFindings } from "@/dashboard/device-feed/use-findings";
 import { useScreenImage } from "@/dashboard/device-feed/use-screen-image";
 import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import { pickScreenUpdate } from "@/dashboard/grid/screen-update-logic";
 import { TileEstimate } from "@/dashboard/grid/tile-estimate";
 import { pickTileStatus } from "@/dashboard/grid/tile-status-logic";
+import { TileTest } from "@/dashboard/grid/tile-test";
 import { cn } from "@/dashboard/ui/cn";
 import { DeviceFrame } from "@/dashboard/ui/device-frame";
 import { type ChipStatus, StatusChip } from "@/dashboard/ui/status-chip";
@@ -31,6 +33,7 @@ export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
   const { viewportWidth, viewportHeight } = device;
   const screenImageUrl = useScreenImage(deviceId);
   const deviceLoad = useDeviceLoad(deviceId);
+  const deviceTest = useDeviceTest(deviceId);
   const findings = useFindings();
   const status = pickTileStatus(deviceId, findings, deviceLoad);
   const hasScreenImage = screenImageUrl !== null;
@@ -100,6 +103,7 @@ export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
         </DeviceFrame>
       </div>
       <footer className="px-3 pt-2 pb-[9px] font-mono text-[10px] leading-[14px] text-ink-2">
+        <TileTest deviceTest={deviceTest} />
         <TileEstimate deviceLoad={deviceLoad} />
       </footer>
     </article>

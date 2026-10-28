@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["e2e/**/*.e2e.ts", "e2e/playwright-suite/*.suite.ts"],
+  "entry": ["e2e/**/*.e2e.ts", "e2e/*/*.suite.ts"],
   "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts"],
   "ignore": ["src/dashboard/route-tree.gen.ts"],
   "ignoreDependencies": ["tailwindcss"]

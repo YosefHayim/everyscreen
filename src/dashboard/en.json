@@ -42,6 +42,11 @@
     "live": "live",
     "perStep": "per step",
     "waiting": "Waiting for the first screen image",
+    "test": {
+      "running": "Running",
+      "ok": "Passed",
+      "failed": "Failed"
+    },
     "estimate": "{{fps}} fps · {{cpuPercent}}% CPU est.",
     "noEstimate": "No estimate yet",
     "status": {
@@ -97,6 +102,11 @@
     "estimatesTitle": "Estimates",
     "noEstimates": "No estimate yet",
     "waiting": "Waiting for the first screen image",
+    "test": {
+      "running": "Running",
+      "ok": "Passed",
+      "failed": "Failed"
+    },
     "figures": {
       "fps": "Frame rate",
       "cpu": "CPU",
