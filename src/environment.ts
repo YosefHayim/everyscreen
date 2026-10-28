@@ -3,6 +3,7 @@ export const HUB_PORT = 4100;
 export const HUB_URL = `http://${HUB_HOST}:${HUB_PORT}`;
 
 export const LIVE_PATH = "/api/live";
+export const LIVE_TESTS_PATH = "/api/live-tests";
 
 export const STORE_FOLDER = ".everyscreen";
 export const HUB_FILE_PATH = `${STORE_FOLDER}/hub.json`;

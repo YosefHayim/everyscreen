@@ -2,6 +2,7 @@ import type { Finding } from "@/checks/checks-logic";
 import { LIVE_PATH } from "@/environment";
 import type { DeviceLoad } from "@/estimates/estimates-logic";
 import type { LiveMessage } from "@/live/live-feed";
+import type { LiveTestStatus } from "@/live/live-test-schema";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
 
@@ -19,7 +20,13 @@ interface Connection {
   retryDelayMs: number;
 }
 
+export interface DeviceTest {
+  title: string;
+  status: LiveTestStatus;
+}
+
 interface LiveFeed {
+  deviceTests: ReadonlyMap<string, DeviceTest>;
   screenImageUrls: ReadonlyMap<string, string>;
   deviceLoads: ReadonlyMap<string, DeviceLoad>;
   findings: Finding[];
@@ -33,6 +40,7 @@ const connection: Connection = {
 };
 
 const liveFeed: LiveFeed = {
+  deviceTests: new Map(),
   screenImageUrls: new Map(),
   deviceLoads: new Map(),
   findings: [],
@@ -69,6 +77,12 @@ const applyLiveMessage = (liveMessage: LiveMessage): void => {
         liveMessage.deviceLoad,
       );
       return;
+    case "test":
+      liveFeed.deviceTests = new Map(liveFeed.deviceTests).set(
+        liveMessage.deviceId,
+        { title: liveMessage.title, status: liveMessage.status },
+      );
+      return;
     case "finding":
       liveFeed.findings = [liveMessage.finding, ...liveFeed.findings].slice(
         0,
@@ -85,6 +99,7 @@ const markConnectionClosed = (): void => {
   connection.socket = null;
   liveFeed.screenImageUrls = new Map();
   liveFeed.deviceLoads = new Map();
+  liveFeed.deviceTests = new Map();
   notifyListeners();
 };
 
@@ -149,6 +164,9 @@ export const getScreenImageUrl = (deviceId: string): string | null =>
 
 export const getDeviceLoad = (deviceId: string): DeviceLoad | null =>
   liveFeed.deviceLoads.get(deviceId) ?? null;
+
+export const getDeviceTest = (deviceId: string): DeviceTest | null =>
+  liveFeed.deviceTests.get(deviceId) ?? null;
 
 export const getFindings = (): Finding[] => liveFeed.findings;
 

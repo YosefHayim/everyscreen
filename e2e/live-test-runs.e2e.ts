@@ -1,0 +1,176 @@
+import { once } from "node:events";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { expect, test } from "@playwright/test";
+import { chromium } from "playwright";
+import { WebSocket } from "ws";
+import { LIVE_PATH } from "@/environment";
+import { type RunningHub, startHub } from "@/hub/hub-server";
+import type { LiveMessage } from "@/live/live-feed";
+import { STEP_TITLE_SEPARATOR } from "@/playwright/playwright-logic";
+import { LIVE_DEVICE_IDS } from "./live-device-ids";
+import { runSuite } from "./run-suite";
+import { readCenterColor, type ScreenColor } from "./screen-color";
+
+const SUITE_CONFIG_PATH = fileURLToPath(
+  new URL("live-suite/playwright.config.ts", import.meta.url),
+);
+const STARTUP_TIMEOUT_MS = 240_000;
+const PASSING_TITLE = "shows the green page";
+const FAILING_TITLE = "fails on purpose";
+const GREEN_CHANNELS = { red: 34, green: 170, blue: 102 };
+const COLOR_TOLERANCE = 20;
+// WebKit tests send a screen image every tick; Chromium sends one per load and per switch back to the hub page.
+const SCREEN_EXPECTATIONS = [
+  { deviceId: "iphone-se", minScreenCount: 3 },
+  { deviceId: "pixel-8", minScreenCount: 1 },
+];
+
+type ScreenMessage = Extract<LiveMessage, { kind: "screen" }>;
+type TestMessage = Extract<LiveMessage, { kind: "test" }>;
+
+interface HubFolders {
+  runningHub: RunningHub;
+  rootFolder: string;
+}
+
+const isGreen = (screenColor: ScreenColor): boolean =>
+  Math.abs(screenColor.red - GREEN_CHANNELS.red) < COLOR_TOLERANCE &&
+  Math.abs(screenColor.green - GREEN_CHANNELS.green) < COLOR_TOLERANCE &&
+  Math.abs(screenColor.blue - GREEN_CHANNELS.blue) < COLOR_TOLERANCE;
+
+const isScreenMessage = (
+  liveMessage: LiveMessage,
+): liveMessage is ScreenMessage => liveMessage.kind === "screen";
+
+const isTestMessage = (liveMessage: LiveMessage): liveMessage is TestMessage =>
+  liveMessage.kind === "test";
+
+const listTestMessages = (
+  liveMessages: LiveMessage[],
+  deviceId: string,
+): TestMessage[] =>
+  liveMessages
+    .filter(isTestMessage)
+    .filter((testMessage) => testMessage.deviceId === deviceId);
+
+const isRunningMessage = (
+  liveMessage: LiveMessage,
+  deviceId: string,
+  testTitle: string,
+): boolean =>
+  isTestMessage(liveMessage) &&
+  liveMessage.deviceId === deviceId &&
+  liveMessage.status === "running" &&
+  liveMessage.title.endsWith(testTitle);
+
+const isFinishedMessage = (
+  liveMessage: LiveMessage,
+  deviceId: string,
+  testTitle: string,
+): boolean =>
+  isTestMessage(liveMessage) &&
+  liveMessage.deviceId === deviceId &&
+  liveMessage.status !== "running" &&
+  liveMessage.title.endsWith(testTitle);
+
+const listScreensWhileRunning = (
+  liveMessages: LiveMessage[],
+  deviceId: string,
+  testTitle: string,
+): ScreenMessage[] => {
+  const runningIndex = liveMessages.findIndex((liveMessage) =>
+    isRunningMessage(liveMessage, deviceId, testTitle),
+  );
+  const finishedIndex = liveMessages.findIndex((liveMessage) =>
+    isFinishedMessage(liveMessage, deviceId, testTitle),
+  );
+  const isRunningMissing = runningIndex === -1;
+  const isFinishedMissing = finishedIndex === -1;
+  if (isRunningMissing || isFinishedMissing) return [];
+
+  return liveMessages
+    .slice(runningIndex, finishedIndex)
+    .filter(isScreenMessage)
+    .filter((screenMessage) => screenMessage.deviceId === deviceId);
+};
+
+const liveTest = test.extend<object, { hubFolders: HubFolders }>({
+  hubFolders: [
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires a destructuring pattern here
+    async ({}, use) => {
+      const rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-live-"));
+      const dashboardFolder = await mkdtemp(
+        join(tmpdir(), "everyscreen-dashboard-"),
+      );
+      await writeFile(join(dashboardFolder, "index.html"), "<!doctype html>");
+      const runningHub = await startHub({
+        rootFolder,
+        port: 0,
+        dashboardFolder,
+      });
+      await use({ runningHub, rootFolder });
+      await runningHub.stop();
+      await rm(rootFolder, { recursive: true, force: true });
+      await rm(dashboardFolder, { recursive: true, force: true });
+    },
+    { scope: "worker", timeout: STARTUP_TIMEOUT_MS },
+  ],
+});
+
+liveTest.describe("live test runs", () => {
+  liveTest(
+    "streams screens and test events for a WebKit and a Chromium device",
+    async ({ hubFolders }) => {
+      liveTest.setTimeout(STARTUP_TIMEOUT_MS);
+      const { runningHub, rootFolder } = hubFolders;
+      const liveMessages: LiveMessage[] = [];
+      const liveSocket = new WebSocket(
+        `${runningHub.url.replace("http", "ws")}${LIVE_PATH}`,
+      );
+      liveSocket.on("message", (messageBytes) => {
+        liveMessages.push(JSON.parse(messageBytes.toString()));
+      });
+      await once(liveSocket, "open");
+
+      const suiteRun = await runSuite(SUITE_CONFIG_PATH, rootFolder);
+      liveSocket.terminate();
+
+      expect(suiteRun.exitCode).toBe(1);
+      for (const deviceId of LIVE_DEVICE_IDS) {
+        const testMessages = listTestMessages(liveMessages, deviceId);
+        const eventSummaries = testMessages.map(
+          ({ title, status }) =>
+            `${status} ${title.split(STEP_TITLE_SEPARATOR).at(-1)}`,
+        );
+        expect(eventSummaries).toContain(`running ${PASSING_TITLE}`);
+        expect(eventSummaries).toContain(`ok ${PASSING_TITLE}`);
+        expect(eventSummaries).toContain(`running ${FAILING_TITLE}`);
+        expect(eventSummaries).toContain(`failed ${FAILING_TITLE}`);
+      }
+
+      const browser = await chromium.launch();
+      const decoderPage = await browser.newPage();
+      try {
+        for (const { deviceId, minScreenCount } of SCREEN_EXPECTATIONS) {
+          const screenMessages = listScreensWhileRunning(
+            liveMessages,
+            deviceId,
+            PASSING_TITLE,
+          );
+          expect(screenMessages.length).toBeGreaterThanOrEqual(minScreenCount);
+          const centerColors = await Promise.all(
+            screenMessages.map(({ imageBase64 }) =>
+              readCenterColor(decoderPage, imageBase64),
+            ),
+          );
+          expect(centerColors.some(isGreen)).toBe(true);
+        }
+      } finally {
+        await browser.close();
+      }
+    },
+  );
+});

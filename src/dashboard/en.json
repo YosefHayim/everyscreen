@@ -42,6 +42,11 @@
     "live": "live",
     "perStep": "per step",
     "waiting": "Waiting for the first screen image",
+    "test": {
+      "running": "Running",
+      "ok": "OK",
+      "failed": "Failed"
+    },
     "estimate": "{{fps}} fps · {{cpuPercent}}% CPU est.",
     "noEstimate": "No estimate yet",
     "status": {

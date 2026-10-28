@@ -17,6 +17,10 @@
       "types": "./dist/playwright.d.mts",
       "default": "./dist/playwright.mjs"
     },
+    "./test": {
+      "types": "./dist/test.d.mts",
+      "default": "./dist/test.mjs"
+    },
     "./reporter": {
       "types": "./dist/reporter.d.mts",
       "default": "./dist/reporter.mjs"

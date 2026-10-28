@@ -9,20 +9,33 @@ import type {
   TestResult,
 } from "@playwright/test/reporter";
 import { STORE_FOLDER } from "@/environment";
+import { runOneAtATime } from "@/hub/run-one-at-a-time";
+import type {
+  LiveTestStatus,
+  TestEvent,
+  TestsClear,
+} from "@/live/live-test-schema";
 import {
+  createHubUrl,
   createRunStep,
   createSuiteReplyLine,
+  createTestEvent,
   type FinishedTest,
   isLastAttempt,
   isStepComplete,
+  pickLiveTestStatus,
   pickRunEndStatus,
   pickTestKey,
 } from "@/playwright/playwright-logic";
+import { type HubTarget, postToHub } from "@/playwright/post-to-hub";
+import { readHubFileSafely } from "@/playwright/read-hub-file";
+import { createHubTroubleReporter } from "@/playwright/report-hub-trouble";
 import type { Run, RunStep } from "@/runs/runs-logic";
 import { createRun, saveRunEvent } from "@/runs/runs-store";
 
 const SHOTS_SUBFOLDER = "shots";
 const SCREENSHOT_ATTACHMENT_NAME = "screenshot";
+const TEST_EVENTS_QUEUE_KEY = "test-events";
 // A title path starts with "", the project name and the file.
 const TITLE_PATH_PROJECT_PARTS = 2;
 
@@ -46,6 +59,8 @@ export default class EveryscreenReporter implements Reporter {
   savedKeys = new Set<string>();
   savedSteps: RunStep[] = [];
   pendingTasks: Promise<void>[] = [];
+  hubTarget: HubTarget | null = null;
+  deviceIds: string[] = [];
 
   runTask = (task: () => Promise<void>) => {
     const trackedTask = task().catch((error: unknown) => {
@@ -59,6 +74,35 @@ export default class EveryscreenReporter implements Reporter {
     const isRunNotCreated = runCreation === null;
     if (isRunNotCreated) throw new Error("The run was never created");
     return runCreation;
+  };
+
+  postToLiveTests = (routePath: string, message: TestEvent | TestsClear) => {
+    const { hubTarget } = this;
+    const isHubMissing = hubTarget === null;
+    if (isHubMissing) return;
+
+    const hubPost = runOneAtATime(TEST_EVENTS_QUEUE_KEY, () =>
+      postToHub(hubTarget, routePath, message),
+    );
+    this.pendingTasks.push(hubPost);
+  };
+
+  sendTestEvent = (testCase: TestCase, status: LiveTestStatus) => {
+    const deviceId = pickDeviceId(testCase);
+    const titlePath = pickTitlePath(testCase);
+    const testEvent = createTestEvent(deviceId, titlePath, status);
+    this.postToLiveTests("/events", testEvent);
+  };
+
+  createHubTarget = (): HubTarget | null => {
+    const reportTrouble = createHubTroubleReporter();
+    const hubFile = readHubFileSafely(reportTrouble);
+    const isHubFileMissing = hubFile === null;
+    if (isHubFileMissing) {
+      reportTrouble(new Error("There is no hub file, is the hub running?"));
+      return null;
+    }
+    return { hubUrl: createHubUrl(hubFile), reportTrouble };
   };
 
   copyShot = async (
@@ -101,7 +145,10 @@ export default class EveryscreenReporter implements Reporter {
     });
   };
 
-  onBegin = (_config: FullConfig, suite: Suite) => {
+  onBegin = (config: FullConfig, suite: Suite) => {
+    this.hubTarget = this.createHubTarget();
+    this.deviceIds = config.projects.map(({ name }) => name);
+    this.postToLiveTests("/clear", { deviceIds: this.deviceIds });
     for (const testCase of suite.allTests()) {
       const testTitlePath = pickTitlePath(testCase);
       const testKey = pickTestKey(testTitlePath);
@@ -116,7 +163,12 @@ export default class EveryscreenReporter implements Reporter {
     });
   };
 
+  onTestBegin = (testCase: TestCase) => {
+    this.sendTestEvent(testCase, "running");
+  };
+
   onTestEnd = (testCase: TestCase, testResult: TestResult) => {
+    this.sendTestEvent(testCase, pickLiveTestStatus(testResult.status));
     const isAttemptLast = isLastAttempt({
       status: testResult.status,
       retry: testResult.retry,
@@ -168,6 +220,7 @@ export default class EveryscreenReporter implements Reporter {
   };
 
   onEnd = async (fullResult: FullResult) => {
+    this.postToLiveTests("/clear", { deviceIds: this.deviceIds });
     await Promise.all(this.pendingTasks);
     const unsavedKeys = [...this.expectedCounts.keys()].filter(
       (testKey) => !this.savedKeys.has(testKey),

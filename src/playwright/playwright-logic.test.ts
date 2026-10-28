@@ -2,15 +2,20 @@ import { describe, expect, test } from "vitest";
 import { DEVICE_PRESETS } from "@/devices/device-presets";
 import {
   createDeviceProject,
+  createHubUrl,
   createRunStep,
   createSuiteReplyLine,
+  createTestEvent,
   type FinishedTest,
   isLastAttempt,
   isStepComplete,
+  pickLiveTestStatus,
   pickProjectDevices,
   pickRunEndStatus,
+  pickScreenHubUrl,
   pickScreenshotMode,
   pickTestKey,
+  STEP_TITLE_SEPARATOR,
 } from "@/playwright/playwright-logic";
 
 const [iphoneSe] = DEVICE_PRESETS;
@@ -63,6 +68,13 @@ describe("createDeviceProject", () => {
     const project = createDeviceProject(iphoneSe, { wsEndpoint: "ws://hub" });
 
     expect(project.use?.connectOptions).toEqual({ wsEndpoint: "ws://hub" });
+  });
+
+  test("names the device for the live fixture and leaves test files parallel off", () => {
+    const project = createDeviceProject(iphoneSe, null);
+
+    expect(project.use?.everyscreenDeviceId).toBe(iphoneSe.id);
+    expect(project.fullyParallel).toBeUndefined();
   });
 });
 
@@ -264,5 +276,82 @@ describe("createSuiteReplyLine", () => {
     );
 
     expect(line).toBe("2 devices · 1 ok · 1 failed · report run-0007");
+  });
+});
+
+describe("pickLiveTestStatus", () => {
+  test.each([
+    ["passed", "ok"],
+    ["skipped", "ok"],
+    ["failed", "failed"],
+    ["timedOut", "failed"],
+    ["interrupted", "failed"],
+  ] as const)("calls a %s test %s", (testStatus, liveTestStatus) => {
+    const pickedStatus = pickLiveTestStatus(testStatus);
+
+    expect(pickedStatus).toBe(liveTestStatus);
+  });
+});
+
+describe("createTestEvent", () => {
+  test("joins the title path into one title", () => {
+    const titlePath = ["shop.spec.ts", "cart", "adds a tote"];
+
+    const testEvent = createTestEvent("pixel-8", titlePath, "running");
+
+    expect(testEvent).toEqual({
+      deviceId: "pixel-8",
+      title: `shop.spec.ts${STEP_TITLE_SEPARATOR}cart${STEP_TITLE_SEPARATOR}adds a tote`,
+      status: "running",
+    });
+  });
+});
+
+describe("createHubUrl", () => {
+  test("points at the hub port on the local host", () => {
+    const hubUrl = createHubUrl({ pid: 1, port: 4100, devices: {} });
+
+    expect(hubUrl).toBe("http://127.0.0.1:4100");
+  });
+});
+
+describe("pickScreenHubUrl", () => {
+  const hubFile = {
+    pid: 1234,
+    port: 4100,
+    devices: {
+      "pixel-8": { wsEndpoint: "ws://a", cdpUrl: "http://127.0.0.1:9" },
+      "iphone-se": { wsEndpoint: "ws://b", cdpUrl: null },
+    },
+  };
+
+  test("returns null when the project has no device id", () => {
+    const hubUrl = pickScreenHubUrl(hubFile, null);
+
+    expect(hubUrl).toBeNull();
+  });
+
+  test("returns null when there is no hub file", () => {
+    const hubUrl = pickScreenHubUrl(null, "iphone-se");
+
+    expect(hubUrl).toBeNull();
+  });
+
+  test("returns null when the hub does not run the device", () => {
+    const hubUrl = pickScreenHubUrl(hubFile, "ipad-mini");
+
+    expect(hubUrl).toBeNull();
+  });
+
+  test("returns null for a Chromium device the hub watches", () => {
+    const hubUrl = pickScreenHubUrl(hubFile, "pixel-8");
+
+    expect(hubUrl).toBeNull();
+  });
+
+  test("returns the hub url for a device without a CDP address", () => {
+    const hubUrl = pickScreenHubUrl(hubFile, "iphone-se");
+
+    expect(hubUrl).toBe("http://127.0.0.1:4100");
   });
 });
