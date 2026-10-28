@@ -110,7 +110,7 @@
     "ipad-pro-11": {
       "name": "iPad Pro 11"
     },
-    "laptop-1440": {
+    "macbook-air-13": {
       "name": "Laptop"
     },
     "store-kiosk": {
@@ -162,7 +162,7 @@
         "line": "tapped button \"Apply\"",
         "time": "205ms"
       },
-      "laptop-1440": {
+      "macbook-air-13": {
         "status": "ok",
         "line": "tapped button \"Apply\"",
         "time": "176ms"
@@ -257,7 +257,7 @@
       "iphone-15": "iPhone 15",
       "pixel-8": "Pixel 8",
       "ipad-mini": "iPad mini",
-      "laptop-1440": "Laptop"
+      "macbook-air-13": "Laptop"
     }
   },
   "workflows": {
@@ -299,7 +299,7 @@
     "agent": {
       "title": "Or let your agent add it",
       "subtitle": "The same device from the CLI, or in everyscreen.yaml so the whole team gets it.",
-      "reply": "added store-kiosk · 6 devices in the grid"
+      "reply": "device added · store-kiosk · restart the hub to apply"
     }
   },
   "estimates": {
