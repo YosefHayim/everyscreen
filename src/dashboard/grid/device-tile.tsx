@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import { pickScreenUpdate } from "@/dashboard/grid/screen-update-logic";
 import { TileEstimate } from "@/dashboard/grid/tile-estimate";
 import { pickTileStatus } from "@/dashboard/grid/tile-status-logic";
 import type { WaitingDevice } from "@/dashboard/grid/waiting-devices";
@@ -32,9 +33,11 @@ export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
   const findings = useFindings();
   const status = pickTileStatus(deviceId, findings, deviceLoad);
   const hasScreenImage = screenImageUrl !== null;
+  const screenUpdate = pickScreenUpdate(browserName);
+  const isLiveWithScreenImage = screenUpdate === "live" && hasScreenImage;
   const liveDotClassName = cn(
     "size-1.5 rounded-full bg-pink",
-    hasScreenImage && "live-dot",
+    isLiveWithScreenImage && "live-dot",
   );
   const screenWidth = Math.round(viewportWidth * TILE_SCREEN_SCALE);
 
@@ -60,7 +63,8 @@ export const DeviceTile = ({ device }: DeviceTileProps): ReactElement => {
           </span>
           <span className="inline-flex items-center gap-1">
             <span aria-hidden="true" className={liveDotClassName} />
-            {t(`tile.engines.${browserName}`)} &middot; {t("tile.live")}
+            {t(`tile.engines.${browserName}`)} &middot;{" "}
+            {t(`tile.${screenUpdate}`)}
           </span>
         </p>
       </header>

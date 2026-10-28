@@ -14,7 +14,7 @@ export const WAITING_DEVICES: WaitingDevice[] = [
   {
     deviceId: "iphone-se",
     name: "iPhone SE",
-    browserName: "chromium",
+    browserName: "webkit",
     frameShape: "home-button",
     viewportWidth: 375,
     viewportHeight: 667,
@@ -22,7 +22,7 @@ export const WAITING_DEVICES: WaitingDevice[] = [
   {
     deviceId: "iphone-15",
     name: "iPhone 15",
-    browserName: "chromium",
+    browserName: "webkit",
     frameShape: "dynamic-island",
     viewportWidth: 393,
     viewportHeight: 852,
@@ -46,7 +46,7 @@ export const WAITING_DEVICES: WaitingDevice[] = [
   {
     deviceId: "ipad-mini",
     name: "iPad mini",
-    browserName: "chromium",
+    browserName: "webkit",
     frameShape: "tablet",
     viewportWidth: 744,
     viewportHeight: 1133,
