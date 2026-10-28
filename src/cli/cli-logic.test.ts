@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   type CliRequest,
+  canWriteFinalReply,
   createDeviceListLine,
   createHelpPage,
   createHubDownReply,
@@ -11,7 +12,6 @@ import {
   createReply,
   createRunningLine,
   isPortConflict,
-  mustWriteFinalReply,
   pickCommandName,
   planCli,
 } from "@/cli/cli-logic";
@@ -102,7 +102,7 @@ describe("createDeviceListLine", () => {
   });
 });
 
-describe("mustWriteFinalReply", () => {
+describe("canWriteFinalReply", () => {
   const foregroundStart: CliRequest = {
     kind: "start",
     port: null,
@@ -115,23 +115,23 @@ describe("mustWriteFinalReply", () => {
   };
 
   test("skips the stopped reply of a foreground start with --json", () => {
-    expect(mustWriteFinalReply(foregroundStart, true, true)).toBe(false);
+    expect(canWriteFinalReply(foregroundStart, true, true)).toBe(false);
   });
 
   test("skips the stopped reply of a foreground start without a terminal", () => {
-    expect(mustWriteFinalReply(foregroundStart, false, false)).toBe(false);
+    expect(canWriteFinalReply(foregroundStart, false, false)).toBe(false);
   });
 
   test("writes the stopped reply of a foreground start in a terminal", () => {
-    expect(mustWriteFinalReply(foregroundStart, false, true)).toBe(true);
+    expect(canWriteFinalReply(foregroundStart, false, true)).toBe(true);
   });
 
   test("writes the reply of a background start with --json", () => {
-    expect(mustWriteFinalReply(backgroundStart, true, true)).toBe(true);
+    expect(canWriteFinalReply(backgroundStart, true, true)).toBe(true);
   });
 
   test("writes the reply of another command with --json", () => {
-    expect(mustWriteFinalReply({ kind: "stop" }, true, true)).toBe(true);
+    expect(canWriteFinalReply({ kind: "stop" }, true, true)).toBe(true);
   });
 });
 
@@ -155,7 +155,7 @@ describe("createPrintedReply", () => {
     const printedReply = createPrintedReply(failedReply, false, true);
 
     expect(printedReply).toBe(
-      "2 devices · 1 ok · 1 failed\niphone-se  fail  cookie bar covers Add to cart  412 ms",
+      "2 devices · 1 ok · 1 failed\niphone-se  failed  cookie bar covers Add to cart  412 ms",
     );
   });
 

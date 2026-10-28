@@ -94,15 +94,15 @@ export const isPortConflict = (
 export const createPortConflictReply = (hubUrl: string): CommandReply =>
   createReply("failed", `hub already running at ${hubUrl} · stop it first`);
 
-export const mustWriteFinalReply = (
+export const canWriteFinalReply = (
   cliRequest: CliRequest,
   isJsonWanted: boolean,
   isTerminal: boolean,
 ): boolean => {
   const isForegroundStart =
     cliRequest.kind === "start" && cliRequest.isForeground;
-  const mustWriteJson = isJsonWanted || !isTerminal;
-  const isFinalReplySkipped = isForegroundStart && mustWriteJson;
+  const isJsonReply = isJsonWanted || !isTerminal;
+  const isFinalReplySkipped = isForegroundStart && isJsonReply;
   return !isFinalReplySkipped;
 };
 
@@ -111,11 +111,11 @@ export const createPrintedReply = (
   isJsonWanted: boolean,
   isTerminal: boolean,
 ): string => {
-  const mustWriteJson = isJsonWanted || !isTerminal;
-  if (mustWriteJson) return JSON.stringify(commandReply);
+  const isJsonReply = isJsonWanted || !isTerminal;
+  if (isJsonReply) return JSON.stringify(commandReply);
   const failureLines = commandReply.failures.map(
     ({ deviceId, message, durationMs }) =>
-      `${deviceId}  fail  ${message}  ${durationMs} ms`,
+      `${deviceId}  failed  ${message}  ${durationMs} ms`,
   );
   return [commandReply.line, ...failureLines].join("\n");
 };

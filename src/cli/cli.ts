@@ -2,8 +2,8 @@
 import { readCommandLine } from "@/cli/cli-flags";
 import {
   type CliPlan,
+  canWriteFinalReply,
   createReply,
-  mustWriteFinalReply,
   planCli,
 } from "@/cli/cli-logic";
 import { writeReply } from "@/cli/cli-reply";
@@ -40,7 +40,7 @@ const runPlan = async (
         writeStartedReply,
       );
       const isTerminal = process.stdout.isTTY === true;
-      const isFinalReplyWritten = mustWriteFinalReply(
+      const isFinalReplyWritten = canWriteFinalReply(
         cliPlan.cliRequest,
         isJsonWanted,
         isTerminal,
