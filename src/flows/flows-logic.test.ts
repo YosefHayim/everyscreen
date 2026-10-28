@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
+import type { CommandReply, DeviceFailure } from "@/commands/commands-logic";
 import type { Flow } from "@/flows/flow-schema";
-import { listFlowBatches, listFlowCommands } from "@/flows/flows-logic";
+import {
+  createFlowAnswer,
+  listFlowBatches,
+  listFlowCommands,
+  summarizeFlows,
+} from "@/flows/flows-logic";
 
 describe("listFlowCommands", () => {
   test("adds the flow devices to every step", () => {
@@ -100,5 +106,131 @@ describe("listFlowBatches", () => {
       ["c.yaml", "d.yaml"],
       ["e.yaml"],
     ]);
+  });
+});
+
+const okReply: CommandReply = {
+  status: "ok",
+  line: "1 device · 1 ok · report run-0001",
+  runId: "run-0001",
+  failures: [],
+};
+
+const deviceFailure: DeviceFailure = {
+  status: "failed",
+  deviceId: "iphone-se",
+  durationMs: 12,
+  message: "cookie bar covers Apply",
+  shotPath: null,
+};
+
+describe("createFlowAnswer", () => {
+  test("is ok when every step is ok and keeps the last run id", () => {
+    const flowAnswer = createFlowAnswer("flows/a.yaml", [okReply, okReply]);
+
+    expect(flowAnswer).toEqual({
+      flowPath: "flows/a.yaml",
+      status: "ok",
+      runId: "run-0001",
+      failures: [],
+    });
+  });
+
+  test("is ok with no run id when the flow has no steps", () => {
+    const flowAnswer = createFlowAnswer("flows/empty.yaml", []);
+
+    expect(flowAnswer.status).toBe("ok");
+    expect(flowAnswer.runId).toBeNull();
+  });
+
+  test("fails with the device failures of the failed step", () => {
+    const failedReply: CommandReply = {
+      ...okReply,
+      status: "failed",
+      failures: [deviceFailure],
+    };
+
+    const flowAnswer = createFlowAnswer("flows/a.yaml", [okReply, failedReply]);
+
+    expect(flowAnswer.status).toBe("failed");
+    expect(flowAnswer.failures).toEqual([deviceFailure]);
+  });
+
+  test("fails with the reply line when no device failure came back", () => {
+    const refusedReply: CommandReply = {
+      status: "failed",
+      line: "No device nope",
+      runId: null,
+      failures: [],
+    };
+
+    const flowAnswer = createFlowAnswer("flows/a.yaml", [refusedReply]);
+
+    expect(flowAnswer.failures).toEqual([
+      {
+        status: "failed",
+        deviceId: "flows/a.yaml",
+        durationMs: 0,
+        message: "No device nope",
+        shotPath: null,
+      },
+    ]);
+  });
+});
+
+describe("summarizeFlows", () => {
+  test("counts two ok flows and names the last run", () => {
+    const flowAnswers = [
+      {
+        flowPath: "a.yaml",
+        status: "ok" as const,
+        runId: "run-0001",
+        failures: [],
+      },
+      {
+        flowPath: "b.yaml",
+        status: "ok" as const,
+        runId: "run-0002",
+        failures: [],
+      },
+    ];
+
+    const commandReply = summarizeFlows(flowAnswers);
+
+    expect(commandReply.status).toBe("ok");
+    expect(commandReply.line).toBe("2 flows · 2 ok · report run-0002");
+  });
+
+  test("fails and lists the failures when one flow failed", () => {
+    const flowAnswers = [
+      {
+        flowPath: "a.yaml",
+        status: "ok" as const,
+        runId: "run-0001",
+        failures: [],
+      },
+      {
+        flowPath: "b.yaml",
+        status: "failed" as const,
+        runId: "run-0001",
+        failures: [deviceFailure],
+      },
+    ];
+
+    const commandReply = summarizeFlows(flowAnswers);
+
+    expect(commandReply.status).toBe("failed");
+    expect(commandReply.line).toBe(
+      "2 flows · 1 ok · 1 failed · report run-0001",
+    );
+    expect(commandReply.failures).toEqual([deviceFailure]);
+  });
+
+  test("fails when no flow was found", () => {
+    const commandReply = summarizeFlows([]);
+
+    expect(commandReply.status).toBe("failed");
+    expect(commandReply.line).toBe("0 flows · no flow answered");
+    expect(commandReply.runId).toBeNull();
   });
 });

@@ -2,7 +2,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readStoredFile, writeStoredFile } from "@/hub/stored-files";
 
-export type SkillAgent = "claude" | "codex" | "cursor";
+export const SKILL_AGENTS = ["claude", "codex", "cursor"] as const;
+
+export type SkillAgent = (typeof SKILL_AGENTS)[number];
 
 // Claude Code: https://code.claude.com/docs/en/skills
 // Codex: https://developers.openai.com/codex/skills
