@@ -13,12 +13,12 @@ import type { LiveMessage } from "@/live/live-feed";
 const STARTUP_TIMEOUT_MS = 240_000;
 const GRID_DEVICE_IDS = [
   "iphone-se",
-  "iphone-15",
-  "iphone-15-pro-max",
+  "iphone-17",
+  "iphone-17-pro-max",
   "ipad-mini",
   "ipad-pro-11",
-  "pixel-8",
-  "galaxy-s24",
+  "pixel-10",
+  "galaxy-s25",
 ];
 const RENDER_DELAY_MS = 1500;
 interface ScreenColor {

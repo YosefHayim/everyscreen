@@ -14,7 +14,7 @@ import type { Run } from "@/runs/runs-logic";
 
 const HOLLIS_GOODS_PATH = join(import.meta.dirname, "hollis-goods.html");
 const DASHBOARD_HTML = "<!doctype html><h1>Everyscreen test dashboard</h1>";
-const DEVICE_IDS = ["pixel-8", "iphone-se"];
+const DEVICE_IDS = ["pixel-10", "iphone-se"];
 const STARTUP_TIMEOUT_MS = 180_000;
 const FORM_PATH = "/form";
 const FORM_HTML =
@@ -131,7 +131,7 @@ test.describe("startHub", () => {
     const screenIds = liveMessages
       .filter((message) => message.kind === "screen")
       .map((message) => message.deviceId);
-    expect(screenIds).toContain("pixel-8");
+    expect(screenIds).toContain("pixel-10");
     expect(screenIds).toContain("iphone-se");
     const runMessage = liveMessages.find((message) => message.kind === "run");
     expect(runMessage?.runId).toBe("run-0001");
@@ -180,7 +180,7 @@ test.describe("startHub", () => {
       commandName: "tap",
       role: "button",
       name: "Teleport",
-      deviceIds: ["pixel-8"],
+      deviceIds: ["pixel-10"],
     });
 
     const missingCommandReply: CommandReply = await missingReply.json();
@@ -222,7 +222,7 @@ test.describe("startHub", () => {
     const hubFile = hubFileSchema.parse(
       JSON.parse(await readFile(hubFilePath, "utf8")),
     );
-    const pixelEndpoints = hubFile.devices["pixel-8"];
+    const pixelEndpoints = hubFile.devices["pixel-10"];
     const iphoneEndpoints = hubFile.devices["iphone-se"];
     expect(pixelEndpoints.cdpUrl).not.toBeNull();
     expect(iphoneEndpoints.cdpUrl).toBeNull();

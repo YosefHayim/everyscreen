@@ -1,6 +1,11 @@
 import type { FrameShape, SafeAreaInsets } from "@/devices/devices-logic";
 
-export const NO_INSETS: SafeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
+const NO_INSETS: SafeAreaInsets = {
+  top: 0,
+  bottom: 0,
+  left: 0,
+  right: 0,
+};
 
 // Used by custom devices and by catalog devices whose maker publishes no insets.
 export const FRAME_SHAPE_INSETS = {

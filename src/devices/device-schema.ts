@@ -1,5 +1,9 @@
 import { z } from "zod";
-import type { BrowserName, FrameShape, ViewportMode } from "@/devices/devices-logic";
+import type {
+  BrowserName,
+  FrameShape,
+  ViewportMode,
+} from "@/devices/devices-logic";
 
 const BROWSER_NAMES = [
   "chromium",

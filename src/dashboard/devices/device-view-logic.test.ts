@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
   createDeviceView,
-  DEVICE_PRESET_IDS,
   type DeviceView,
   type GridDeviceReply,
   listDeviceGroups,
@@ -9,7 +8,6 @@ import {
   pickDeviceName,
   pickPreviewScreenWidth,
 } from "@/dashboard/devices/device-view-logic";
-import { DEVICE_PRESETS } from "@/devices/device-presets";
 
 const createGridDevice = (
   overrides: Partial<GridDeviceReply> = {},
@@ -18,6 +16,7 @@ const createGridDevice = (
   name: "Pixel 8",
   browserName: "chromium",
   frameShape: "punch-hole",
+  origin: "catalog",
   use: {
     viewport: { width: 412, height: 915 },
     deviceScaleFactor: 2.6,
@@ -39,14 +38,6 @@ const createView = (overrides: Partial<DeviceView> = {}): DeviceView => ({
   ...overrides,
 });
 
-describe("DEVICE_PRESET_IDS", () => {
-  test("lists the id of every device preset", () => {
-    const presetIds = DEVICE_PRESETS.map((devicePreset) => devicePreset.id);
-
-    expect(DEVICE_PRESET_IDS).toEqual(presetIds);
-  });
-});
-
 describe("createDeviceView", () => {
   test("reads the viewport, pixel ratio and touch of a preset", () => {
     const deviceView = createDeviceView(createGridDevice());
@@ -54,8 +45,11 @@ describe("createDeviceView", () => {
     expect(deviceView).toEqual(createView());
   });
 
-  test("marks a device outside the presets as custom", () => {
-    const customGridDevice = createGridDevice({ id: "store-display" });
+  test("marks a custom device as custom", () => {
+    const customGridDevice = createGridDevice({
+      id: "store-display",
+      origin: "custom",
+    });
 
     const deviceView = createDeviceView(customGridDevice);
 

@@ -1,9 +1,9 @@
+import type { CatalogDevice } from "@/devices/devices-logic";
 import { OWN_DEVICES } from "@/devices/own-devices";
 import { REGISTRY_DEVICES } from "@/devices/registry-devices";
-import type { CatalogDevice } from "@/devices/devices-logic";
 
 // One device per size class and engine, newer models first. At most 12 browsers start by default.
-export const DEFAULT_GRID_IDS = [
+const DEFAULT_GRID_IDS = [
   "iphone-se",
   "iphone-17",
   "iphone-17-pro-max",

@@ -17,13 +17,10 @@ import {
   summarizeCommand,
 } from "@/commands/commands-logic";
 import type { DevicePage } from "@/devices/device-browsers";
-import { DEVICE_PRESETS } from "@/devices/device-presets";
-import type { DevicePreset } from "@/devices/devices-logic";
+import { type DevicePreset, findCatalogPreset } from "@/devices/devices-logic";
 
 const findPreset = (deviceId: string): DevicePreset => {
-  const devicePreset = DEVICE_PRESETS.find(({ id }) => id === deviceId);
-  if (devicePreset === undefined) throw new Error(`No preset ${deviceId}`);
-  return devicePreset;
+  return findCatalogPreset(deviceId, "full-screen");
 };
 
 const createFinding = (severity: Finding["severity"]): Finding => ({

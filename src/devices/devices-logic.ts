@@ -22,7 +22,7 @@ export interface SafeAreaInsets {
   right: number;
 }
 
-export type DevicePlatform =
+type DevicePlatform =
   | "ios"
   | "ipados"
   | "android"
@@ -30,7 +30,7 @@ export type DevicePlatform =
   | "windows"
   | "linux";
 
-export type DeviceMaker =
+type DeviceMaker =
   | "apple"
   | "samsung"
   | "google"
@@ -38,7 +38,7 @@ export type DeviceMaker =
   | "oneplus"
   | "generic";
 
-export type CutoutKind =
+type CutoutKind =
   | "none"
   | "notch"
   | "dynamic-island"
@@ -88,6 +88,7 @@ export interface CatalogDevice extends DeviceIdentity {
 }
 
 export interface DevicePreset extends DeviceIdentity {
+  origin: "catalog" | "custom";
   viewportMode: ViewportMode;
   use: BrowserContextOptions;
 }
@@ -154,6 +155,7 @@ export const createPresetFromCustomDevice = (
     cornerRadius: null,
     cutout: createCutoutOfKind(FRAME_SHAPE_CUTOUT_KINDS[frameShape]),
     safeAreaInsets: FRAME_SHAPE_INSETS[frameShape],
+    origin: "custom",
     viewportMode: "full-screen",
     use: {
       viewport: { width: customDevice.width, height: customDevice.height },
@@ -191,6 +193,7 @@ export const createPresetFromCatalogDevice = (
     cornerRadius: catalogDevice.cornerRadius,
     cutout: catalogDevice.cutout,
     safeAreaInsets: catalogDevice.safeAreaInsets,
+    origin: "catalog",
     viewportMode,
     use: {
       viewport: pickModeViewport(catalogDevice, viewportMode),

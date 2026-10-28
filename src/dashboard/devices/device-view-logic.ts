@@ -19,6 +19,7 @@ export interface GridDeviceReply {
   name: string;
   browserName: BrowserName;
   frameShape: FrameShape;
+  origin: "catalog" | "custom";
   use: {
     viewport?: { width: number; height: number } | null;
     deviceScaleFactor?: number;
@@ -30,19 +31,6 @@ export interface DeviceGroupView {
   group: DeviceGroup;
   devices: DeviceView[];
 }
-
-// Keep in step with DEVICE_PRESETS; the unit test compares both lists.
-export const DEVICE_PRESET_IDS = [
-  "iphone-se",
-  "iphone-15",
-  "iphone-15-pro-max",
-  "galaxy-s24",
-  "pixel-8",
-  "ipad-mini",
-  "ipad-pro-11",
-  "laptop-1440",
-  "store-kiosk",
-];
 
 const DEVICE_GROUPS: DeviceGroup[] = ["phones", "tablets", "desktop", "custom"];
 const DEFAULT_PIXEL_RATIO = 1;
@@ -63,7 +51,7 @@ export const createDeviceView = (gridDevice: GridDeviceReply): DeviceView => {
     viewportHeight: viewport.height,
     pixelRatio: gridDevice.use.deviceScaleFactor ?? DEFAULT_PIXEL_RATIO,
     hasTouch: gridDevice.use.hasTouch === true,
-    isCustom: !DEVICE_PRESET_IDS.includes(gridDevice.id),
+    isCustom: gridDevice.origin === "custom",
   };
 };
 

@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { DEVICE_CATALOG } from "@/devices/device-catalog";
 import { createDevicesRoutes } from "@/devices/devices-routes";
 import { DEVICES_FILE_PATH } from "@/environment";
 
@@ -32,15 +33,25 @@ test.describe("devices routes", () => {
     await rm(rootFolder, { recursive: true });
   });
 
-  test("lists the nine presets when there is no devices file", async () => {
+  test("lists the twelve default devices when there is no devices file", async () => {
     const devicesRoutes = createDevicesRoutes(rootFolder);
 
     const listReply = await devicesRoutes.request("/");
     const gridDevices = await listReply.json();
 
     expect(listReply.status).toBe(200);
-    expect(gridDevices).toHaveLength(9);
+    expect(gridDevices).toHaveLength(12);
     expect(existsSync(join(rootFolder, DEVICES_FILE_PATH))).toBe(false);
+  });
+
+  test("lists the whole catalog on the catalog route", async () => {
+    const devicesRoutes = createDevicesRoutes(rootFolder);
+
+    const catalogReply = await devicesRoutes.request("/catalog");
+    const catalogDevices = await catalogReply.json();
+
+    expect(catalogReply.status).toBe(200);
+    expect(catalogDevices).toHaveLength(DEVICE_CATALOG.length);
   });
 
   test("adds a custom device, saves it to the yaml file and lists it last", async () => {
@@ -55,7 +66,7 @@ test.describe("devices routes", () => {
     );
 
     expect(addReply.status).toBe(201);
-    expect(gridDevices).toHaveLength(10);
+    expect(gridDevices).toHaveLength(13);
     expect(gridDevices.at(-1).id).toBe("shop-kiosk");
     expect(devicesYaml).toContain("name: Shop kiosk");
   });
@@ -72,7 +83,7 @@ test.describe("devices routes", () => {
     const gridDevices = await listReply.json();
 
     expect(secondReply.status).toBe(409);
-    expect(gridDevices).toHaveLength(10);
+    expect(gridDevices).toHaveLength(13);
   });
 
   test("lets one of two simultaneous adds with the same id through", async () => {
@@ -86,7 +97,7 @@ test.describe("devices routes", () => {
     const gridDevices = await listReply.json();
 
     expect([firstReply.status, secondReply.status].sort()).toEqual([201, 409]);
-    expect(gridDevices).toHaveLength(10);
+    expect(gridDevices).toHaveLength(13);
   });
 
   test("answers 422 and names the file and field for a bad shape", async () => {
@@ -161,7 +172,7 @@ test.describe("devices routes", () => {
     expect(removeReply.status).toBe(200);
     expect(removeAgainReply.status).toBe(404);
     expect(removePresetReply.status).toBe(404);
-    expect(gridDevices).toHaveLength(9);
+    expect(gridDevices).toHaveLength(12);
   });
 
   test("lists saved custom devices in file order for a fresh route set", async () => {

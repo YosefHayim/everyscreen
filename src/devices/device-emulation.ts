@@ -13,6 +13,15 @@ export const emulateDevice = async (
   const viewport = pickDeviceViewport(devicePreset);
   const screen = pickDeviceScreen(devicePreset);
 
+  const { top, bottom, left, right } = devicePreset.safeAreaInsets;
+  // Chrome accepts whole CSS px only, and AOSP numbers are fractional.
+  const wholeInsets = {
+    top: Math.round(top),
+    bottom: Math.round(bottom),
+    left: Math.round(left),
+    right: Math.round(right),
+  };
+
   const cdpSession = await page.context().newCDPSession(page);
   await cdpSession.send("Emulation.setDeviceMetricsOverride", {
     width: viewport.width,
@@ -26,7 +35,7 @@ export const emulateDevice = async (
     enabled: hasTouch ?? false,
   });
   await cdpSession.send("Emulation.setSafeAreaInsetsOverride", {
-    insets: devicePreset.safeAreaInsets,
+    insets: wholeInsets,
   });
   const hasUserAgent = userAgent !== undefined;
   if (hasUserAgent) {
