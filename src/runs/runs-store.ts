@@ -1,64 +1,107 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { glob } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { STORE_FOLDER } from "@/environment";
-import type { Run } from "@/runs/runs-logic";
+import {
+  readStoredFile,
+  runWithFileLock,
+  writeStoredFile,
+} from "@/hub/stored-files";
+import { runSchema } from "@/runs/run-schema";
+import {
+  checkRunEvent,
+  mergeRunEvent,
+  pickNextRunId,
+  type Run,
+  type RunEvent,
+  type RunOrigin,
+} from "@/runs/runs-logic";
 
 const RUNS_SUBFOLDER = "runs";
-const SHOTS_SUBFOLDER = "shots";
 const RUN_FILE_EXTENSION = ".json";
-const MISSING_FILE_CODE = "ENOENT";
+const RUN_FILE_PATTERN = `*${RUN_FILE_EXTENSION}`;
 
 const pickRunsFolder = (rootFolder: string): string =>
   join(rootFolder, STORE_FOLDER, RUNS_SUBFOLDER);
 
-const pickRunPath = (rootFolder: string, runId: string): string =>
+const pickRunFilePath = (rootFolder: string, runId: string): string =>
   join(pickRunsFolder(rootFolder), `${runId}${RUN_FILE_EXTENSION}`);
 
-export const pickShotsFolder = (rootFolder: string): string =>
-  join(rootFolder, STORE_FOLDER, SHOTS_SUBFOLDER);
-
-export const listRunIds = async (rootFolder: string): Promise<string[]> => {
-  const runsFolder = pickRunsFolder(rootFolder);
-  await mkdir(runsFolder, { recursive: true });
-  const fileNames = await readdir(runsFolder);
-  const runFileNames = fileNames.filter((fileName) =>
-    fileName.endsWith(RUN_FILE_EXTENSION),
-  );
-  return runFileNames
-    .map((fileName) => basename(fileName, RUN_FILE_EXTENSION))
-    .sort();
+const listRunIds = async (rootFolder: string): Promise<string[]> => {
+  const runIds: string[] = [];
+  const runFileNames = glob(RUN_FILE_PATTERN, {
+    cwd: pickRunsFolder(rootFolder),
+  });
+  for await (const runFileName of runFileNames) {
+    runIds.push(basename(runFileName, RUN_FILE_EXTENSION));
+  }
+  return runIds.sort();
 };
 
-export const writeRun = async (rootFolder: string, run: Run): Promise<void> => {
-  await mkdir(pickRunsFolder(rootFolder), { recursive: true });
+const writeRun = async (rootFolder: string, run: Run): Promise<void> => {
   const serializedRun = JSON.stringify(run, null, 2);
-  await writeFile(pickRunPath(rootFolder, run.runId), serializedRun);
+  await writeStoredFile(pickRunFilePath(rootFolder, run.runId), serializedRun);
 };
 
 export const readRun = async (
   rootFolder: string,
   runId: string,
 ): Promise<Run | null> => {
-  try {
-    const serializedRun = await readFile(
-      pickRunPath(rootFolder, runId),
-      "utf8",
-    );
-    return JSON.parse(serializedRun) as Run;
-  } catch (error) {
-    const isFileMissing =
-      error instanceof Error &&
-      "code" in error &&
-      error.code === MISSING_FILE_CODE;
-    if (isFileMissing) return null;
-    throw error;
+  const serializedRun = await readStoredFile(
+    pickRunFilePath(rootFolder, runId),
+  );
+  const isRunMissing = serializedRun === null;
+  if (isRunMissing) {
+    return null;
   }
+  return runSchema.parse(JSON.parse(serializedRun));
 };
 
 export const listRuns = async (rootFolder: string): Promise<Run[]> => {
   const runIds = await listRunIds(rootFolder);
-  const runs = await Promise.all(
-    runIds.map((runId) => readRun(rootFolder, runId)),
-  );
-  return runs.filter((run) => run !== null);
+  const runs: Run[] = [];
+  for (const runId of runIds) {
+    try {
+      const run = await readRun(rootFolder, runId);
+      const isRunFound = run !== null;
+      if (isRunFound) {
+        runs.push(run);
+      }
+    } catch (error) {
+      console.error({ runId, error });
+    }
+  }
+  return runs;
+};
+
+export const createRun = async (
+  rootFolder: string,
+  origin: RunOrigin,
+): Promise<Run> => {
+  return runWithFileLock(pickRunsFolder(rootFolder), async () => {
+    const runIds = await listRunIds(rootFolder);
+    const run: Run = {
+      runId: pickNextRunId(runIds),
+      origin,
+      status: "running",
+      startedAt: Date.now(),
+      steps: [],
+    };
+    await writeRun(rootFolder, run);
+    return run;
+  });
+};
+
+export const saveRunEvent = async (
+  rootFolder: string,
+  runId: string,
+  runEvent: RunEvent,
+): Promise<Run> => {
+  const runFilePath = pickRunFilePath(rootFolder, runId);
+  return runWithFileLock(runFilePath, async () => {
+    const savedRun = await readRun(rootFolder, runId);
+    const checkedRun = checkRunEvent(savedRun, runEvent);
+    const mergedRun = mergeRunEvent(checkedRun, runEvent);
+    await writeRun(rootFolder, mergedRun);
+    return mergedRun;
+  });
 };

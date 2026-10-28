@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import {
+  checkRunEvent,
   mergeRunEvent,
   pickNextRunId,
   pickRunStatus,
@@ -55,8 +56,8 @@ describe("pickNextRunId", () => {
 });
 
 describe("pickRunStatus", () => {
-  test("returns running when there are no steps", () => {
-    expect(pickRunStatus([])).toBe("running");
+  test("returns passed when there are no steps", () => {
+    expect(pickRunStatus([])).toBe("passed");
   });
 
   test("returns passed when every device answer is ok", () => {
@@ -70,6 +71,42 @@ describe("pickRunStatus", () => {
     ];
 
     expect(pickRunStatus(steps)).toBe("failed");
+  });
+});
+
+describe("checkRunEvent", () => {
+  test("returns the saved run for a step on a running run", () => {
+    const step = createStep([OK_ANSWER]);
+
+    const checkedRun = checkRunEvent(EMPTY_RUN, { kind: "step-end", step });
+
+    expect(checkedRun).toBe(EMPTY_RUN);
+  });
+
+  test("throws 404 when the run is missing", () => {
+    const runEvent = { kind: "run-end", status: "passed" } as const;
+
+    expect(() => checkRunEvent(null, runEvent)).toThrow("No run with that id");
+  });
+
+  test("throws 409 for a step after the run ended", () => {
+    const endedRun: Run = { ...EMPTY_RUN, status: "passed" };
+    const step = createStep([OK_ANSWER]);
+
+    expect(() => checkRunEvent(endedRun, { kind: "step-end", step })).toThrow(
+      "The run has already ended",
+    );
+  });
+
+  test("accepts a second run end on an ended run", () => {
+    const endedRun: Run = { ...EMPTY_RUN, status: "passed" };
+
+    const checkedRun = checkRunEvent(endedRun, {
+      kind: "run-end",
+      status: "passed",
+    });
+
+    expect(checkedRun).toBe(endedRun);
   });
 });
 
@@ -93,7 +130,7 @@ describe("mergeRunEvent", () => {
     expect(EMPTY_RUN.steps).toEqual([]);
   });
 
-  test("sets the status on run end", () => {
+  test("ends failed when the event says failed", () => {
     const mergedRun = mergeRunEvent(EMPTY_RUN, {
       kind: "run-end",
       status: "failed",
@@ -101,5 +138,30 @@ describe("mergeRunEvent", () => {
 
     expect(mergedRun.status).toBe("failed");
     expect(EMPTY_RUN.status).toBe("running");
+  });
+
+  test("ends failed when a step has a failed answer", () => {
+    const failedRun: Run = {
+      ...EMPTY_RUN,
+      steps: [createStep([FAILED_ANSWER])],
+    };
+
+    const mergedRun = mergeRunEvent(failedRun, {
+      kind: "run-end",
+      status: "passed",
+    });
+
+    expect(mergedRun.status).toBe("failed");
+  });
+
+  test("ends passed when every step passed", () => {
+    const passedRun: Run = { ...EMPTY_RUN, steps: [createStep([OK_ANSWER])] };
+
+    const mergedRun = mergeRunEvent(passedRun, {
+      kind: "run-end",
+      status: "passed",
+    });
+
+    expect(mergedRun.status).toBe("passed");
   });
 });

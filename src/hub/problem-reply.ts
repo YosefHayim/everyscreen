@@ -32,11 +32,14 @@ const sendProblem = (c: Context, problem: Problem): Response => {
 
 export const writeProblem: ErrorHandler = (error, c) => {
   const isKnownError = error instanceof HTTPException;
-  if (isKnownError)
-    return sendProblem(c, createProblem(error.status, error.message));
+  if (isKnownError) {
+    const knownProblem = createProblem(error.status, error.message);
+    return sendProblem(c, knownProblem);
+  }
   console.error({ error });
-  return sendProblem(
-    c,
-    createProblem(INTERNAL_ERROR_STATUS, "Unexpected error"),
+  const unexpectedProblem = createProblem(
+    INTERNAL_ERROR_STATUS,
+    "Unexpected error",
   );
+  return sendProblem(c, unexpectedProblem);
 };

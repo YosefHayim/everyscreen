@@ -1,3 +1,4 @@
+import { HTTPException } from "hono/http-exception";
 import type { Finding } from "@/checks/checks-logic";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 
@@ -34,13 +35,17 @@ export type RunEvent =
   | { kind: "step-end"; step: RunStep }
   | { kind: "run-end"; status: "passed" | "failed" };
 
-const RUN_ID_PATTERN = /^run-(\d+)$/;
+export const RUN_ID_PATTERN = /^run-(\d+)$/;
 const RUN_ID_DIGITS = 4;
+const NOT_FOUND_STATUS = 404;
+const CONFLICT_STATUS = 409;
 
 const readRunNumber = (runId: string): number | null => {
   const idParts = RUN_ID_PATTERN.exec(runId);
   const isIdMalformed = idParts === null;
-  if (isIdMalformed) return null;
+  if (isIdMalformed) {
+    return null;
+  }
   return Number(idParts[1]);
 };
 
@@ -54,20 +59,43 @@ export const pickNextRunId = (runIds: string[]): string => {
 };
 
 export const pickRunStatus = (steps: RunStep[]): RunStatus => {
-  const isThereNoStep = steps.length === 0;
-  if (isThereNoStep) return "running";
   const hasFailedAnswer = steps.some((step) =>
     step.deviceAnswers.some((deviceAnswer) => deviceAnswer.status === "failed"),
   );
   return hasFailedAnswer ? "failed" : "passed";
 };
 
+export const checkRunEvent = (
+  savedRun: Run | null,
+  runEvent: RunEvent,
+): Run => {
+  const isRunMissing = savedRun === null;
+  if (isRunMissing) {
+    throw new HTTPException(NOT_FOUND_STATUS, {
+      message: "No run with that id",
+    });
+  }
+  const hasRunEnded = savedRun.status !== "running";
+  const isStepAfterEnd = hasRunEnded && runEvent.kind === "step-end";
+  if (isStepAfterEnd) {
+    throw new HTTPException(CONFLICT_STATUS, {
+      message: "The run has already ended",
+    });
+  }
+  return savedRun;
+};
+
 export const mergeRunEvent = (run: Run, runEvent: RunEvent): Run => {
-  if (runEvent.kind === "run-start") {
-    return { ...run, origin: runEvent.origin, status: "running" };
+  switch (runEvent.kind) {
+    case "run-start":
+      return { ...run, origin: runEvent.origin, status: "running" };
+    case "step-end":
+      return { ...run, steps: [...run.steps, runEvent.step] };
+    case "run-end": {
+      const isReportedFailed = runEvent.status === "failed";
+      const stepsStatus = pickRunStatus(run.steps);
+      const status = isReportedFailed ? "failed" : stepsStatus;
+      return { ...run, status };
+    }
   }
-  if (runEvent.kind === "step-end") {
-    return { ...run, steps: [...run.steps, runEvent.step] };
-  }
-  return { ...run, status: runEvent.status };
 };
