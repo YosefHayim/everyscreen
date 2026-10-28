@@ -13,8 +13,8 @@ const FRAME_SHAPES = [
 const DEVICE_ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const MAX_DEVICE_ID_LENGTH = 40;
 const MAX_DEVICE_NAME_LENGTH = 40;
-export const MIN_DEVICE_SIZE = 200;
-export const MAX_DEVICE_SIZE = 4000;
+const MIN_DEVICE_SIZE = 200;
+const MAX_DEVICE_SIZE = 4000;
 const MIN_PIXEL_RATIO = 1;
 const MAX_PIXEL_RATIO = 4;
 

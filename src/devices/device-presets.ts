@@ -12,7 +12,7 @@ interface Viewport {
 
 // Playwright's own registry: https://playwright.dev/docs/emulation#devices
 // The registry viewport is the browser window; presets use the full screen size.
-const createContextOptions = (
+const pickEmulation = (
   registryDevice: RegistryDevice,
   viewport: Viewport,
 ): BrowserContextOptions => ({
@@ -30,7 +30,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     browserName: "chromium",
     frameShape: "home-button",
     cpuSlowdown: CPU_TIERS.budgetPhone,
-    use: createContextOptions(devices["iPhone SE (3rd gen)"], {
+    use: pickEmulation(devices["iPhone SE (3rd gen)"], {
       width: 375,
       height: 667,
     }),
@@ -41,7 +41,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     browserName: "chromium",
     frameShape: "dynamic-island",
     cpuSlowdown: CPU_TIERS.phone,
-    use: createContextOptions(devices["iPhone 15"], {
+    use: pickEmulation(devices["iPhone 15"], {
       width: 393,
       height: 852,
     }),
@@ -52,7 +52,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     browserName: "chromium",
     frameShape: "dynamic-island",
     cpuSlowdown: CPU_TIERS.phone,
-    use: createContextOptions(devices["iPhone 15 Pro Max"], {
+    use: pickEmulation(devices["iPhone 15 Pro Max"], {
       width: 430,
       height: 932,
     }),
@@ -63,7 +63,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     browserName: "chromium",
     frameShape: "punch-hole",
     cpuSlowdown: CPU_TIERS.phone,
-    use: createContextOptions(devices["Galaxy S24"], {
+    use: pickEmulation(devices["Galaxy S24"], {
       width: 360,
       height: 780,
     }),
@@ -74,7 +74,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     browserName: "chromium",
     frameShape: "punch-hole",
     cpuSlowdown: CPU_TIERS.phone,
-    use: createContextOptions(devices["Pixel 8"], {
+    use: pickEmulation(devices["Pixel 8"], {
       width: 412,
       height: 915,
     }),
@@ -85,7 +85,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     browserName: "chromium",
     frameShape: "tablet",
     cpuSlowdown: CPU_TIERS.tablet,
-    use: createContextOptions(devices["iPad Mini"], {
+    use: pickEmulation(devices["iPad Mini"], {
       width: 744,
       height: 1133,
     }),
@@ -96,7 +96,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     browserName: "chromium",
     frameShape: "tablet",
     cpuSlowdown: CPU_TIERS.tablet,
-    use: createContextOptions(devices["iPad Pro 11"], {
+    use: pickEmulation(devices["iPad Pro 11"], {
       width: 834,
       height: 1194,
     }),

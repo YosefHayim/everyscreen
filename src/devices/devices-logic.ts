@@ -1,12 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { BrowserContextOptions } from "playwright";
 import { DEVICE_PRESETS } from "@/devices/device-presets";
-import {
-  type CustomDevice,
-  type DevicesFile,
-  MAX_DEVICE_SIZE,
-  MIN_DEVICE_SIZE,
-} from "@/devices/device-schema";
+import type { CustomDevice, DevicesFile } from "@/devices/device-schema";
 import { CPU_TIERS } from "@/environment";
 
 export type BrowserName = "chromium" | "webkit" | "firefox";
@@ -36,14 +31,13 @@ export interface DevicePreset {
 }
 
 const DEVICE_ID_CLASH_STATUS = 409;
-const DEVICE_LIMIT_STATUS = 422;
+const DEVICE_MISSING_STATUS = 404;
 
-export const customDeviceToPreset = (
+export const createPresetFromCustomDevice = (
   customDevice: CustomDevice,
 ): DevicePreset => {
-  const cpuSlowdown = customDevice.hasTouch
-    ? CPU_TIERS.phone
-    : CPU_TIERS.desktop;
+  const isTouchDevice = customDevice.hasTouch;
+  const cpuSlowdown = isTouchDevice ? CPU_TIERS.phone : CPU_TIERS.desktop;
 
   return {
     id: customDevice.id,
@@ -61,7 +55,7 @@ export const customDeviceToPreset = (
 };
 
 export const pickGridDevices = (devicesFile: DevicesFile): DevicePreset[] => {
-  const customPresets = devicesFile.devices.map(customDeviceToPreset);
+  const customPresets = devicesFile.devices.map(createPresetFromCustomDevice);
   return [...DEVICE_PRESETS, ...customPresets];
 };
 
@@ -78,18 +72,24 @@ export const checkNewDevice = (
     });
   }
 
-  const isWidthOutOfLimits =
-    customDevice.width < MIN_DEVICE_SIZE ||
-    customDevice.width > MAX_DEVICE_SIZE;
-  const isHeightOutOfLimits =
-    customDevice.height < MIN_DEVICE_SIZE ||
-    customDevice.height > MAX_DEVICE_SIZE;
-  const isSizeOutOfLimits = isWidthOutOfLimits || isHeightOutOfLimits;
-  if (isSizeOutOfLimits) {
-    throw new HTTPException(DEVICE_LIMIT_STATUS, {
-      message: `Width and height must be between ${MIN_DEVICE_SIZE} and ${MAX_DEVICE_SIZE}`,
+  return customDevice;
+};
+
+export const checkDeviceRemoval = (
+  devicesFile: DevicesFile,
+  deviceId: string,
+): DevicesFile => {
+  const isCustomDeviceMissing = devicesFile.devices.every(
+    (customDevice) => customDevice.id !== deviceId,
+  );
+  if (isCustomDeviceMissing) {
+    throw new HTTPException(DEVICE_MISSING_STATUS, {
+      message: `No custom device with id ${deviceId}`,
     });
   }
 
-  return customDevice;
+  const keptDevices = devicesFile.devices.filter(
+    (customDevice) => customDevice.id !== deviceId,
+  );
+  return { devices: keptDevices };
 };

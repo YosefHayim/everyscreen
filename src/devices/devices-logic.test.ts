@@ -3,8 +3,9 @@ import { describe, expect, test } from "vitest";
 import { DEVICE_PRESETS } from "@/devices/device-presets";
 import type { CustomDevice } from "@/devices/device-schema";
 import {
+  checkDeviceRemoval,
   checkNewDevice,
-  customDeviceToPreset,
+  createPresetFromCustomDevice,
   pickGridDevices,
 } from "@/devices/devices-logic";
 import { CPU_TIERS } from "@/environment";
@@ -35,9 +36,9 @@ const readStatus = (action: () => void): number | null => {
   return null;
 };
 
-describe("customDeviceToPreset", () => {
+describe("createPresetFromCustomDevice", () => {
   test("makes a touch device a mobile phone-speed preset", () => {
-    const devicePreset = customDeviceToPreset(TOUCH_KIOSK);
+    const devicePreset = createPresetFromCustomDevice(TOUCH_KIOSK);
 
     expect(devicePreset.cpuSlowdown).toBe(CPU_TIERS.phone);
     expect(devicePreset.use).toEqual({
@@ -49,7 +50,7 @@ describe("customDeviceToPreset", () => {
   });
 
   test("makes a device without touch a desktop-speed preset", () => {
-    const devicePreset = customDeviceToPreset(MOUSE_SCREEN);
+    const devicePreset = createPresetFromCustomDevice(MOUSE_SCREEN);
 
     expect(devicePreset.cpuSlowdown).toBe(CPU_TIERS.desktop);
     expect(devicePreset.use.isMobile).toBe(false);
@@ -92,19 +93,29 @@ describe("checkNewDevice", () => {
 
     expect(status).toBe(409);
   });
+});
 
-  test.each([
-    ["too narrow", { width: 100 }],
-    ["too wide", { width: 5000 }],
-    ["too short", { height: 100 }],
-    ["too tall", { height: 5000 }],
-  ])("rejects a device that is %s with 422", (_sizeProblem, sizeChange) => {
-    const oversizedDevice = { ...TOUCH_KIOSK, ...sizeChange };
+describe("checkDeviceRemoval", () => {
+  test("returns the devices file without the removed custom device", () => {
+    const devicesFile = { devices: [TOUCH_KIOSK, MOUSE_SCREEN] };
 
-    const status = readStatus(() =>
-      checkNewDevice(oversizedDevice, DEVICE_PRESETS),
+    const keptFile = checkDeviceRemoval(devicesFile, "shop-kiosk");
+
+    expect(keptFile).toEqual({ devices: [MOUSE_SCREEN] });
+    expect(devicesFile.devices).toHaveLength(2);
+  });
+
+  test("rejects an id that is not a custom device with 404", () => {
+    const devicesFile = { devices: [TOUCH_KIOSK] };
+
+    const presetStatus = readStatus(() =>
+      checkDeviceRemoval(devicesFile, "iphone-se"),
+    );
+    const emptyStatus = readStatus(() =>
+      checkDeviceRemoval({ devices: [] }, "shop-kiosk"),
     );
 
-    expect(status).toBe(422);
+    expect(presetStatus).toBe(404);
+    expect(emptyStatus).toBe(404);
   });
 });
