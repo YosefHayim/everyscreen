@@ -57,10 +57,10 @@ const SIZE_STRIP_DEVICES: SizeStripDevice[] = [
     viewportHeight: 1194,
   },
   {
-    id: "laptop-1440",
+    id: "macbook-air-13",
     outlineShape: "laptop",
-    viewportWidth: 1440,
-    viewportHeight: 900,
+    viewportWidth: 1470,
+    viewportHeight: 956,
   },
   {
     id: "store-kiosk",

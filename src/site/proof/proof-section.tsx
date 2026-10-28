@@ -6,7 +6,12 @@ import { CodeBlock } from "@/site/ui/code-block";
 import { SiteIcon } from "@/site/ui/site-icon";
 import { FailureShot } from "./failure-shot";
 
-const PASSED_DEVICE_IDS = ["iphone-15", "pixel-8", "ipad-mini", "laptop-1440"];
+const PASSED_DEVICE_IDS = [
+  "iphone-15",
+  "pixel-8",
+  "ipad-mini",
+  "macbook-air-13",
+];
 const FAILED_LINE_NUMBER = 4;
 const TEST_CODE_LINES = [
   'test("adds the linen shirt to the cart", async ({ page }) => {',

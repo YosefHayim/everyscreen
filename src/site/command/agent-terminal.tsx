@@ -17,7 +17,7 @@ const DEVICE_ANSWERS: DeviceAnswer[] = [
   { deviceId: "iphone-se", status: "warn" },
   { deviceId: "pixel-8", status: "ok" },
   { deviceId: "ipad-mini", status: "ok" },
-  { deviceId: "laptop-1440", status: "ok" },
+  { deviceId: "macbook-air-13", status: "ok" },
 ];
 
 export const AgentTerminal = (): ReactElement => {
