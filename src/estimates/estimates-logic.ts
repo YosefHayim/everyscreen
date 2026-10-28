@@ -1,4 +1,4 @@
-export interface MetricSample {
+export interface Sample {
   takenAt: number;
   taskSeconds: number;
   layoutSeconds: number;
