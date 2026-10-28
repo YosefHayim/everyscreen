@@ -10,7 +10,6 @@ import { chromium, firefox, webkit } from "playwright";
 import { emulateDevice } from "@/devices/device-emulation";
 import type { BrowserName, DevicePreset } from "@/devices/devices-logic";
 import type { PageWatcher, StopWatching } from "@/devices/page-watcher";
-import { listDefaultPageWatchers } from "@/devices/page-watchers-logic";
 import { HUB_HOST } from "@/environment";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { readStoredFile } from "@/hub/stored-files";
@@ -25,7 +24,11 @@ export interface DeviceBrowser {
   stop: () => Promise<void>;
 }
 
-const CDP_PAGE_WATCHERS: PageWatcher[] = [startScreencast];
+const DEFAULT_PAGE_WATCHERS: Record<BrowserName, PageWatcher[]> = {
+  chromium: [startScreencast],
+  webkit: [],
+  firefox: [],
+};
 const BROWSER_TYPES: Record<BrowserName, BrowserType> = {
   chromium,
   webkit,
@@ -103,13 +106,10 @@ const connectHubBrowser = async (
 
 export const startDeviceBrowser = async (
   devicePreset: DevicePreset,
-  customPageWatchers: PageWatcher[] | null = null,
+  pageWatchers: PageWatcher[] = DEFAULT_PAGE_WATCHERS[devicePreset.browserName],
 ): Promise<DeviceBrowser> => {
   const { browserName } = devicePreset;
   const isChromium = browserName === "chromium";
-  const pageWatchers =
-    customPageWatchers ??
-    listDefaultPageWatchers(browserName, CDP_PAGE_WATCHERS);
 
   const browserServer = await launchBrowserServer(browserName);
   try {

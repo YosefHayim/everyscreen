@@ -19,6 +19,6 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium webkit
       - name: Check
         run: pnpm check
