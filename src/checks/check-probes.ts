@@ -66,13 +66,11 @@ const readMeasurements = (tapTags: string): PageMeasurements => {
       return isTextNode && hasLetters;
     });
 
-  const viewportContent =
-    document.querySelector('meta[name="viewport"]')?.getAttribute("content") ??
-    "";
-  const isViewportCover = viewportContent
-    .replace(/\s/g, "")
-    .toLowerCase()
-    .includes("viewport-fit=cover");
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+  const viewportContent = viewportMeta?.getAttribute("content") ?? null;
+  const hasViewportContent = viewportContent !== null;
+  const isViewportCover =
+    hasViewportContent && /viewport-fit\s*=\s*cover/i.test(viewportContent);
 
   const everyElement = [...document.querySelectorAll("body *")];
   const measured = everyElement.map((element) => ({
