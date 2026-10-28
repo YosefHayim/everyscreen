@@ -24,20 +24,20 @@ const ARIA_ROLES = [
 // null means every device in the grid.
 const deviceIdsSchema = z.array(z.string()).nullable();
 
-const openCommandSchema = z.object({
+export const openCommandSchema = z.object({
   commandName: z.literal("open"),
   url: z.url(),
   deviceIds: deviceIdsSchema,
 });
 
-const tapCommandSchema = z.object({
+export const tapCommandSchema = z.object({
   commandName: z.literal("tap"),
   role: z.enum(ARIA_ROLES),
   name: z.string(),
   deviceIds: deviceIdsSchema,
 });
 
-const fillCommandSchema = z.object({
+export const fillCommandSchema = z.object({
   commandName: z.literal("fill"),
   role: z.enum(ARIA_ROLES),
   name: z.string(),
@@ -45,23 +45,23 @@ const fillCommandSchema = z.object({
   deviceIds: deviceIdsSchema,
 });
 
-const scrollCommandSchema = z.object({
+export const scrollCommandSchema = z.object({
   commandName: z.literal("scroll"),
   to: z.enum(["top", "bottom"]),
   deviceIds: deviceIdsSchema,
 });
 
-const checkCommandSchema = z.object({
+export const checkCommandSchema = z.object({
   commandName: z.literal("check"),
   deviceIds: deviceIdsSchema,
 });
 
-const shotCommandSchema = z.object({
+export const shotCommandSchema = z.object({
   commandName: z.literal("shot"),
   deviceIds: deviceIdsSchema,
 });
 
-const expectCommandSchema = z.object({
+export const expectCommandSchema = z.object({
   commandName: z.literal("expect"),
   text: z.string(),
   deviceIds: deviceIdsSchema,
