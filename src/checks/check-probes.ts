@@ -57,12 +57,13 @@ const readMeasurements = (measureRequest: MeasureRequest): PageMeasurements => {
     }
     return path.join(" > ");
   };
-  const isInsideScroller = (element: Element) => {
+  // Any ancestor below body that is not overflow-x visible clips or scrolls its content, so it cannot widen the page.
+  const isInsideClippingBox = (element: Element) => {
     let ancestor = element.parentElement;
-    while (ancestor !== null) {
+    while (ancestor !== null && ancestor !== document.body) {
       const { overflowX } = getComputedStyle(ancestor);
-      const isScroller = overflowX === "auto" || overflowX === "scroll";
-      if (isScroller) return true;
+      const isClippingBox = overflowX !== "visible";
+      if (isClippingBox) return true;
       ancestor = ancestor.parentElement;
     }
     return false;
@@ -135,11 +136,17 @@ const readMeasurements = (measureRequest: MeasureRequest): PageMeasurements => {
     element,
   }));
 
+  const rootDirection = getComputedStyle(document.documentElement).direction;
+  const isRightToLeft = rootDirection === "rtl";
+  // A right-to-left page overflows past the left edge; scrollX is added back because the browser may have scrolled it there.
+  const measureOverflowPx = (box: DOMRect) =>
+    isRightToLeft ? -(box.left + window.scrollX) : box.right - viewportWidth;
+
   const pastEdge = measured
-    .filter(({ element }) => !isInsideScroller(element))
+    .filter(({ element }) => !isInsideClippingBox(element))
     .map(({ selector, box }) => ({
       selector,
-      overflowPx: Math.round(box.right - viewportWidth),
+      overflowPx: Math.round(measureOverflowPx(box)),
     }))
     .filter((pastEdgeBox) => pastEdgeBox.overflowPx > 0)
     .sort((first, second) => second.overflowPx - first.overflowPx);

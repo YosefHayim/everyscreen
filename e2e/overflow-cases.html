@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overflow cases</title>
+<meta name="viewport" content="width=device-width">
+<style>
+  body { margin: 0; font: 16px sans-serif; }
+  .wide-block { width: var(--block-width); height: 60px; background: #0f766e; }
+  .marquee-box { width: 300px; }
+  .marquee-hidden { overflow: hidden; }
+  .marquee-clip { overflow: clip; }
+  .body-hidden { overflow-x: hidden; }
+</style>
+</head>
+<body>
+  <script>
+    // The page URL hash is "<case>/<block width in px>", so one fixture covers every case and screen.
+    const [caseName, blockWidth] = location.hash.slice(1).split("/");
+    const wideBlock = '<div class="wide-block"></div>';
+    const CASES = {
+      "marquee-hidden": `<div class="marquee-box marquee-hidden">${wideBlock}</div>`,
+      "marquee-clip": `<div class="marquee-box marquee-clip">${wideBlock}</div>`,
+      "body-hidden": wideBlock,
+      rtl: wideBlock,
+    };
+    document.documentElement.style.setProperty("--block-width", `${blockWidth}px`);
+    const isRightToLeftCase = caseName === "rtl";
+    const isBodyHiddenCase = caseName === "body-hidden";
+    if (isRightToLeftCase) document.documentElement.dir = "rtl";
+    if (isBodyHiddenCase) document.body.classList.add("body-hidden");
+    document.body.innerHTML = CASES[caseName];
+  </script>
+</body>
+</html>
