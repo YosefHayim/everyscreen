@@ -5,6 +5,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 const PROBLEM_CONTENT_TYPE = "application/problem+json";
 const INTERNAL_ERROR_STATUS = 500;
+const BAD_REQUEST_STATUS = 400;
 
 interface Problem {
   type: "about:blank";
@@ -42,4 +43,19 @@ export const writeProblem: ErrorHandler = (error, c) => {
     "Unexpected error",
   );
   return sendProblem(c, unexpectedProblem);
+};
+
+interface RequestValidation {
+  success: boolean;
+  error?: unknown;
+}
+
+export const rejectInvalidRequest = (validation: RequestValidation): void => {
+  const isRequestInvalid = validation.success === false;
+  if (isRequestInvalid) {
+    throw new HTTPException(BAD_REQUEST_STATUS, {
+      message: "The request does not match the schema.",
+      cause: validation.error,
+    });
+  }
 };

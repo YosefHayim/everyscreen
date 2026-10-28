@@ -7,13 +7,27 @@ import type {
   Page,
 } from "playwright";
 import { chromium, firefox, webkit } from "playwright";
+import { watchPage } from "@/checks/page-watch";
 import { emulateDevice } from "@/devices/device-emulation";
 import type { BrowserName, DevicePreset } from "@/devices/devices-logic";
-import type { PageWatcher, StopWatching } from "@/devices/page-watcher";
 import { HUB_HOST } from "@/environment";
+import { startSampling } from "@/estimates/estimates-sampler";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { readStoredFile } from "@/hub/stored-files";
 import { startScreencast } from "@/live/screencast";
+
+export type StopWatching = () => Promise<void>;
+
+export type PageWatcher = (
+  page: Page,
+  deviceId: string,
+) => Promise<StopWatching>;
+
+export interface DevicePage {
+  device: DevicePreset;
+  page: Page;
+  hasLiveScreen: boolean;
+}
 
 export interface DeviceBrowser {
   deviceId: string;
@@ -25,7 +39,7 @@ export interface DeviceBrowser {
 }
 
 const DEFAULT_PAGE_WATCHERS: Record<BrowserName, PageWatcher[]> = {
-  chromium: [startScreencast],
+  chromium: [startScreencast, startSampling, watchPage],
   webkit: [],
   firefox: [],
 };
@@ -173,23 +187,23 @@ export const startDeviceBrowser = async (
       });
     };
 
-    const watchBrowserContext = (context: BrowserContext): void => {
-      context.on("page", (page) => runSafely(() => trackPage(page)));
-      for (const page of context.pages()) {
+    const watchBrowserContext = (browserContext: BrowserContext): void => {
+      browserContext.on("page", (page) => runSafely(() => trackPage(page)));
+      for (const page of browserContext.pages()) {
         runSafely(() => trackPage(page));
       }
     };
 
     // WebKit and Firefox servers hide pages that other processes open, so only the hub's own pages are watched.
     if (isChromium) {
-      for (const context of hubBrowser.contexts()) {
-        watchBrowserContext(context);
+      for (const browserContext of hubBrowser.contexts()) {
+        watchBrowserContext(browserContext);
       }
     }
 
     const openPage = async (): Promise<Page> => {
-      const context = await hubBrowser.newContext(devicePreset.use);
-      const page = await context.newPage();
+      const browserContext = await hubBrowser.newContext(devicePreset.use);
+      const page = await browserContext.newPage();
       await runOneAtATime(wsEndpoint, () => trackPage(page));
       return page;
     };

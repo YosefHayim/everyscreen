@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { Run } from "@/runs/runs-logic";
+import { SEVERITIES } from "@/checks/checks-logic";
+import type { Run, RunEvent } from "@/runs/runs-logic";
 
 export const runOriginSchema = z.enum(["cli", "flow", "playwright"]);
 
@@ -27,7 +28,7 @@ const findingSchema = z.object({
     "console-error",
     "failed-request",
   ]),
-  severity: z.enum(["failed", "warn"]),
+  severity: z.enum(SEVERITIES),
   deviceId: z.string(),
   selector: z.string().nullable(),
   message: z.string(),
@@ -40,7 +41,7 @@ const stepProofSchema = z.object({
   codeLocation: z.string().nullable(),
 });
 
-export const runStepSchema = z.object({
+const runStepSchema = z.object({
   stepId: z.string(),
   title: z.string(),
   startedAt: z.number(),
@@ -56,3 +57,12 @@ export const runSchema = z.object({
   startedAt: z.number(),
   steps: z.array(runStepSchema),
 }) satisfies z.ZodType<Run>;
+
+export const runEventSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("run-start"), origin: runOriginSchema }),
+  z.object({ kind: z.literal("step-end"), step: runStepSchema }),
+  z.object({
+    kind: z.literal("run-end"),
+    status: z.enum(["passed", "failed"]),
+  }),
+]) satisfies z.ZodType<RunEvent>;

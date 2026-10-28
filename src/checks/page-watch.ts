@@ -6,7 +6,7 @@ import {
   isFaviconUrl,
   isRequestFailureEcho,
 } from "@/checks/checks-logic";
-import type { PageWatcher } from "@/devices/page-watcher";
+import type { PageWatcher } from "@/devices/device-browsers";
 import { broadcast } from "@/live/live-feed";
 
 const HTTP_ERROR_STATUS = 400;

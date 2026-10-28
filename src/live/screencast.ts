@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { StopWatching } from "@/devices/page-watcher";
+import type { StopWatching } from "@/devices/device-browsers";
 import { SCREENCAST } from "@/environment";
 import { broadcast } from "@/live/live-feed";
 

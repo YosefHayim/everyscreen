@@ -66,11 +66,11 @@ test.afterEach(async () => {
 
 const openAndCheck = async (viewing: Viewing) => {
   const { deviceId, width, height, hasTouch, safeArea } = viewing;
-  const context = await browser.newContext({
+  const browserContext = await browser.newContext({
     viewport: { width, height },
     hasTouch,
   });
-  const page = await context.newPage();
+  const page = await browserContext.newPage();
   await watchPage(page, deviceId);
 
   await page.goto(FIXTURE_URL);
@@ -130,11 +130,11 @@ const SAFE_AREA_ENGINES: SafeAreaEngine[] = [
 for (const { name, engine } of SAFE_AREA_ENGINES) {
   test(`a header padded by env(safe-area-inset-top) gets no safe-area finding on ${name}`, async () => {
     const engineBrowser = await engine.launch();
-    const context = await engineBrowser.newContext({
+    const browserContext = await engineBrowser.newContext({
       viewport: { width: PHONE.width, height: PHONE.height },
       hasTouch: true,
     });
-    const page = await context.newPage();
+    const page = await browserContext.newPage();
 
     await page.goto(SAFE_AREA_HEADER_URL);
     const measurements = await measurePage(page);
