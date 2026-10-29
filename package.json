@@ -52,7 +52,7 @@
     "lint:fix": "biome check --write",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
-    "check": "turbo run lint typecheck test test:e2e build --output-logs=errors-only"
+    "check": "turbo run lint typecheck test test:e2e build build:site --output-logs=errors-only"
   },
   "dependencies": {
     "@hono/node-server": "2.1.5",

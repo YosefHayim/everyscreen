@@ -4,7 +4,8 @@
     "lint": {},
     "typecheck": {},
     "test": {},
-    "build": { "outputs": ["dist/**"] },
+    "build": { "outputs": ["dist/**", "!dist/site/**"] },
+    "build:site": { "dependsOn": ["build"], "outputs": ["dist/site/**"] },
     "test:e2e": {}
   }
 }
