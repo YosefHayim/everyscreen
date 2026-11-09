@@ -10,7 +10,7 @@ const WORKFLOW_CARDS: WorkflowCardEntry[] = [
     codeLines: [
       "$ everyscreen open --url http://localhost:5173",
       '$ everyscreen tap --role link --name "Shop"',
-      "$ everyscreen fill --role searchbox --with linen",
+      "$ everyscreen fill --role searchbox --name Search --with linen",
       "$ everyscreen check",
       "5 devices · 5 ok · report run-0412",
     ],
@@ -22,7 +22,7 @@ const WORKFLOW_CARDS: WorkflowCardEntry[] = [
       "name: Checkout with a coupon",
       "devices: [iphone-se, iphone-15, pixel-8]",
       "steps:",
-      "  - open: /cart",
+      "  - open: http://localhost:5173/cart",
       "  - fill: { role: textbox, name: Coupon, with: SPRING }",
       "  - tap: { role: button, name: Apply }",
       '  - expect: { text: "Coupon applied" }',
