@@ -13,9 +13,9 @@ interface DeviceAnswer {
 }
 
 const DEVICE_ANSWERS: DeviceAnswer[] = [
-  { deviceId: "iphone-15", status: "ok" },
+  { deviceId: "iphone-17", status: "ok" },
   { deviceId: "iphone-se", status: "warn" },
-  { deviceId: "pixel-8", status: "ok" },
+  { deviceId: "pixel-10", status: "ok" },
   { deviceId: "ipad-mini", status: "ok" },
   { deviceId: "macbook-air-13", status: "ok" },
 ];

@@ -7,14 +7,14 @@ import { AddDeviceForm } from "./add-device-form";
 import { SizeStrip } from "./size-strip";
 
 const CLI_CODE_LINES = [
-  '$ everyscreen devices add --name "Store kiosk" \\',
+  '$ everyscreen devices add --name "Lobby kiosk" \\',
   "    --width 1080 --height 1920 --touch",
-  "device added · store-kiosk · restart the hub to apply",
+  "device added · lobby-kiosk · restart the hub to apply",
 ];
 const YAML_CODE_LINES = [
   "# everyscreen.yaml",
   "devices:",
-  "  - name: Store kiosk",
+  "  - name: Lobby kiosk",
   "    width: 1080",
   "    height: 1920",
   "    hasTouch: true",

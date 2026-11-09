@@ -13,7 +13,7 @@ test("checkout.yaml becomes four valid hub commands on three devices", async () 
 
   const commands = listFlowCommands(flow);
 
-  const deviceIds = ["iphone-se", "iphone-15", "pixel-8"];
+  const deviceIds = ["iphone-se", "iphone-17", "pixel-10"];
   expect(commands).toEqual([
     { commandName: "open", url: "http://localhost:5173", deviceIds },
     {

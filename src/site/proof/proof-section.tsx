@@ -7,8 +7,8 @@ import { SiteIcon } from "@/site/ui/site-icon";
 import { FailureShot } from "./failure-shot";
 
 const PASSED_DEVICE_IDS = [
-  "iphone-15",
-  "pixel-8",
+  "iphone-17",
+  "pixel-10",
   "ipad-mini",
   "macbook-air-13",
 ];

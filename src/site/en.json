@@ -89,32 +89,32 @@
     "pay": "Pay $66"
   },
   "devices": {
-    "iphone-15": {
-      "name": "iPhone 15"
+    "iphone-17": {
+      "name": "iPhone 17"
     },
     "iphone-se": {
       "name": "iPhone SE"
     },
-    "pixel-8": {
-      "name": "Pixel 8"
+    "pixel-10": {
+      "name": "Pixel 10"
     },
     "ipad-mini": {
       "name": "iPad mini"
     },
-    "iphone-15-pro-max": {
-      "name": "iPhone 15 Pro Max"
+    "iphone-17-pro-max": {
+      "name": "iPhone 17 Pro Max"
     },
-    "galaxy-s24": {
-      "name": "Galaxy S24"
+    "galaxy-s25": {
+      "name": "Galaxy S25"
     },
     "ipad-pro-11": {
       "name": "iPad Pro 11"
     },
     "macbook-air-13": {
-      "name": "Laptop"
+      "name": "MacBook Air 13"
     },
-    "store-kiosk": {
-      "name": "Store kiosk"
+    "lobby-kiosk": {
+      "name": "Lobby kiosk"
     },
     "size": "{{width}}×{{height}}",
     "sizeAndFrameRate": "{{width}}×{{height}} · {{fps}} fps est."
@@ -142,7 +142,7 @@
     "windowTitle": "agent session · my-shop",
     "command": "everyscreen tap --role button --name \"Apply\"",
     "answers": {
-      "iphone-15": {
+      "iphone-17": {
         "status": "ok",
         "line": "tapped button \"Apply\"",
         "time": "212ms"
@@ -152,7 +152,7 @@
         "line": "overflow .coupon-row +24px",
         "time": "230ms"
       },
-      "pixel-8": {
+      "pixel-10": {
         "status": "ok",
         "line": "tapped button \"Apply\"",
         "time": "198ms"
@@ -206,7 +206,7 @@
       }
     },
     "shop": {
-      "label": "A shop page on an iPhone 15 with three findings marked",
+      "label": "A shop page on an iPhone 17 with three findings marked",
       "name": "HOLLIS GOODS",
       "promo": "10% off your first order",
       "product": "Linen shirt",
@@ -218,7 +218,7 @@
         "large": "L"
       },
       "add": "Add to cart",
-      "caption": "iPhone 15 · 393×852 · 3 findings"
+      "caption": "iPhone 17 · 402×874 · 3 findings"
     },
     "toasts": {
       "notch": {
@@ -254,10 +254,10 @@
     "errorIntercept": "<div class=\"cookie-bar\">…</div> intercepts pointer events",
     "elsewhere": "Same test elsewhere",
     "passedOn": {
-      "iphone-15": "iPhone 15",
-      "pixel-8": "Pixel 8",
+      "iphone-17": "iPhone 17",
+      "pixel-10": "Pixel 10",
       "ipad-mini": "iPad mini",
-      "macbook-air-13": "Laptop"
+      "macbook-air-13": "MacBook Air 13"
     }
   },
   "workflows": {
@@ -285,7 +285,7 @@
     "form": {
       "title": "Add a device",
       "name": "Name",
-      "nameExample": "Store kiosk",
+      "nameExample": "Lobby kiosk",
       "width": "Width",
       "widthExample": "1080",
       "height": "Height",
@@ -299,7 +299,7 @@
     "agent": {
       "title": "Or let your agent add it",
       "subtitle": "The same device from the CLI, or in everyscreen.yaml so the whole team gets it.",
-      "reply": "device added · store-kiosk · restart the hub to apply"
+      "reply": "device added · lobby-kiosk · restart the hub to apply"
     }
   },
   "estimates": {

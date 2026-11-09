@@ -15,7 +15,7 @@ const DEVICE_ESTIMATES: DeviceEstimate[] = [
     layoutShift: "0.02",
   },
   {
-    deviceId: "iphone-15",
+    deviceId: "iphone-17",
     frameRate: 60,
     cpuSlowdown: 2,
     cpuPercent: 22,
@@ -23,9 +23,9 @@ const DEVICE_ESTIMATES: DeviceEstimate[] = [
     layoutShift: "0.00",
   },
   {
-    deviceId: "pixel-8",
+    deviceId: "pixel-10",
     frameRate: 58,
-    cpuSlowdown: 3,
+    cpuSlowdown: 2,
     cpuPercent: 29,
     memoryMegabytes: 66,
     layoutShift: "0.01",
@@ -33,7 +33,7 @@ const DEVICE_ESTIMATES: DeviceEstimate[] = [
   {
     deviceId: "ipad-mini",
     frameRate: 60,
-    cpuSlowdown: 2,
+    cpuSlowdown: 1.5,
     cpuPercent: 17,
     memoryMegabytes: 72,
     layoutShift: "0.00",

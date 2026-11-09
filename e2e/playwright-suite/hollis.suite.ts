@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const hollisUrl = process.env.HOLLIS_URL;
-const isHollisUrlMissing = hollisUrl === undefined;
+const isHollisUrlMissing = hollisUrl == null || hollisUrl === "";
 if (isHollisUrlMissing) throw new Error("Set HOLLIS_URL to the shop page");
 
 test.describe("hollis goods", () => {

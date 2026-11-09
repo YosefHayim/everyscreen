@@ -1,5 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
+  "globalEnv": ["DASHBOARD_SHOTS_FOLDER", "HOLLIS_URL", "SUITE_DEVICE_IDS"],
   "tasks": {
     "lint": {},
     "typecheck": {},
