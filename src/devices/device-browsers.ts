@@ -94,18 +94,21 @@ const stopPageWatchers = async (
 const launchBrowserServer = async (
   browserName: BrowserName,
 ): Promise<BrowserServer> => {
+  // Playwright would close these browsers on SIGINT and SIGTERM, under the screencasts that stop them.
+  const launchSettings = {
+    headless: true,
+    host: HUB_HOST,
+    handleSIGINT: false,
+    handleSIGTERM: false,
+  };
   const isChromium = browserName === "chromium";
   if (isChromium) {
     return chromium.launchServer({
-      headless: true,
-      host: HUB_HOST,
+      ...launchSettings,
       args: ["--remote-debugging-port=0"],
     });
   }
-  return BROWSER_TYPES[browserName].launchServer({
-    headless: true,
-    host: HUB_HOST,
-  });
+  return BROWSER_TYPES[browserName].launchServer(launchSettings);
 };
 
 const connectHubBrowser = async (

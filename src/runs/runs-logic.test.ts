@@ -3,12 +3,15 @@ import type { Finding } from "@/checks/checks-logic";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import {
   checkRunEvent,
+  isRunOpen,
   mergeRunEvent,
+  pickLeftOpenRuns,
   pickNextRunId,
-  pickRunningRun,
   pickRunStatus,
   pickStepId,
   type Run,
+  type RunOrigin,
+  type RunStatus,
   type RunStep,
 } from "@/runs/runs-logic";
 
@@ -198,31 +201,67 @@ describe("pickStepId", () => {
   });
 });
 
-describe("pickRunningRun", () => {
-  const createRun = (runId: string, status: Run["status"]): Run => ({
-    runId,
-    origin: "cli",
-    runKind: "steps",
-    status,
-    startedAt: 1,
-    steps: [],
+const createSavedRun = (
+  runId: string,
+  origin: RunOrigin,
+  status: RunStatus,
+): Run => ({
+  runId,
+  origin,
+  runKind: "steps",
+  status,
+  startedAt: 1,
+  steps: [],
+});
+
+describe("isRunOpen", () => {
+  test("returns false when no run is saved", () => {
+    const savedRun = null;
+
+    expect(isRunOpen(savedRun)).toBe(false);
   });
 
-  test("returns null when no run is saved", () => {
-    expect(pickRunningRun([])).toBeNull();
+  test("returns false when the run has ended", () => {
+    const savedRun = createSavedRun("run-0001", "cli", "ok");
+
+    expect(isRunOpen(savedRun)).toBe(false);
   });
 
-  test("returns null when every run has ended", () => {
-    expect(pickRunningRun([createRun("run-0001", "ok")])).toBeNull();
+  test("returns true when the run is still running", () => {
+    const savedRun = createSavedRun("run-0001", "cli", "running");
+
+    expect(isRunOpen(savedRun)).toBe(true);
+  });
+});
+
+describe("pickLeftOpenRuns", () => {
+  test("returns no run when every run has ended", () => {
+    const runs = [createSavedRun("run-0001", "cli", "ok")];
+
+    expect(pickLeftOpenRuns(runs)).toEqual([]);
   });
 
-  test("returns the latest run that is still running", () => {
+  test("returns the cli runs that are still running", () => {
     const runs = [
-      createRun("run-0001", "running"),
-      createRun("run-0002", "failed"),
-      createRun("run-0003", "running"),
+      createSavedRun("run-0001", "cli", "running"),
+      createSavedRun("run-0002", "cli", "failed"),
+      createSavedRun("run-0003", "cli", "running"),
     ];
 
-    expect(pickRunningRun(runs)?.runId).toBe("run-0003");
+    const leftOpenRuns = pickLeftOpenRuns(runs);
+
+    expect(leftOpenRuns.map(({ runId }) => runId)).toEqual([
+      "run-0001",
+      "run-0003",
+    ]);
+  });
+
+  test("keeps the playwright and flow runs that are still running", () => {
+    const runs = [
+      createSavedRun("run-0001", "playwright", "running"),
+      createSavedRun("run-0002", "flow", "running"),
+    ];
+
+    expect(pickLeftOpenRuns(runs)).toEqual([]);
   });
 });

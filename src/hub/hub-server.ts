@@ -25,6 +25,8 @@ import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { writeStoredFile } from "@/hub/stored-files";
 import { forgetDeviceScreen } from "@/live/live-feed";
 import { liveRoutes } from "@/live/live-routes";
+import { closeInteractiveRun } from "@/runs/interactive-run";
+import { closeLeftOpenRuns } from "@/runs/runs-store";
 
 const HUB_FILE_MODE = 0o600;
 const GRID_SYNC_QUEUE_KEY = "grid-sync";
@@ -224,6 +226,8 @@ const listenOrStopDevices = async (
 
 export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
   const { rootFolder, port } = hubStart;
+  await closeLeftOpenRuns(rootFolder);
+
   const devicesFile = await readDevicesFile(rootFolder);
   const gridDevices = await startGridDevices(pickGridDevices(devicesFile));
   const devicePages = gridDevices.map(({ devicePage }) => devicePage);
@@ -247,11 +251,16 @@ export const startHub = async (hubStart: HubStart): Promise<RunningHub> => {
   try {
     await writeCurrentHubFile();
 
+    // The run closes before the browsers stop, so its commands finish while the pages are still open.
     const stop = async (): Promise<void> => {
       await rm(hubFilePath, { force: true });
       for (const liveClient of websocketServer.clients) liveClient.terminate();
       await closeServer(listeningServer.httpServer);
-      await stopGridDevices(gridDevices);
+      try {
+        await closeInteractiveRun(rootFolder);
+      } finally {
+        await stopGridDevices(gridDevices);
+      }
     };
     return { url: `http://${HUB_HOST}:${listeningServer.port}`, stop };
   } catch (error) {
