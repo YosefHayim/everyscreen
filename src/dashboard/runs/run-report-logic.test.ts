@@ -3,7 +3,6 @@ import type { Finding } from "@/checks/checks-logic";
 import {
   createMatrix,
   listFailureProofs,
-  listRunDeviceIds,
   pickRunTotals,
   pickShotUrl,
 } from "@/dashboard/runs/run-report-logic";
@@ -72,25 +71,6 @@ const run: Run = {
   steps: [passedStep, failedStep, lonelyStep],
 };
 
-describe("listRunDeviceIds", () => {
-  test("lists each device once in the order it first appears", () => {
-    expect(listRunDeviceIds(run)).toEqual(["pixel-8", "iphone-se"]);
-  });
-
-  test("includes a device that only has a finding", () => {
-    const findingOnlyRun: Run = {
-      ...run,
-      steps: [{ ...lonelyStep, findings: [overflowFinding] }],
-    };
-
-    expect(listRunDeviceIds(findingOnlyRun)).toEqual(["pixel-8", "iphone-se"]);
-  });
-
-  test("returns nothing for a run with no steps", () => {
-    expect(listRunDeviceIds({ ...run, steps: [] })).toEqual([]);
-  });
-});
-
 describe("createMatrix", () => {
   test("marks ok, warn, failed and none cells per device and step", () => {
     const matrix = createMatrix(run);
@@ -125,7 +105,6 @@ describe("pickRunTotals", () => {
     expect(runTotals).toEqual({
       stepCount: 3,
       deviceCount: 2,
-      findingCount: 1,
       okDeviceCount: 1,
       warnDeviceCount: 0,
       failedDeviceCount: 1,

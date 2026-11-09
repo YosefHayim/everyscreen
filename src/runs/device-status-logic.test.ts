@@ -3,6 +3,7 @@ import type { Finding } from "@/checks/checks-logic";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import {
   countDeviceStatuses,
+  listDeviceIds,
   pickDeviceStatus,
 } from "@/runs/device-status-logic";
 import type { RunStep } from "@/runs/runs-logic";
@@ -100,6 +101,14 @@ describe("pickDeviceStatus", () => {
 
     expect(deviceStatus).toBe("ok");
   });
+
+  test("returns null when the device is not in the steps at all", () => {
+    const runSteps = [createRunStep([createOkAnswer("pixel-8")], [])];
+
+    const deviceStatus = pickDeviceStatus("iphone-se", runSteps);
+
+    expect(deviceStatus).toBeNull();
+  });
 });
 
 describe("countDeviceStatuses", () => {
@@ -127,5 +136,35 @@ describe("countDeviceStatuses", () => {
     const statusCounts = countDeviceStatuses(runSteps);
 
     expect(statusCounts).toEqual({ okCount: 0, warnCount: 0, failedCount: 0 });
+  });
+});
+
+describe("listDeviceIds", () => {
+  test("lists each device once in the order it first appears", () => {
+    const runSteps = [
+      createRunStep(
+        [createOkAnswer("pixel-8"), createOkAnswer("iphone-se")],
+        [],
+      ),
+      createRunStep([createFailedAnswer("pixel-8")], []),
+    ];
+
+    const deviceIds = listDeviceIds(runSteps);
+
+    expect(deviceIds).toEqual(["pixel-8", "iphone-se"]);
+  });
+
+  test("includes a device that only has a finding", () => {
+    const runSteps = [createRunStep([], [createFinding("iphone-se", "warn")])];
+
+    const deviceIds = listDeviceIds(runSteps);
+
+    expect(deviceIds).toEqual(["iphone-se"]);
+  });
+
+  test("returns nothing when there are no steps", () => {
+    const deviceIds = listDeviceIds([]);
+
+    expect(deviceIds).toEqual([]);
   });
 });

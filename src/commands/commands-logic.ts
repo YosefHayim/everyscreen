@@ -78,11 +78,35 @@ export const createReplyLine = (replyTally: ReplyTally): string => {
   return lineParts.join(" · ");
 };
 
+export const listDeviceFailures = (runStep: RunStep): DeviceFailure[] =>
+  runStep.deviceAnswers.flatMap((deviceAnswer): DeviceFailure[] => {
+    const isFailedAnswer = isFailure(deviceAnswer);
+    if (isFailedAnswer) return [deviceAnswer];
+
+    const failedFinding = runStep.findings.find(
+      (finding) =>
+        finding.deviceId === deviceAnswer.deviceId &&
+        finding.severity === "failed",
+    );
+    const hasFailedFinding = failedFinding !== undefined;
+    if (!hasFailedFinding) return [];
+
+    return [
+      {
+        status: "failed",
+        deviceId: deviceAnswer.deviceId,
+        durationMs: deviceAnswer.durationMs,
+        message: failedFinding.message,
+        shotPath: deviceAnswer.shotPath,
+      },
+    ];
+  });
+
 export const summarizeCommand = (
   runStep: RunStep,
   runId: string | null,
 ): CommandReply => {
-  const failures = runStep.deviceAnswers.filter(isFailure);
+  const failures = listDeviceFailures(runStep);
   const { okCount, warnCount, failedCount } = countDeviceStatuses([runStep]);
   const isNoDeviceFailed = failedCount === 0 && okCount + warnCount > 0;
   const status = isNoDeviceFailed ? "ok" : "failed";

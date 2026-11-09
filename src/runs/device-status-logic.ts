@@ -1,14 +1,15 @@
+import type { Finding } from "@/checks/checks-logic";
 import type { RunStep } from "@/runs/runs-logic";
 
-export type DeviceStatus = "ok" | "warn" | "failed";
+type DeviceStatus = "ok" | "warn" | "failed";
 
-export interface DeviceStatusCounts {
+interface DeviceStatusCounts {
   okCount: number;
   warnCount: number;
   failedCount: number;
 }
 
-const listDeviceIds = (runSteps: RunStep[]): string[] => {
+export const listDeviceIds = (runSteps: RunStep[]): string[] => {
   const deviceIds = runSteps.flatMap((runStep) => [
     ...runStep.deviceAnswers.map((deviceAnswer) => deviceAnswer.deviceId),
     ...runStep.findings.map((finding) => finding.deviceId),
@@ -16,20 +17,30 @@ const listDeviceIds = (runSteps: RunStep[]): string[] => {
   return [...new Set(deviceIds)];
 };
 
+export const listDeviceFindings = (
+  deviceId: string,
+  runSteps: RunStep[],
+): Finding[] =>
+  runSteps
+    .flatMap((runStep) => runStep.findings)
+    .filter((finding) => finding.deviceId === deviceId);
+
 // One rule for every screen: a failed action or failed finding fails the device, any other finding warns it.
+// A device that is not in these steps has no status, so it returns null.
 export const pickDeviceStatus = (
   deviceId: string,
   runSteps: RunStep[],
-): DeviceStatus => {
+): DeviceStatus | null => {
+  const isDeviceInRun = listDeviceIds(runSteps).includes(deviceId);
+  if (!isDeviceInRun) return null;
+
   const hasFailedAnswer = runSteps.some((runStep) =>
     runStep.deviceAnswers.some(
       (deviceAnswer) =>
         deviceAnswer.deviceId === deviceId && deviceAnswer.status === "failed",
     ),
   );
-  const deviceFindings = runSteps
-    .flatMap((runStep) => runStep.findings)
-    .filter((finding) => finding.deviceId === deviceId);
+  const deviceFindings = listDeviceFindings(deviceId, runSteps);
   const hasFailedFinding = deviceFindings.some(
     (finding) => finding.severity === "failed",
   );

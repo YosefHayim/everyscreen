@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { Finding } from "@/checks/checks-logic";
 import type { DeviceAnswer } from "@/commands/commands-logic";
+import { countDeviceStatuses } from "@/runs/device-status-logic";
 
 export type RunStatus = "running" | "ok" | "failed";
 
@@ -62,10 +63,9 @@ export const pickNextRunId = (runIds: string[]): string => {
 };
 
 export const pickRunStatus = (steps: RunStep[]): RunStatus => {
-  const hasFailedAnswer = steps.some((step) =>
-    step.deviceAnswers.some((deviceAnswer) => deviceAnswer.status === "failed"),
-  );
-  return hasFailedAnswer ? "failed" : "ok";
+  const { failedCount } = countDeviceStatuses(steps);
+  const hasFailedDevice = failedCount > 0;
+  return hasFailedDevice ? "failed" : "ok";
 };
 
 export const checkRunEvent = (

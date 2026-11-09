@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { rejectInvalidRequest } from "@/hub/problem-reply";
+import { broadcast } from "@/live/live-feed";
 import { runEventSchema, runOriginSchema } from "@/runs/run-schema";
 import { RUN_ID_PATTERN } from "@/runs/runs-logic";
 import { createRun, listRuns, readRun, saveRunEvent } from "@/runs/runs-store";
@@ -51,6 +52,7 @@ export const createRunsRoutes = (rootFolder: string) =>
         const { runId } = c.req.valid("param");
         const runEvent = c.req.valid("json");
         const savedRun = await saveRunEvent(rootFolder, runId, runEvent);
+        broadcast({ kind: "run", runId });
         return c.json(savedRun);
       },
     );

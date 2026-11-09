@@ -5,10 +5,12 @@ import {
   countUnits,
   createCommandRunStep,
   type DeviceFailure,
+  listDeviceFailures,
   pickDeviceIds,
   pickErrorMessage,
 } from "@/commands/commands-logic";
 import type { SweepCommand } from "@/commands/commands-schema";
+import { countDeviceStatuses } from "@/runs/device-status-logic";
 import { createStepId, type RunStep } from "@/runs/runs-logic";
 
 export interface PageLink {
@@ -271,25 +273,28 @@ export const createSweepSteps = (
 
 export const summarizeSweep = (
   sweepSteps: SweepStep[],
+  beforeRunSteps: RunStep[],
   runId: string,
-  beforeFailures: DeviceFailure[],
 ): CommandReply => {
-  const routeFailures: DeviceFailure[] = sweepSteps.flatMap(
-    ({ route, runStep }) =>
-      runStep.deviceAnswers
-        .filter((deviceAnswer) => deviceAnswer.status === "failed")
-        .map((deviceAnswer) => ({
-          ...deviceAnswer,
-          message: `${route} ${deviceAnswer.message}`,
-        })),
+  const routeRunSteps = sweepSteps.map(({ runStep }) => runStep);
+  const { okCount, warnCount, failedCount } = countDeviceStatuses([
+    ...routeRunSteps,
+    ...beforeRunSteps,
+  ]);
+  const deviceCount = okCount + warnCount + failedCount;
+
+  const routeFailures = sweepSteps.flatMap(({ route, runStep }) =>
+    listDeviceFailures(runStep).map((deviceFailure) => ({
+      ...deviceFailure,
+      message: `${route} ${deviceFailure.message}`,
+    })),
   );
+  const beforeFailures = beforeRunSteps.flatMap(listDeviceFailures);
   const failures = [...beforeFailures, ...routeFailures];
-  const deviceAnswers = sweepSteps.flatMap(
-    ({ runStep }) => runStep.deviceAnswers,
+
+  const deviceAnswers = routeRunSteps.flatMap(
+    (runStep) => runStep.deviceAnswers,
   );
-  const answeredIds = deviceAnswers.map(({ deviceId }) => deviceId);
-  const beforeFailedIds = beforeFailures.map(({ deviceId }) => deviceId);
-  const deviceIds = new Set([...answeredIds, ...beforeFailedIds]);
   const shotCount = deviceAnswers.filter(
     ({ shotPath }) => shotPath !== null,
   ).length;
@@ -298,13 +303,17 @@ export const summarizeSweep = (
     0,
   );
 
-  const hasFailure = failures.length > 0;
-  const failedParts = hasFailure ? [`${failures.length} failed`] : [];
+  const hasWarning = warnCount > 0;
+  const warnParts = hasWarning ? [`${warnCount} warn`] : [];
+  const hasFailure = failedCount > 0;
+  const failedParts = hasFailure ? [`${failedCount} failed`] : [];
   const lineParts = [
     countUnits(sweepSteps.length, "route"),
-    countUnits(deviceIds.size, "device"),
+    countUnits(deviceCount, "device"),
     countUnits(shotCount, "shot"),
     countUnits(findingCount, "finding"),
+    `${okCount} ok`,
+    ...warnParts,
     ...failedParts,
     `report ${runId}`,
   ];

@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import type { BrowserName } from "@/devices/devices-logic";
-import type { DeviceLoad } from "@/estimates/estimates-logic";
+import { type DeviceLoad, isEstimateEngine } from "@/estimates/estimates-logic";
 
 interface TileEstimateProps {
   deviceLoad: DeviceLoad | null;
@@ -13,7 +13,7 @@ export const TileEstimate = ({
   browserName,
 }: TileEstimateProps): ReactElement => {
   const { t } = useTranslation();
-  const hasEstimateEngine = browserName === "chromium";
+  const hasEstimateEngine = isEstimateEngine(browserName);
   const hasNoDeviceLoad = deviceLoad === null;
   const isEstimateNeverComing = hasNoDeviceLoad && !hasEstimateEngine;
   if (isEstimateNeverComing) {

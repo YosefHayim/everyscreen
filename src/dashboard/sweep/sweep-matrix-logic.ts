@@ -7,10 +7,10 @@ import {
 } from "@/dashboard/frames/frame-layout-logic";
 import {
   type CellStatus,
-  listRunDeviceIds,
   pickCellStatus,
   pickShotUrl,
 } from "@/dashboard/runs/run-report-logic";
+import { listDeviceIds } from "@/runs/device-status-logic";
 import type { Run, RunStep } from "@/runs/runs-logic";
 
 export interface SweepCell {
@@ -21,7 +21,7 @@ export interface SweepCell {
   findings: Finding[];
 }
 
-type RouteVerdict = "findings" | "failed" | "clean";
+type RouteVerdict = "ok" | "warn" | "failed";
 
 type RouteChipStatus = "ok" | "warn" | "failed";
 
@@ -105,15 +105,14 @@ const createSweepCell = (step: RunStep, deviceView: DeviceView): SweepCell => {
   };
 };
 
-const pickRouteVerdict = (
-  findingCount: number,
-  failedCount: number,
-): RouteVerdict => {
-  const hasFindings = findingCount > 0;
-  if (hasFindings) return "findings";
-  const hasFailures = failedCount > 0;
-  if (hasFailures) return "failed";
-  return "clean";
+const pickRouteVerdict = (cellStatuses: CellStatus[]): RouteVerdict => {
+  const hasFailedCell = cellStatuses.includes("failed");
+  if (hasFailedCell) return "failed";
+
+  const hasWarnCell = cellStatuses.includes("warn");
+  if (hasWarnCell) return "warn";
+
+  return "ok";
 };
 
 const createSweepRoute = (step: RunStep, columns: DeviceView[]): SweepRoute => {
@@ -122,13 +121,13 @@ const createSweepRoute = (step: RunStep, columns: DeviceView[]): SweepRoute => {
     (total, cell) => total + cell.findings.length,
     0,
   );
-  const failedCount = cells.filter((cell) => cell.status === "failed").length;
+  const cellStatuses = cells.map((cell) => cell.status);
   return {
     stepId: step.stepId,
     path: step.title.replace(SWEEP_TITLE_PREFIX, ""),
     shotCount: cells.filter((cell) => cell.shotUrl !== null).length,
     findingCount,
-    verdict: pickRouteVerdict(findingCount, failedCount),
+    verdict: pickRouteVerdict(cellStatuses),
     cells,
   };
 };
@@ -137,7 +136,7 @@ export const createSweepMatrix = (
   run: Run,
   deviceViews: DeviceView[],
 ): SweepMatrix => {
-  const runDeviceIds = listRunDeviceIds(run);
+  const runDeviceIds = listDeviceIds(run.steps);
   const columns = deviceViews.filter(({ deviceId }) =>
     runDeviceIds.includes(deviceId),
   );
@@ -172,7 +171,7 @@ export const listShownRoutes = (
 ): SweepRoute[] => {
   const pathQuery = (sweepFilter.routeFilter ?? "").trim().toLowerCase();
   return routes.filter((route) => {
-    const isRouteFlagged = route.verdict !== "clean";
+    const isRouteFlagged = route.verdict !== "ok";
     const isHiddenByFindings = sweepFilter.isFindingsOnly && !isRouteFlagged;
     const isPathMatching = route.path.toLowerCase().includes(pathQuery);
     return !isHiddenByFindings && isPathMatching;
@@ -181,7 +180,7 @@ export const listShownRoutes = (
 
 export const listRouteChips = (route: SweepRoute): RouteChip[] => {
   const { cells } = route;
-  const hasNoIssue = route.verdict === "clean";
+  const hasNoIssue = route.verdict === "ok";
   return CHIP_STATUSES.map((status) => ({
     status,
     cellCount: cells.filter((cell) => cell.status === status).length,

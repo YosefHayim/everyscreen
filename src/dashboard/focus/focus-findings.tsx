@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { useFindings } from "@/dashboard/device-feed/use-findings";
+import { useLatestRunSteps } from "@/dashboard/device-feed/use-latest-run-steps";
 import { StatusChip } from "@/dashboard/ui/status-chip";
+import { listDeviceFindings } from "@/runs/device-status-logic";
 
 interface FocusFindingsProps {
   deviceId: string;
@@ -11,10 +12,8 @@ export const FocusFindings = ({
   deviceId,
 }: FocusFindingsProps): ReactElement => {
   const { t } = useTranslation();
-  const findings = useFindings();
-  const deviceFindings = findings.filter(
-    (finding) => finding.deviceId === deviceId,
-  );
+  const latestRunSteps = useLatestRunSteps();
+  const deviceFindings = listDeviceFindings(deviceId, latestRunSteps);
   const hasNoFindings = deviceFindings.length === 0;
 
   return (

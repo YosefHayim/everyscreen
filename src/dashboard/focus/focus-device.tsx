@@ -53,7 +53,7 @@ export const FocusDevice = ({ device }: FocusDeviceProps): ReactElement => {
               className="m-0 grid size-full place-items-center px-4 text-center text-ink-2"
               style={{ fontSize: waitingFontSize }}
             >
-              {t("focus.waiting")}
+              {t("tile.waiting")}
             </p>
             {hasScreenImage && (
               <img

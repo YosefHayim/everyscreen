@@ -96,9 +96,9 @@
     "noEstimate": "No estimate yet",
     "noEstimateOnEngine": "No estimate on {{engine}}",
     "status": {
-      "ok": "No findings",
-      "warn": "Has findings",
-      "failed": "Failed"
+      "ok": "ok",
+      "warn": "warn",
+      "failed": "failed"
     },
     "reasons": {
       "overflow_one": "{{count}} overflow",
@@ -162,9 +162,6 @@
     "noFindings": "No findings on this device",
     "selector": "Selector",
     "estimatesTitle": "Estimates",
-    "noEstimates": "No estimate yet",
-    "noEstimatesOnEngine": "No estimate on {{engine}}",
-    "waiting": "Waiting for the first screen image",
     "figures": {
       "fps": "Frame rate",
       "cpu": "CPU",

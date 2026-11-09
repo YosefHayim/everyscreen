@@ -254,11 +254,11 @@ test.describe("dashboard screens", () => {
       .getByRole("article")
       .filter({ hasText: "Shop kiosk" });
     await expect(failedTile).toContainText("91% CPU est.");
-    await expect(failedTile).toContainText("Failed: 1 overflow");
+    await expect(failedTile).toContainText("failed: 1 overflow");
     await expect(failedTile.getByTitle("1 overflow")).toBeVisible();
     await failedTile.getByTitle("1 overflow").focus();
     await expect(failedTile.getByTitle("1 overflow")).toBeFocused();
-    await expect(liveErrorTile).toContainText("No findings");
+    await expect(liveErrorTile).toContainText("ok");
     await expect(liveErrorTile.getByTitle("2 console errors")).toHaveCount(0);
     if (SHOT_FOLDER_FOR_PICTURES !== null) {
       await page.screenshot({

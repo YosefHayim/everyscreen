@@ -42,9 +42,14 @@ export const testsClearSchema = z.object({
   deviceIds: z.array(z.string().min(1)),
 });
 
+export const runSavedSchema = z.object({
+  runId: z.string().min(1),
+});
+
 export type LiveTestStatus = z.infer<typeof liveTestStatusSchema>;
 export type TestEvent = z.infer<typeof testEventSchema>;
 export type StepEvent = z.infer<typeof stepEventSchema>;
 export type RunTotals = z.infer<typeof runTotalsSchema>;
 export type TestsClear = z.infer<typeof testsClearSchema>;
+export type RunSaved = z.infer<typeof runSavedSchema>;
 export type TestScreen = z.infer<typeof testScreenSchema>;

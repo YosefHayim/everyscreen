@@ -44,7 +44,7 @@ interface LiveFeed {
   deviceLoads: ReadonlyMap<string, DeviceLoad>;
   findings: Finding[];
   commandNotices: CommandNotice[];
-  lastRunMessage: { runId: string } | null;
+  lastRunMessage: LastRunNotice | null;
 }
 
 const connection: Connection = {
@@ -248,7 +248,7 @@ export const getConnectionStatus = (): ConnectionStatus => connection.status;
 export const getScreenImageUrl = (deviceId: string): string | null =>
   liveFeed.screenImageUrls.get(deviceId) ?? null;
 
-export const getLastRunMessage = (): { runId: string } | null =>
+export const getLastRunMessage = (): LastRunNotice | null =>
   liveFeed.lastRunMessage;
 
 export const getDeviceLoad = (deviceId: string): DeviceLoad | null =>

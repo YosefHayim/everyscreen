@@ -1,5 +1,8 @@
-import { countRunFindings } from "@/dashboard/runs/runs-list-logic";
-import { countDeviceStatuses } from "@/runs/device-status-logic";
+import {
+  countDeviceStatuses,
+  listDeviceIds,
+  pickDeviceStatus,
+} from "@/runs/device-status-logic";
 import type { Run, RunStep, StepProof } from "@/runs/runs-logic";
 
 export type CellStatus = "ok" | "warn" | "failed" | "none";
@@ -28,7 +31,6 @@ export interface FailureProof {
 export interface RunTotals {
   stepCount: number;
   deviceCount: number;
-  findingCount: number;
   okDeviceCount: number;
   warnDeviceCount: number;
   failedDeviceCount: number;
@@ -36,32 +38,11 @@ export interface RunTotals {
 
 const SHOT_URL_PREFIX = "/api/shots/";
 
-export const listRunDeviceIds = (run: Run): string[] => {
-  const deviceIds = run.steps.flatMap((step) => [
-    ...step.deviceAnswers.map((deviceAnswer) => deviceAnswer.deviceId),
-    ...step.findings.map((finding) => finding.deviceId),
-  ]);
-  return [...new Set(deviceIds)];
-};
-
-export const pickCellStatus = (step: RunStep, deviceId: string): CellStatus => {
-  const deviceAnswer = step.deviceAnswers.find(
-    (answer) => answer.deviceId === deviceId,
-  );
-  const hasNoAnswer = deviceAnswer === undefined;
-  if (hasNoAnswer) return "none";
-
-  const isFailed = deviceAnswer.status === "failed";
-  if (isFailed) return "failed";
-
-  const hasFinding = step.findings.some(
-    (finding) => finding.deviceId === deviceId,
-  );
-  return hasFinding ? "warn" : "ok";
-};
+export const pickCellStatus = (step: RunStep, deviceId: string): CellStatus =>
+  pickDeviceStatus(deviceId, [step]) ?? "none";
 
 export const createMatrix = (run: Run): MatrixRoute[] =>
-  listRunDeviceIds(run).map((deviceId) => {
+  listDeviceIds(run.steps).map((deviceId) => {
     const cells = run.steps.map((step) => ({
       stepId: step.stepId,
       status: pickCellStatus(step, deviceId),
@@ -79,12 +60,10 @@ export const createMatrix = (run: Run): MatrixRoute[] =>
 
 export const pickRunTotals = (run: Run): RunTotals => {
   const matrix = createMatrix(run);
-  const findingCount = countRunFindings(run);
   const { okCount, warnCount, failedCount } = countDeviceStatuses(run.steps);
   return {
     stepCount: run.steps.length,
     deviceCount: matrix.length,
-    findingCount,
     okDeviceCount: okCount,
     warnDeviceCount: warnCount,
     failedDeviceCount: failedCount,

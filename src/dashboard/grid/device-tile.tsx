@@ -26,10 +26,11 @@ import { pickDeviceStatus } from "@/runs/device-status-logic";
 const WAITING_FONT_PX = 11;
 
 const TILE_BORDER_CLASS_NAMES = {
+  none: "border-line",
   ok: "border-line",
   warn: "border-warn",
   failed: "border-failed",
-} satisfies Record<ChipStatus, string>;
+} satisfies Record<ChipStatus | "none", string>;
 
 interface DeviceTileProps {
   device: DeviceView;
@@ -51,6 +52,7 @@ export const DeviceTile = ({
   const isTestFailed = deviceTest?.status === "failed";
   const latestRunSteps = useLatestRunSteps();
   const status = pickDeviceStatus(deviceId, latestRunSteps);
+  const borderStatus = status ?? "none";
   const hasScreenImage = screenImageUrl !== null;
   const screenUpdate = pickScreenUpdate(browserName);
   const isLiveWithScreenImage = screenUpdate === "live" && hasScreenImage;
@@ -68,7 +70,7 @@ export const DeviceTile = ({
     <article
       className={cn(
         "group relative flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card transition-[translate,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-lift",
-        TILE_BORDER_CLASS_NAMES[status],
+        TILE_BORDER_CLASS_NAMES[borderStatus],
         isTestFailed && "border-failed bg-failed-soft",
         isTrueSize && "w-fit flex-none",
       )}

@@ -14,6 +14,7 @@ import { STORE_FOLDER } from "@/environment";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import type {
   LiveTestStatus,
+  RunSaved,
   RunTotals,
   StepEvent,
   TestEvent,
@@ -113,7 +114,7 @@ export default class EveryscreenReporter implements Reporter {
 
   postToLiveTests = (
     routePath: string,
-    message: TestEvent | StepEvent | RunTotals | TestsClear,
+    message: TestEvent | StepEvent | RunTotals | TestsClear | RunSaved,
   ) => {
     const { hubTarget, isHubGivenUp } = this;
     const isHubMissing = hubTarget === null;
@@ -227,6 +228,7 @@ export default class EveryscreenReporter implements Reporter {
       kind: "step-end",
       step: runStep,
     });
+    this.postToLiveTests("/run-saved", { runId });
   };
 
   onBegin = (config: FullConfig, suite: Suite) => {
@@ -374,6 +376,8 @@ export default class EveryscreenReporter implements Reporter {
       kind: "run-end",
       status: runEndStatus,
     });
+    this.postToLiveTests("/run-saved", { runId });
+    await waitForHubPosts(this.pendingHubPosts);
     const replyLine = createSuiteReplyLine(this.savedSteps, runId);
     console.log(replyLine);
   };

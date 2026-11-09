@@ -1,3 +1,5 @@
+import type { BrowserName } from "@/devices/devices-logic";
+
 export interface Sample {
   takenAt: number;
   taskSeconds: number;
@@ -70,3 +72,6 @@ export const pickSampleWindow = (
 
   return [...recentSamples.slice(-(windowSize - 1)), newSample];
 };
+
+export const isEstimateEngine = (browserName: BrowserName): boolean =>
+  browserName === "chromium";

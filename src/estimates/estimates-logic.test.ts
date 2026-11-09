@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   estimateDeviceLoad,
+  isEstimateEngine,
   pickSampleWindow,
   type Sample,
 } from "@/estimates/estimates-logic";
@@ -111,5 +112,13 @@ describe("pickSampleWindow", () => {
     const sampleWindow = pickSampleWindow(recentSamples, newSample, 5);
 
     expect(sampleWindow).toEqual([newSample]);
+  });
+});
+
+describe("isEstimateEngine", () => {
+  test("returns true for chromium", () => {
+    const isEstimate = isEstimateEngine("chromium");
+
+    expect(isEstimate).toBe(true);
   });
 });

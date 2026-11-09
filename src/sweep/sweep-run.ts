@@ -360,12 +360,12 @@ export const runSweep = async (
     const routeStepsByDevice = pickVisitedRouteSteps(deviceVisits);
     const beforeFailures = pickBeforeFailures(deviceVisits);
     const sweepSteps = createSweepSteps(routes, routeStepsByDevice);
-    const sweepReply = summarizeSweep(sweepSteps, runId, beforeFailures);
     const beforeRunSteps = listBeforeRunSteps(
       beforeFailures,
       sweepSteps.length,
       startedAt,
     );
+    const sweepReply = summarizeSweep(sweepSteps, beforeRunSteps, runId);
     const routeRunSteps = sweepSteps.map(({ runStep }) => runStep);
     const runSteps = [...routeRunSteps, ...beforeRunSteps];
     await saveSweepRun(sweepRunStart, runSteps, sweepReply);

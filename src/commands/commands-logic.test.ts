@@ -8,6 +8,7 @@ import {
   createShotPath,
   createStepTitle,
   type DeviceAnswer,
+  listDeviceFailures,
   pickCheckDevice,
   pickChosenPages,
   pickDeviceIds,
@@ -171,6 +172,57 @@ describe("summarizeCommand", () => {
 
     expect(reply.status).toBe("failed");
     expect(reply.line).toBe("0 devices · no device answered");
+  });
+
+  test("returns failed and lists a device that a failed finding failed", () => {
+    const failedFinding = createFinding("failed");
+    const runStep = createStepWith(
+      [createOkAnswer("iphone-se"), createOkAnswer("pixel-8")],
+      [failedFinding],
+    );
+
+    const reply = summarizeCommand(runStep, "run-0412");
+
+    expect(reply.status).toBe("failed");
+    expect(reply.line).toBe("2 devices · 1 ok · 1 failed · report run-0412");
+    expect(reply.failures.map((failure) => failure.deviceId)).toEqual([
+      "iphone-se",
+    ]);
+  });
+});
+
+describe("listDeviceFailures", () => {
+  test("keeps a failed answer as it is", () => {
+    const failedAnswer = createFailedAnswer("iphone-se");
+    const runStep = createStepWith([failedAnswer]);
+
+    const failures = listDeviceFailures(runStep);
+
+    expect(failures).toEqual([failedAnswer]);
+  });
+
+  test("turns a failed finding on an ok device into a failure with the finding message", () => {
+    const runStep = createStepWith(
+      [createOkAnswer("iphone-se")],
+      [createFinding("failed")],
+    );
+
+    const failures = listDeviceFailures(runStep);
+
+    expect(failures.map((failure) => failure.message)).toEqual([
+      ".cart-total is 40px past the edge",
+    ]);
+  });
+
+  test("ignores a warn finding on an ok device", () => {
+    const runStep = createStepWith(
+      [createOkAnswer("iphone-se")],
+      [createFinding("warn")],
+    );
+
+    const failures = listDeviceFailures(runStep);
+
+    expect(failures).toEqual([]);
   });
 });
 

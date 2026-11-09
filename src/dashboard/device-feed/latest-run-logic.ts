@@ -5,7 +5,7 @@ export const pickLatestRunSteps = (runs: Run[]): RunStep[] => {
     (firstRun, secondRun) => secondRun.startedAt - firstRun.startedAt,
   );
   const latestRun = newestFirstRuns.at(0);
-  const hasNoRun = latestRun === undefined;
+  const hasNoRun = latestRun == null;
   if (hasNoRun) return [];
 
   return latestRun.steps;
