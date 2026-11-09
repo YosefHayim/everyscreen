@@ -1,5 +1,5 @@
 import type { FindingKind } from "@/checks/checks-logic";
-import { listDeviceFindings } from "@/runs/device-status-logic";
+import { isFailure, listDeviceFindings } from "@/runs/device-status-logic";
 import type { RunStep } from "@/runs/runs-logic";
 
 type TileReason =
@@ -9,19 +9,18 @@ type TileReason =
 const listAnswerReasons = (
   deviceId: string,
   runSteps: RunStep[],
-): TileReason[] =>
-  runSteps
-    .flatMap((runStep) => runStep.deviceAnswers)
-    .filter(
-      (deviceAnswer) =>
-        deviceAnswer.deviceId === deviceId && deviceAnswer.status === "failed",
-    )
-    .map(
-      (deviceAnswer): TileReason => ({
-        kind: "answer",
-        message: deviceAnswer.message,
-      }),
-    );
+): TileReason[] => {
+  const deviceAnswers = runSteps.flatMap((runStep) => runStep.deviceAnswers);
+  const deviceFailures = deviceAnswers
+    .filter(isFailure)
+    .filter((failure) => failure.deviceId === deviceId);
+  return deviceFailures.map(
+    (failure): TileReason => ({
+      kind: "answer",
+      message: failure.message,
+    }),
+  );
+};
 
 const listFindingReasons = (
   deviceId: string,

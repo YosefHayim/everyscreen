@@ -71,7 +71,7 @@ test.describe("devices routes", () => {
     expect(devicesYaml).toContain("name: Shop kiosk");
   });
 
-  test("rejects a second add with the same id with 409", async () => {
+  test("rejects a second add with the same id with 400", async () => {
     const devicesRoutes = createDevicesRoutes(rootFolder);
     await devicesRoutes.request("/", postDevice(SHOP_KIOSK));
 
@@ -82,7 +82,7 @@ test.describe("devices routes", () => {
     const listReply = await devicesRoutes.request("/");
     const gridDevices = await listReply.json();
 
-    expect(secondReply.status).toBe(409);
+    expect(secondReply.status).toBe(400);
     expect(gridDevices).toHaveLength(13);
   });
 
@@ -96,7 +96,7 @@ test.describe("devices routes", () => {
     const listReply = await devicesRoutes.request("/");
     const gridDevices = await listReply.json();
 
-    expect([firstReply.status, secondReply.status].sort()).toEqual([201, 409]);
+    expect([firstReply.status, secondReply.status].sort()).toEqual([201, 400]);
     expect(gridDevices).toHaveLength(13);
   });
 
@@ -224,7 +224,7 @@ test.describe("devices routes", () => {
     expect(hiddenIds).toEqual(["iphone-se"]);
   });
 
-  test("rejects a preset id with 409", async () => {
+  test("rejects a preset id with 400", async () => {
     const devicesRoutes = createDevicesRoutes(rootFolder);
 
     const addReply = await devicesRoutes.request(
@@ -232,7 +232,7 @@ test.describe("devices routes", () => {
       postDevice({ ...SHOP_KIOSK, name: "Pixel 8" }),
     );
 
-    expect(addReply.status).toBe(409);
+    expect(addReply.status).toBe(400);
   });
 
   test("rejects a device that breaks the schema with 400", async () => {
@@ -246,7 +246,7 @@ test.describe("devices routes", () => {
     expect(addReply.status).toBe(400);
   });
 
-  test("removes a custom device and returns 404 for an unknown or preset id", async () => {
+  test("removes a custom device and returns 400 for an unknown or preset id", async () => {
     const devicesRoutes = createDevicesRoutes(rootFolder);
     await devicesRoutes.request("/", postDevice(SHOP_KIOSK));
 
@@ -263,8 +263,8 @@ test.describe("devices routes", () => {
     const gridDevices = await listReply.json();
 
     expect(removeReply.status).toBe(200);
-    expect(removeAgainReply.status).toBe(404);
-    expect(removePresetReply.status).toBe(404);
+    expect(removeAgainReply.status).toBe(400);
+    expect(removePresetReply.status).toBe(400);
     expect(gridDevices).toHaveLength(12);
   });
 

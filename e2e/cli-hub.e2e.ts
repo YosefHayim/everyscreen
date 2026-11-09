@@ -202,7 +202,7 @@ test.describe("the everyscreen command line", () => {
     expect(unknownCommandRun.exitCode).toBe(2);
     expect(unknownFlagRun.exitCode).toBe(2);
     expect(missingFlagRun.exitCode).toBe(2);
-    expect(missingFlagRun.commandReply.line).toContain("tap --name");
+    expect(missingFlagRun.commandReply.line).toContain("tap needs --name");
   });
 
   test("says the hub is not running before it starts", async ({ cliWorld }) => {

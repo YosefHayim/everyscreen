@@ -1,5 +1,6 @@
 import { LIVE_TESTS_PATH } from "@/environment";
 import type {
+  RunSaved,
   RunTotals,
   StepEvent,
   TestEvent,
@@ -20,7 +21,13 @@ export interface HubTarget {
 export const postToHub = async (
   hubTarget: HubTarget,
   routePath: string,
-  message: TestEvent | StepEvent | RunTotals | TestScreen | TestsClear,
+  message:
+    | TestEvent
+    | StepEvent
+    | RunTotals
+    | TestScreen
+    | TestsClear
+    | RunSaved,
 ): Promise<boolean> => {
   const { hubUrl, reportTrouble } = hubTarget;
   try {

@@ -1,5 +1,10 @@
 import type { Finding } from "@/checks/checks-logic";
+import type { DeviceAnswer, DeviceFailure } from "@/commands/commands-logic";
 import type { RunStep } from "@/runs/runs-logic";
+
+export const isFailure = (
+  deviceAnswer: DeviceAnswer,
+): deviceAnswer is DeviceFailure => deviceAnswer.status === "failed";
 
 type DeviceStatus = "ok" | "warn" | "failed";
 

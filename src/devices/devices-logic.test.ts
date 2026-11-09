@@ -260,14 +260,14 @@ describe("checkNewDevice", () => {
     expect(checkedDevice).toEqual(TOUCH_KIOSK);
   });
 
-  test("rejects a name whose id a preset already uses with 409", () => {
+  test("rejects a name whose id a preset already uses with 400", () => {
     const clashingDevice = { ...TOUCH_KIOSK, name: "iPhone SE" };
 
     const status = readStatus(() =>
       checkNewDevice(clashingDevice, DEVICE_CATALOG),
     );
 
-    expect(status).toBe(409);
+    expect(status).toBe(400);
   });
 });
 

@@ -197,13 +197,13 @@ test.describe("startHub", () => {
     expect(badReply.headers.get("Content-Type")).toBe(PROBLEM_CONTENT_TYPE);
   });
 
-  test("answers an unknown device with a 404 problem reply", async () => {
+  test("answers an unknown device with a 400 problem reply", async () => {
     const missingReply = await postCommand(runningHub.url, {
       commandName: "check",
       deviceIds: ["nokia-3310"],
     });
 
-    expect(missingReply.status).toBe(404);
+    expect(missingReply.status).toBe(400);
     expect(missingReply.headers.get("Content-Type")).toBe(PROBLEM_CONTENT_TYPE);
   });
 
