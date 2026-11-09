@@ -52,7 +52,9 @@ test.describe("app url bar", () => {
     );
     fixtureSite = createServer((_fixtureRequest, fixtureReply) => {
       fixtureReply.setHeader("Content-Type", "text/html");
-      fixtureReply.end("<!doctype html><title>Fixture</title><h1>Fixture</h1>");
+      fixtureReply.end(
+        '<!doctype html><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fixture</title><h1>Fixture</h1>',
+      );
     });
     fixtureUrl = await listenOnFreePort(fixtureSite);
     runningHub = await startHub({ rootFolder, port: 0, dashboardFolder });

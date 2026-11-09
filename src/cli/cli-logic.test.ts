@@ -721,8 +721,8 @@ describe("planCli", () => {
   });
 
   test.each([
-    ["a missing url", {}, "sweep --url"],
-    ["a url that is not a url", { url: "shop" }, "sweep --url"],
+    ["a missing url", {}, "sweep needs --url"],
+    ["a url that is not a url", { url: "shop" }, "sweep needs --url"],
     [
       "an empty device name",
       { url: "http://a.test/", devices: "pixel-10,,iphone-se" },

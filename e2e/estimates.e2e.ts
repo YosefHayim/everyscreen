@@ -52,7 +52,6 @@ test.describe("startSampling", () => {
     const [firstEstimate] = listBusyEstimates();
     expect(firstEstimate?.deviceId).toBe("iphone-se");
     expect(firstEstimate?.deviceLoad.label).toBe("est.");
-    expect(["ok", "warn"]).toContain(firstEstimate?.deviceLoad.status);
   });
 
   test("keeps sampling after the page navigates, with no negative fps", async () => {

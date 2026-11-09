@@ -75,6 +75,12 @@ const SAVED_RUN = {
         { status: "ok", deviceId: "pixel-8", durationMs: 1400, shotPath: null },
         {
           status: "ok",
+          deviceId: "shop-kiosk",
+          durationMs: 1000,
+          shotPath: null,
+        },
+        {
+          status: "ok",
           deviceId: "iphone-se",
           durationMs: 1200,
           shotPath: null,
@@ -254,7 +260,9 @@ test.describe("dashboard screens", () => {
       .getByRole("article")
       .filter({ hasText: "Shop kiosk" });
     await expect(failedTile).toContainText("91% CPU est.");
-    await expect(failedTile).toContainText("failed: 1 overflow");
+    await expect(failedTile).toContainText(
+      "failed: div.cookie-bar intercepts pointer events, 1 overflow",
+    );
     await expect(failedTile.getByTitle("1 overflow")).toBeVisible();
     await failedTile.getByTitle("1 overflow").focus();
     await expect(failedTile.getByTitle("1 overflow")).toBeFocused();

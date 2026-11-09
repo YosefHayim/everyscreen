@@ -291,7 +291,7 @@ test.describe("sweep command line", () => {
     expect(sweepRun.commandReply.failures).toEqual([]);
     expect(sweepRun.exitCode).toBe(0);
     expect(sweepRun.commandReply.line).toMatch(
-      /^3 routes · 2 devices · 6 shots · \d+ findings? · report run-\d+$/,
+      /^3 routes · 2 devices · 6 shots · \d+ findings? · \d+ ok · report run-\d+$/,
     );
     for (const stepId of PROTECTED_STEP_IDS) {
       for (const deviceId of GRID_DEVICE_IDS) {
@@ -319,7 +319,7 @@ test.describe("sweep command line", () => {
 
     expect(sweepRun.exitCode).toBe(1);
     expect(sweepRun.commandReply.line).toMatch(
-      /^0 routes · 2 devices · 0 shots · 0 findings · 2 failed · report run-\d+$/,
+      /^0 routes · 2 devices · 0 shots · 0 findings · 0 ok · 2 failed · report run-\d+$/,
     );
     const failureMessages = sweepRun.commandReply.failures.map(
       ({ message }) => message,

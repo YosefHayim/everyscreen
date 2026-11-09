@@ -6,7 +6,7 @@ import type { DevicePage } from "@/devices/device-browsers";
 import type { DevicePreset } from "@/devices/devices-logic";
 import { STORE_FOLDER } from "@/environment";
 import { BAD_REQUEST_STATUS } from "@/hub/problem-reply";
-import { countDeviceStatuses } from "@/runs/device-status-logic";
+import { countDeviceStatuses, isFailure } from "@/runs/device-status-logic";
 import type { RunStep, StepProof } from "@/runs/runs-logic";
 
 const NO_DEVICE_STATUS = 404;
@@ -44,9 +44,6 @@ export interface ReplyTally {
   failedCount: number;
   runId: string | null;
 }
-
-const isFailure = (deviceAnswer: DeviceAnswer): deviceAnswer is DeviceFailure =>
-  deviceAnswer.status === "failed";
 
 type CountedUnit = "device" | "flow" | "route" | "shot" | "finding";
 

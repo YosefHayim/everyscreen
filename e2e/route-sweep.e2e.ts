@@ -139,7 +139,7 @@ test.describe("sweep command", () => {
     expect(hubReply.status).toBe(200);
     sweepReply = await hubReply.json();
     expect(sweepReply.line).toMatch(
-      /^6 routes · 2 devices · 12 shots · \d+ findings · 2 failed · report run-0001$/,
+      /^6 routes · 2 devices · 12 shots · \d+ findings · \d+ ok · 2 failed · report run-0001$/,
     );
     expect(sweepReply.status).toBe("failed");
     expect(sweepReply.failures.map(({ deviceId }) => deviceId).sort()).toEqual(

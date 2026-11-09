@@ -30,6 +30,8 @@ const ROLE_MESSAGE = `needs --role <one of ${ARIA_ROLES.join(", ")}>`;
 const NAME_MESSAGE = "needs --name <text>";
 const MAX_ROUTES_MINIMUM_MESSAGE =
   "--max-routes must be a whole number of 1 or more";
+const DEVICES_MESSAGE =
+  "--devices must be all or a list of device ids, like iphone-17,pixel-10";
 
 // null means every device in the grid.
 const deviceIdsSchema = z.array(z.string()).nullable();
@@ -92,10 +94,15 @@ export const sweepCommandSchema = z.object({
   url: z.url({ error: URL_MESSAGE }),
   // null means every device in the grid; "all" adds the catalog devices that are not on the grid.
   deviceIds: z
-    .union([z.literal("all"), z.array(z.string().min(1)).min(1)], {
-      error:
-        "--devices must be all or a list of device ids, like iphone-17,pixel-10",
-    })
+    .union(
+      [
+        z.literal("all"),
+        z
+          .array(z.string().min(1, { error: DEVICES_MESSAGE }))
+          .min(1, { error: DEVICES_MESSAGE }),
+      ],
+      { error: DEVICES_MESSAGE },
+    )
     .nullable()
     .default(null),
   maxRoutes: z

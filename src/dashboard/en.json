@@ -42,7 +42,7 @@
     "empty": {
       "title": "Open your app to fill the grid",
       "hubRunning": "Hub running on {{hubUrl}}",
-      "urlLabel": "App URL",
+      "urlLabel": "Address of the app to open",
       "urlPlaceholder": "http://localhost:3000",
       "open": "Open",
       "openFailed": "The hub could not open that URL.",

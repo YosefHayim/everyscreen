@@ -17,6 +17,10 @@ import type { RunTotals } from "@/live/live-test-schema";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
 
+interface LastRunNotice {
+  runId: string;
+}
+
 const FIRST_RETRY_DELAY_MS = 1000;
 const LAST_RETRY_DELAY_MS = 30000;
 const MAX_FINDINGS = 20;
