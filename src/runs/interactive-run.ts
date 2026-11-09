@@ -13,8 +13,9 @@ const readHubInteractiveRun = async (
   rootFolder: string,
 ): Promise<Run | null> => {
   const heldRunId = hubInteractiveRun.runId;
-  const hasHeldRunId = heldRunId !== null;
-  if (!hasHeldRunId) return null;
+  const isThereNoHeldRun = heldRunId === null;
+  if (isThereNoHeldRun) return null;
+
   return readRun(rootFolder, heldRunId);
 };
 
@@ -36,8 +37,9 @@ export const closeInteractiveRun = async (
   await runOneAtATime(commandQueueKey, async () => {
     const heldRun = await readHubInteractiveRun(rootFolder);
     hubInteractiveRun.runId = null;
-    const isHeldRunOpen = isRunOpen(heldRun);
-    if (!isHeldRunOpen) return;
+
+    const isHeldRunClosed = !isRunOpen(heldRun);
+    if (isHeldRunClosed) return;
 
     await closeRun(rootFolder, heldRun.runId);
   });

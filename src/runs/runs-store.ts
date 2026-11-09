@@ -113,7 +113,8 @@ export const closeRun = (rootFolder: string, runId: string): Promise<Run> =>
 
 export const closeLeftOpenRuns = async (rootFolder: string): Promise<void> => {
   const runs = await listRuns(rootFolder);
-  for (const leftOpenRun of pickLeftOpenRuns(runs)) {
+  const leftOpenRuns = pickLeftOpenRuns(runs);
+  for (const leftOpenRun of leftOpenRuns) {
     await closeRun(rootFolder, leftOpenRun.runId);
   }
 };
