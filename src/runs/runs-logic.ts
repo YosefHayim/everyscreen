@@ -114,7 +114,11 @@ export const createStepId = (stepNumber: number): string =>
 export const pickStepId = (steps: RunStep[]): string =>
   createStepId(steps.length + 1);
 
-export const pickRunningRun = (runs: Run[]): Run | null => {
-  const runningRuns = runs.filter(({ status }) => status === "running");
-  return runningRuns.at(-1) ?? null;
+export const isRunOpen = (run: Run | null): run is Run => {
+  const isRunSaved = run !== null;
+  return isRunSaved && run.status === "running";
 };
+
+// A hub makes only cli runs, so a cli run still running when a new hub starts was left by an earlier hub.
+export const pickLeftOpenRuns = (runs: Run[]): Run[] =>
+  runs.filter(({ origin, status }) => origin === "cli" && status === "running");

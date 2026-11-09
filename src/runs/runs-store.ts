@@ -7,6 +7,7 @@ import { runSchema } from "@/runs/run-schema";
 import {
   checkRunEvent,
   mergeRunEvent,
+  pickLeftOpenRuns,
   pickNextRunId,
   type Run,
   type RunEvent,
@@ -104,4 +105,16 @@ export const saveRunEvent = async (
     await writeRun(rootFolder, mergedRun);
     return mergedRun;
   });
+};
+
+// "ok" means no failure was reported, so the saved steps decide the status.
+export const closeRun = (rootFolder: string, runId: string): Promise<Run> =>
+  saveRunEvent(rootFolder, runId, { kind: "run-end", status: "ok" });
+
+export const closeLeftOpenRuns = async (rootFolder: string): Promise<void> => {
+  const runs = await listRuns(rootFolder);
+  const leftOpenRuns = pickLeftOpenRuns(runs);
+  for (const leftOpenRun of leftOpenRuns) {
+    await closeRun(rootFolder, leftOpenRun.runId);
+  }
 };

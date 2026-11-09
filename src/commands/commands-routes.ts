@@ -15,15 +15,13 @@ import { rejectInvalidRequest } from "@/hub/problem-reply";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { commandNoticeSchema } from "@/live/live-command-schema";
 import { broadcast } from "@/live/live-feed";
-import { pickRunningRun, pickStepId, type Run } from "@/runs/runs-logic";
-import { createRun, listRuns, saveRunEvent } from "@/runs/runs-store";
+import {
+  createCommandQueueKey,
+  readInteractiveRun,
+} from "@/runs/interactive-run";
+import { pickStepId } from "@/runs/runs-logic";
+import { saveRunEvent } from "@/runs/runs-store";
 import { runSweep } from "@/sweep/sweep-run";
-
-const readRunningRun = async (rootFolder: string): Promise<Run> => {
-  const runs = await listRuns(rootFolder);
-  const runningRun = pickRunningRun(runs);
-  return runningRun ?? (await createRun(rootFolder, "cli", "steps"));
-};
 
 const runCommand = async (
   rootFolder: string,
@@ -35,7 +33,7 @@ const runCommand = async (
 
   const chosenPages = pickChosenPages(devicePages, hubCommand.deviceIds);
 
-  const run = await readRunningRun(rootFolder);
+  const run = await readInteractiveRun(rootFolder);
   const stepTarget: StepTarget = {
     rootFolder,
     runId: run.runId,
@@ -78,7 +76,8 @@ export const createCommandsRoutes = (
       zValidator("json", hubCommandSchema, rejectInvalidRequest),
       async (c) => {
         const hubCommand = c.req.valid("json");
-        const commandReply = await runOneAtATime(`commands:${rootFolder}`, () =>
+        const commandQueueKey = createCommandQueueKey(rootFolder);
+        const commandReply = await runOneAtATime(commandQueueKey, () =>
           runCommand(rootFolder, devicePages, hubCommand),
         );
         const commandNotice = commandNoticeSchema.parse({
