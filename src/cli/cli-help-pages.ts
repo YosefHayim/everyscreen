@@ -154,7 +154,7 @@ export const COMMAND_HELPS = {
   },
   "devices add": {
     summary:
-      "Add a custom device to everyscreen.yaml (restart the hub to show it)",
+      "Add a custom device to everyscreen.yaml and start it on the running hub",
     usage:
       "everyscreen devices add --name <name> --width <px> --height <px> [--pixel-ratio <number>] [--touch]",
     flagHelps: [
@@ -173,7 +173,7 @@ export const COMMAND_HELPS = {
   },
   "devices remove": {
     summary:
-      "Remove a custom device from everyscreen.yaml (restart the hub to apply)",
+      "Remove a custom device from everyscreen.yaml and stop it on the running hub",
     usage: "everyscreen devices remove --device <id> [--yes]",
     flagHelps: [
       { flag: "--device <id>", description: "The custom device to remove" },

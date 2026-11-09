@@ -27,8 +27,6 @@ import { readStoredFile } from "@/hub/stored-files";
 import type { SkillAgent } from "@/skill/skill-agents";
 import { installSkill, pickSkillFile } from "@/skill/skill-install";
 
-const RESTART_HINT = "restart the hub to apply";
-
 interface HubDevice {
   id: string;
 }
@@ -69,10 +67,7 @@ const addDevice = (
     const isAddRefused = !addReply.ok;
     if (isAddRefused) return readProblemReply(addReply);
     const devicePreset = await addReply.json();
-    return createReply(
-      "ok",
-      `device added · ${devicePreset.id} · ${RESTART_HINT}`,
-    );
+    return createReply("ok", `device added · ${devicePreset.id}`);
   });
 
 const removeDevice = (
@@ -85,7 +80,7 @@ const removeDevice = (
     });
     const isRemoveRefused = !removeReply.ok;
     if (isRemoveRefused) return readProblemReply(removeReply);
-    return createReply("ok", `device removed · ${deviceId} · ${RESTART_HINT}`);
+    return createReply("ok", `device removed · ${deviceId}`);
   });
 
 const runFlowFiles = async (
