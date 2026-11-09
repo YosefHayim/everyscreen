@@ -79,7 +79,7 @@ export const DeviceTile = ({
               to="/focus/$deviceId"
               params={{ deviceId }}
               title={name}
-              className="text-ink no-underline"
+              className="-my-1 inline-block py-1 text-ink no-underline"
             >
               {name}
             </Link>

@@ -40,7 +40,14 @@ export const AgentActivityPanel = (): ReactElement => {
                 !activityLine.isFailed && "text-ink-2",
               )}
             >
-              {activityLine.line}
+              {activityLine.segments.map((segment) => (
+                <span
+                  key={segment.key}
+                  className={cn(segment.isRunId && "whitespace-nowrap")}
+                >
+                  {segment.text}
+                </span>
+              ))}
             </span>
           </li>
         ))}
