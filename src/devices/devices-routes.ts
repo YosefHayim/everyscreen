@@ -25,8 +25,11 @@ const syncRunningDevices = async (
   syncGrid: GridSync | null,
   changedFile: DevicesFile,
 ): Promise<void> => {
-  const isGridSyncWired = syncGrid !== null;
-  if (isGridSyncWired) await syncGrid(pickGridDevices(changedFile));
+  const isGridSyncMissing = syncGrid === null;
+  if (isGridSyncMissing) return;
+
+  const gridDevices = pickGridDevices(changedFile);
+  await syncGrid(gridDevices);
 };
 
 export const createDevicesRoutes = (
