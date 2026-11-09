@@ -29,6 +29,7 @@
   },
   "files": [
     "dist",
+    "!dist/site",
     "src/skill/SKILL.md",
     "src/dashboard/ui/theme.css"
   ],
