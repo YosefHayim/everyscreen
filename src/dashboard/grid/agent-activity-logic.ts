@@ -1,7 +1,6 @@
 import type { CommandNotice } from "@/live/live-command-schema";
 
 const CLOCK_PART_WIDTH = 2;
-const RUN_ID_SPLIT_PATTERN = /(run-\d+)/;
 
 interface LineSegment {
   key: number;
@@ -22,7 +21,7 @@ const padClockPart = (clockPart: number): string =>
 
 // A split with a capture group puts each run id at an odd position.
 const splitLineAroundRunIds = (line: string): LineSegment[] => {
-  const pieces = line.split(RUN_ID_SPLIT_PATTERN);
+  const pieces = line.split(/(run-\d+)/);
   return pieces
     .map((piece, pieceIndex) => ({
       key: pieces.slice(0, pieceIndex).join("").length,

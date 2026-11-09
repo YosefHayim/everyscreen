@@ -30,6 +30,9 @@ describe("listActivityLines", () => {
       clock: "10:00:00",
       commandName: "tap",
     });
+    expect(activityLines[0]?.segments).toEqual([
+      { key: 0, text: "no such button", isRunId: false },
+    ]);
     expect(activityLines[0]?.key).not.toBe(activityLines[1]?.key);
   });
 
