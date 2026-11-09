@@ -330,7 +330,7 @@ test.describe("sweep command line", () => {
     }
   });
 
-  test("exits 1 with a failed line for an unknown device and 2 for bad usage", async () => {
+  test("exits 2 with the valid ids for an unknown device and for bad usage", async () => {
     test.setTimeout(SWEEP_TIMEOUT_MS);
 
     const unknownDeviceRun = await runCli(rootFolder, [
@@ -349,8 +349,10 @@ test.describe("sweep command line", () => {
     ]);
     const badUsageRun = await runCli(rootFolder, ["sweep"]);
 
-    expect(unknownDeviceRun.exitCode).toBe(1);
-    expect(unknownDeviceRun.commandReply.line).toBe("No device nokia-3310");
+    expect(unknownDeviceRun.exitCode).toBe(2);
+    expect(unknownDeviceRun.commandReply.line).toContain(
+      "bad usage · no device nokia-3310 · devices: ",
+    );
     expect(missingFlowRun.exitCode).toBe(1);
     expect(missingFlowRun.commandReply.line).toContain("before flow:");
     expect(badUsageRun.exitCode).toBe(2);

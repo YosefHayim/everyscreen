@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { hc } from "hono/client";
+import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { createHubDownReply, createReply } from "@/cli/cli-logic";
 import type { CommandReply } from "@/commands/commands-logic";
@@ -7,6 +8,7 @@ import type { HubCommand } from "@/commands/commands-schema";
 import { HUB_FILE_PATH, HUB_HOST } from "@/environment";
 import type { HubApp } from "@/hub/hub-app";
 import { type HubFile, hubFileSchema } from "@/hub/hub-file";
+import { BAD_REQUEST_STATUS } from "@/hub/problem-reply";
 import { readStoredFile } from "@/hub/stored-files";
 
 const ANSWER_TIMEOUT_MS = 3000;
@@ -48,11 +50,16 @@ const isConnectionLost = (error: unknown): boolean => {
 const isAnswerTimeout = (error: unknown): boolean =>
   error instanceof DOMException && error.name === "TimeoutError";
 
+// A 400 is thrown so the one boundary in cli.ts shows it as bad usage with exit 2.
 export const readProblemReply = async (
   problemReply: Response,
 ): Promise<CommandReply> => {
   const problemDocument: unknown = await problemReply.json();
   const problem = problemSchema.parse(problemDocument);
+  const isBadRequest = problemReply.status === BAD_REQUEST_STATUS;
+  if (isBadRequest) {
+    throw new HTTPException(BAD_REQUEST_STATUS, { message: problem.detail });
+  }
   return createReply("failed", problem.detail);
 };
 

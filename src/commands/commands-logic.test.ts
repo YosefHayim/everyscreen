@@ -254,23 +254,29 @@ describe("pickDeviceIds", () => {
     expect(pickDeviceIds(runningDeviceIds, ["pixel-8"])).toEqual(["pixel-8"]);
   });
 
-  test("rejects an id that is not running", () => {
+  test("rejects an id that is not running and lists the running ids", () => {
     const pick = () => pickDeviceIds(runningDeviceIds, ["pixel-8", "nokia"]);
 
     expect(pick).toThrow(HTTPException);
-    expect(pick).toThrow("No device nokia");
+    expect(pick).toThrow("no device nokia · devices: iphone-se, pixel-8");
+  });
+
+  test("says no device is running when an id is asked and nothing runs", () => {
+    const pick = () => pickDeviceIds([], ["nokia"]);
+
+    expect(pick).toThrow("no device nokia · no device is running");
   });
 
   test("rejects a hub with no running device", () => {
     const pick = () => pickDeviceIds([], null);
 
-    expect(pick).toThrow("No device is running");
+    expect(pick).toThrow("no device is running");
   });
 
   test("rejects an empty list of chosen ids", () => {
     const pick = () => pickDeviceIds(runningDeviceIds, []);
 
-    expect(pick).toThrow("No device chosen");
+    expect(pick).toThrow("no device chosen");
   });
 });
 

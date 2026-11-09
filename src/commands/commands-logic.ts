@@ -5,6 +5,7 @@ import type { HubCommand } from "@/commands/commands-schema";
 import type { DevicePage } from "@/devices/device-browsers";
 import type { DevicePreset } from "@/devices/devices-logic";
 import { STORE_FOLDER } from "@/environment";
+import { BAD_REQUEST_STATUS } from "@/hub/problem-reply";
 import { countDeviceStatuses } from "@/runs/device-status-logic";
 import type { RunStep, StepProof } from "@/runs/runs-logic";
 
@@ -126,6 +127,19 @@ export const pickCheckDevice = (devicePreset: DevicePreset): CheckDevice => ({
   safeAreaInsets: devicePreset.safeAreaInsets,
 });
 
+// Names the ids the caller may pick, so the reply says what to pass instead.
+const createUnknownDeviceMessage = (
+  unknownIds: string[],
+  pickableDeviceIds: string[],
+): string => {
+  const unknownText = `no device ${unknownIds.join(", ")}`;
+
+  const isThereNoPickableDevice = pickableDeviceIds.length === 0;
+  if (isThereNoPickableDevice) return `${unknownText} · no device is running`;
+
+  return `${unknownText} · devices: ${pickableDeviceIds.join(", ")}`;
+};
+
 export const pickDeviceIds = (
   runningDeviceIds: string[],
   deviceIds: string[] | null,
@@ -137,18 +151,24 @@ export const pickDeviceIds = (
   );
   const hasUnknownId = unknownIds.length > 0;
   if (hasUnknownId) {
-    throw new HTTPException(NO_DEVICE_STATUS, {
-      message: `No device ${unknownIds.join(", ")}`,
+    throw new HTTPException(BAD_REQUEST_STATUS, {
+      message: createUnknownDeviceMessage(unknownIds, runningDeviceIds),
     });
   }
+
   const isNoDeviceChosen = chosenIds.length === 0;
-  if (isNoDeviceChosen) {
+  if (isNoDeviceChosen && isEveryDeviceChosen) {
     throw new HTTPException(NO_DEVICE_STATUS, {
-      message: isEveryDeviceChosen
-        ? "No device is running"
-        : "No device chosen",
+      message: "no device is running",
     });
   }
+
+  if (isNoDeviceChosen) {
+    throw new HTTPException(BAD_REQUEST_STATUS, {
+      message: "no device chosen",
+    });
+  }
+
   return chosenIds;
 };
 

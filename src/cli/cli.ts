@@ -3,7 +3,9 @@ import { readCommandLine } from "@/cli/cli-flags";
 import {
   type CliPlan,
   canWriteFinalReply,
+  createBadUsageLine,
   createReply,
+  pickBadUsageDetail,
   planCli,
 } from "@/cli/cli-logic";
 import { writeReply } from "@/cli/cli-reply";
@@ -71,6 +73,18 @@ const runCli = async (): Promise<void> => {
   try {
     process.exitCode = await runPlan(cliPlan, isJsonWanted);
   } catch (error) {
+    const badUsageDetail = pickBadUsageDetail(error);
+    const isBadUsage = badUsageDetail !== null;
+    if (isBadUsage) {
+      const badUsageReply = createReply(
+        "failed",
+        createBadUsageLine(badUsageDetail),
+      );
+      writeReply(badUsageReply, isJsonWanted);
+      process.exitCode = EXIT_CODES.badUsage;
+      return;
+    }
+
     console.error({ error });
     const isErrorKnown = error instanceof Error;
     const errorLine = isErrorKnown ? error.message : "unexpected error";

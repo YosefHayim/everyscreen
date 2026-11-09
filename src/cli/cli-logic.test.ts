@@ -1,21 +1,24 @@
+import { HTTPException } from "hono/http-exception";
 import { describe, expect, test } from "vitest";
 import {
   type CliRequest,
   canWriteFinalReply,
+  createBadUsageLine,
   createDeviceListLine,
   createHelpPage,
   createHubDownReply,
-  createNeedsYesReply,
   createPortConflictReply,
   createPrintedReply,
   createReadyLine,
   createReply,
   createRunningLine,
   isPortConflict,
+  pickBadUsageDetail,
   pickCommandName,
   planCli,
 } from "@/cli/cli-logic";
 import type { CommandReply } from "@/commands/commands-logic";
+import { BAD_REQUEST_STATUS } from "@/hub/problem-reply";
 
 describe("createReply", () => {
   test("makes a reply with no run and no failures", () => {
@@ -59,13 +62,39 @@ describe("createRunningLine", () => {
   });
 });
 
-describe("createNeedsYesReply", () => {
-  test("names the command and asks for --yes", () => {
-    const commandReply = createNeedsYesReply("devices remove");
+describe("createBadUsageLine", () => {
+  test("starts the detail with bad usage", () => {
+    const badUsageLine = createBadUsageLine("open needs --url <url>");
 
-    expect(commandReply.status).toBe("failed");
-    expect(commandReply.line).toContain("devices remove");
-    expect(commandReply.line).toContain("--yes");
+    expect(badUsageLine).toBe("bad usage · open needs --url <url>");
+  });
+});
+
+describe("pickBadUsageDetail", () => {
+  test("returns the message of a 400 so the CLI shows it as bad usage", () => {
+    const badRequest = new HTTPException(BAD_REQUEST_STATUS, {
+      message: "no device nope",
+    });
+
+    const badUsageDetail = pickBadUsageDetail(badRequest);
+
+    expect(badUsageDetail).toBe("no device nope");
+  });
+
+  test("returns null for an HTTP error that is not a 400", () => {
+    const missingDevice = new HTTPException(404, { message: "No device" });
+
+    const badUsageDetail = pickBadUsageDetail(missingDevice);
+
+    expect(badUsageDetail).toBeNull();
+  });
+
+  test("returns null for an error that is not an HTTP error", () => {
+    const plainError = new Error("boom");
+
+    const badUsageDetail = pickBadUsageDetail(plainError);
+
+    expect(badUsageDetail).toBeNull();
   });
 });
 
@@ -380,7 +409,7 @@ describe("planCli", () => {
 
     expect(cliPlan.kind).toBe("bad-usage");
     expect(cliPlan).toMatchObject({
-      message: expect.stringContaining("bad usage · tap --role:"),
+      message: expect.stringContaining("bad usage · tap needs --role <one of"),
     });
   });
 
@@ -389,7 +418,7 @@ describe("planCli", () => {
 
     expect(cliPlan).toMatchObject({
       kind: "bad-usage",
-      message: expect.stringContaining("run everyscreen open --help"),
+      message: expect.stringContaining("bad usage · open needs --url"),
     });
   });
 
@@ -500,31 +529,57 @@ describe("planCli", () => {
 
     expect(cliPlan).toEqual({
       kind: "run",
-      cliRequest: {
-        kind: "remove-device",
-        deviceId: "tiny",
-        isConfirmed: true,
-      },
+      cliRequest: { kind: "remove-device", deviceId: "tiny" },
     });
   });
 
-  test("does not confirm devices remove without a terminal or --yes", () => {
+  test("refuses devices remove without a terminal or --yes as bad usage", () => {
     const cliPlan = planCli(["devices", "remove"], { device: "tiny" }, false);
 
-    expect(cliPlan).toMatchObject({
-      cliRequest: { kind: "remove-device", isConfirmed: false },
+    expect(cliPlan).toEqual({
+      kind: "bad-usage",
+      message:
+        "bad usage · devices remove needs --yes when it does not run in a terminal",
     });
   });
 
-  test("confirms devices remove without a terminal when --yes is passed", () => {
+  test("plans devices remove without a terminal when --yes is passed", () => {
     const cliPlan = planCli(
       ["devices", "remove"],
       { device: "tiny", yes: true },
       false,
     );
 
-    expect(cliPlan).toMatchObject({
-      cliRequest: { kind: "remove-device", isConfirmed: true },
+    expect(cliPlan).toEqual({
+      kind: "run",
+      cliRequest: { kind: "remove-device", deviceId: "tiny" },
+    });
+  });
+
+  test("names the flag and the width range when the width is not a number", () => {
+    const cliPlan = planCli(
+      ["devices", "add"],
+      { name: "Tiny", width: "abc", height: "800" },
+      true,
+    );
+
+    expect(cliPlan).toEqual({
+      kind: "bad-usage",
+      message:
+        "bad usage · devices add --width must be a whole number from 240 to 3840",
+    });
+  });
+
+  test("names the limit when sweep asks for more routes than the maximum", () => {
+    const cliPlan = planCli(
+      ["sweep"],
+      { url: "https://example.com", "max-routes": "900" },
+      true,
+    );
+
+    expect(cliPlan).toEqual({
+      kind: "bad-usage",
+      message: "bad usage · sweep --max-routes must be 500 or less",
     });
   });
 
@@ -533,7 +588,7 @@ describe("planCli", () => {
 
     expect(cliPlan).toMatchObject({
       kind: "bad-usage",
-      message: expect.stringContaining("devices remove --device"),
+      message: expect.stringContaining("devices remove needs --device"),
     });
   });
 

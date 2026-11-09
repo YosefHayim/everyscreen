@@ -348,6 +348,21 @@ test.describe("the everyscreen command line", () => {
     expect(flowsRun.commandReply.line).toContain("flows/broken.yaml");
   });
 
+  test("exits 2 with bad usage when no flow file matches the glob", async ({
+    cliWorld,
+  }) => {
+    const flowsRun = await cliWorld.runCli([
+      "run",
+      "--flows",
+      "nothing/*.yaml",
+    ]);
+
+    expect(flowsRun.exitCode).toBe(2);
+    expect(flowsRun.commandReply.line).toBe(
+      "bad usage · no flow file matches nothing/*.yaml",
+    );
+  });
+
   test("adds, lists and removes a custom device", async ({ cliWorld }) => {
     const addRun = await cliWorld.runCli([
       "devices",
@@ -383,12 +398,15 @@ test.describe("the everyscreen command line", () => {
 
     expect(addRun.commandReply.line).toContain("device added · tiny-phone");
     expect(listRun.commandReply.line).toMatch(/^13 devices · .*tiny-phone$/);
-    expect(removeWithoutYesRun.exitCode).toBe(1);
+    expect(removeWithoutYesRun.exitCode).toBe(2);
     expect(removeWithoutYesRun.commandReply.line).toContain("--yes");
     expect(removeRun.commandReply.line).toContain(
       "device removed · tiny-phone",
     );
-    expect(removeAgainRun.exitCode).toBe(1);
+    expect(removeAgainRun.exitCode).toBe(2);
+    expect(removeAgainRun.commandReply.line).toContain(
+      "no custom device tiny-phone · there are no custom devices",
+    );
   });
 
   test("installs the skill and asks for --yes before it overwrites it", async ({
@@ -422,7 +440,7 @@ test.describe("the everyscreen command line", () => {
 
     expect(skillRun.exitCode).toBe(0);
     expect(skillMarkdown).toContain("name: everyscreen");
-    expect(overwriteRun.exitCode).toBe(1);
+    expect(overwriteRun.exitCode).toBe(2);
     expect(overwriteRun.commandReply.line).toContain("--yes");
     expect(confirmedRun.exitCode).toBe(0);
   });

@@ -1,3 +1,4 @@
+import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import type { CliFlags } from "@/cli/cli-flags";
 import {
@@ -14,6 +15,7 @@ import {
   sweepCommandSchema,
 } from "@/commands/commands-schema";
 import { type CustomDevice, customDeviceSchema } from "@/devices/device-schema";
+import { BAD_REQUEST_STATUS } from "@/hub/problem-reply";
 import { SKILL_AGENTS, type SkillAgent } from "@/skill/skill-agents";
 
 const DEFAULT_FLOWS_GLOB = "flows/*.yaml";
@@ -30,7 +32,7 @@ export type CliRequest =
   | { kind: "status" }
   | { kind: "list-devices" }
   | { kind: "add-device"; customDevice: CustomDevice }
-  | { kind: "remove-device"; deviceId: string; isConfirmed: boolean }
+  | { kind: "remove-device"; deviceId: string }
   | { kind: "run-flows"; flowsGlob: string; parallel: number }
   | {
       kind: "run-sweep";
@@ -48,28 +50,56 @@ type CliRequestCheck =
   | { kind: "ready"; cliRequest: CliRequest }
   | { kind: "bad-usage"; message: string };
 
+// Each message reads after "bad usage · <command> ", so it names the flag and what to pass.
+const PORT_MESSAGE = `--port must be a whole number from 0 to ${MAX_PORT}`;
+const FLOWS_MESSAGE = "--flows must be a file pattern, like flows/*.yaml";
+const PARALLEL_MESSAGE = "--parallel must be a whole number of 1 or more";
+const BEFORE_MESSAGE = "--before needs a flow file path";
+
 const startFlagsSchema = z.object({
-  port: z.number().int().min(0).max(MAX_PORT).optional(),
+  port: z
+    .number({ error: PORT_MESSAGE })
+    .int({ error: PORT_MESSAGE })
+    .min(0, { error: PORT_MESSAGE })
+    .max(MAX_PORT, { error: PORT_MESSAGE })
+    .optional(),
   foreground: z.boolean().default(false),
 });
 
 const runFlagsSchema = z.object({
-  flows: z.string().min(1).default(DEFAULT_FLOWS_GLOB),
-  parallel: z.number().int().min(1).default(DEFAULT_PARALLEL),
+  flows: z
+    .string({ error: FLOWS_MESSAGE })
+    .min(1, { error: FLOWS_MESSAGE })
+    .default(DEFAULT_FLOWS_GLOB),
+  parallel: z
+    .number({ error: PARALLEL_MESSAGE })
+    .int({ error: PARALLEL_MESSAGE })
+    .min(1, { error: PARALLEL_MESSAGE })
+    .default(DEFAULT_PARALLEL),
 });
 
 const sweepFlagsSchema = z.object({
   url: sweepCommandSchema.shape.url,
   devices: sweepCommandSchema.shape.deviceIds,
   "max-routes": sweepCommandSchema.shape.maxRoutes,
-  before: z.string().min(1).nullable().default(null),
+  before: z
+    .string({ error: BEFORE_MESSAGE })
+    .min(1, { error: BEFORE_MESSAGE })
+    .nullable()
+    .default(null),
 });
 
 const skillFlagsSchema = z.object({
-  agent: z.enum(SKILL_AGENTS).default("claude"),
+  agent: z
+    .enum(SKILL_AGENTS, {
+      error: `--agent must be one of ${SKILL_AGENTS.join(", ")}`,
+    })
+    .default("claude"),
 });
 
-const removeDeviceFlagsSchema = z.object({ device: z.string() });
+const removeDeviceFlagsSchema = z.object({
+  device: z.string({ error: "needs --device <device id>" }),
+});
 
 const COMMON_FLAG_HELPS: readonly FlagHelp[] = [
   { flag: "--json", description: "Print one JSON object" },
@@ -95,13 +125,15 @@ export const createRunningLine = (
 export const createDeviceListLine = (deviceIds: string[]): string =>
   `${deviceIds.length} devices · ${deviceIds.join(", ")}`;
 
-export const createNeedsYesReply = (
-  commandName: CliCommandName,
-): CommandReply =>
-  createReply(
-    "failed",
-    `${commandName} changes files and needs --yes when it does not run in a terminal`,
-  );
+export const createBadUsageLine = (detail: string): string =>
+  `bad usage · ${detail}`;
+
+// A 400 from the hub or the CLI means the values were wrong; any other error is a failure.
+export const pickBadUsageDetail = (error: unknown): string | null => {
+  const isBadRequest =
+    error instanceof HTTPException && error.status === BAD_REQUEST_STATUS;
+  return isBadRequest ? error.message : null;
+};
 
 export const isPortConflict = (
   requestedPort: number | null,
@@ -214,13 +246,10 @@ const readDevicesFlag = (
 const createBadUsage = (
   commandName: CliCommandName,
   issue: z.core.$ZodIssue,
-): CliRequestCheck => {
-  const flagName = issue.path.slice(0, 1).join(".");
-  return {
-    kind: "bad-usage",
-    message: `bad usage · ${commandName} --${flagName}: ${issue.message} · run everyscreen ${commandName} --help`,
-  };
-};
+): CliRequestCheck => ({
+  kind: "bad-usage",
+  message: createBadUsageLine(`${commandName} ${issue.message}`),
+});
 
 const createReadyCheck = (cliRequest: CliRequest): CliRequestCheck => ({
   kind: "ready",
@@ -292,15 +321,25 @@ const checkRemoveDeviceFlags = (
   isConfirmed: boolean,
 ): CliRequestCheck => {
   const removeCheck = removeDeviceFlagsSchema.safeParse(flags);
-  const isValidRemoveCheck = removeCheck.success;
-  if (isValidRemoveCheck) {
-    return createReadyCheck({
-      kind: "remove-device",
-      deviceId: removeCheck.data.device,
-      isConfirmed,
-    });
+  const isInvalidRemoveCheck = !removeCheck.success;
+  if (isInvalidRemoveCheck) {
+    return createBadUsage("devices remove", removeCheck.error.issues[0]);
   }
-  return createBadUsage("devices remove", removeCheck.error.issues[0]);
+
+  const isRefusedWithoutYes = !isConfirmed;
+  if (isRefusedWithoutYes) {
+    return {
+      kind: "bad-usage",
+      message: createBadUsageLine(
+        "devices remove needs --yes when it does not run in a terminal",
+      ),
+    };
+  }
+
+  return createReadyCheck({
+    kind: "remove-device",
+    deviceId: removeCheck.data.device,
+  });
 };
 
 const checkRunFlowsFlags = (flags: CliFlags): CliRequestCheck => {
