@@ -1,4 +1,9 @@
-import { type FormEvent, type ReactElement, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type ReactElement,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useOpenAppUrl } from "@/dashboard/app-url/use-open-app-url";
 import { useOpenApp } from "@/dashboard/grid/use-open-app";
@@ -20,6 +25,10 @@ export const AppUrlBar = (): ReactElement => {
     openApp.mutate(shownAppUrl, { onSuccess: () => setTypedUrl(null) });
   };
 
+  const handleUrlChange = (changeEvent: ChangeEvent<HTMLInputElement>) => {
+    setTypedUrl(changeEvent.target.value);
+  };
+
   return (
     <form
       onSubmit={openTypedUrl}
@@ -32,7 +41,7 @@ export const AppUrlBar = (): ReactElement => {
           type="url"
           required
           value={shownAppUrl ?? ""}
-          onChange={(changeEvent) => setTypedUrl(changeEvent.target.value)}
+          onChange={handleUrlChange}
           placeholder={t("shell.urlPlaceholder")}
           aria-label={t("shell.urlLabel")}
           aria-invalid={openApp.isError}

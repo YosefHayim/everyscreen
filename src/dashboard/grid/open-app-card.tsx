@@ -1,4 +1,9 @@
-import { type FormEvent, type ReactElement, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type ReactElement,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { CommandLine } from "@/dashboard/grid/command-line";
 import { useOpenApp } from "@/dashboard/grid/use-open-app";
@@ -22,6 +27,10 @@ export const OpenAppCard = (): ReactElement => {
     openApp.mutate(appUrl);
   };
 
+  const handleUrlChange = (changeEvent: ChangeEvent<HTMLInputElement>) => {
+    setAppUrl(changeEvent.target.value);
+  };
+
   return (
     <section
       aria-label={t("grid.empty.title")}
@@ -43,7 +52,7 @@ export const OpenAppCard = (): ReactElement => {
             type="url"
             required
             value={appUrl}
-            onChange={(changeEvent) => setAppUrl(changeEvent.target.value)}
+            onChange={handleUrlChange}
             placeholder={t("grid.empty.urlPlaceholder")}
             aria-label={t("grid.empty.urlLabel")}
             className="min-w-0 flex-1 border-0 bg-transparent font-mono text-sm text-ink outline-offset-4"

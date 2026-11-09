@@ -7,12 +7,8 @@ import { expect, test } from "@playwright/test";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
 import { type RunningHub, startHub } from "@/hub/hub-server";
 
-const DASHBOARD_HTML = "<!doctype html><h1>Everyscreen test dashboard</h1>";
-const DEVICE_IDS = ["iphone-se", "pixel-10"];
 const FIXTURE_HOST = "127.0.0.1";
-const STARTUP_TIMEOUT_MS = 180_000;
 const OPEN_TIMEOUT_MS = 120_000;
-const FIXTURE_PAGE = "<!doctype html><title>Fixture</title><h1>Fixture</h1>";
 
 const listenOnFreePort = async (server: Server): Promise<string> => {
   server.listen(0, FIXTURE_HOST);
@@ -30,7 +26,7 @@ const sendOpenCommand = (hubUrl: string, appUrl: string): Promise<Response> =>
     body: JSON.stringify({
       commandName: "open",
       url: appUrl,
-      deviceIds: DEVICE_IDS,
+      deviceIds: ["iphone-se", "pixel-10"],
     }),
   });
 
@@ -46,13 +42,17 @@ test.describe("app url bar", () => {
   let dashboardUrl = "";
 
   test.beforeAll(async () => {
-    test.setTimeout(STARTUP_TIMEOUT_MS);
+    const startupTimeoutMilliseconds = 180_000;
+    test.setTimeout(startupTimeoutMilliseconds);
     rootFolder = await mkdtemp(join(tmpdir(), "everyscreen-url-bar-"));
     dashboardFolder = await mkdtemp(join(tmpdir(), "everyscreen-dashboard-"));
-    await writeFile(join(dashboardFolder, "index.html"), DASHBOARD_HTML);
+    await writeFile(
+      join(dashboardFolder, "index.html"),
+      "<!doctype html><h1>Everyscreen test dashboard</h1>",
+    );
     fixtureSite = createServer((_fixtureRequest, fixtureReply) => {
       fixtureReply.setHeader("Content-Type", "text/html");
-      fixtureReply.end(FIXTURE_PAGE);
+      fixtureReply.end("<!doctype html><title>Fixture</title><h1>Fixture</h1>");
     });
     fixtureUrl = await listenOnFreePort(fixtureSite);
     runningHub = await startHub({ rootFolder, port: 0, dashboardFolder });
