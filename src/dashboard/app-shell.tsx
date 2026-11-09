@@ -2,6 +2,7 @@ import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useLiveStatus } from "@/dashboard/device-feed/use-live-status";
+import { useRefreshRunsOnLiveRun } from "@/dashboard/device-feed/use-refresh-runs-on-live-run";
 import { AppUrlBar } from "@/dashboard/grid/app-url-bar";
 import { DeviceSearchInput } from "@/dashboard/grid/device-search-input";
 import { AddDeviceButton } from "@/dashboard/picker/add-device-button";
@@ -19,6 +20,7 @@ const NAV_LINKS = [
 export const AppShell = (): ReactElement => {
   const { t } = useTranslation();
   const liveStatus = useLiveStatus();
+  useRefreshRunsOnLiveRun();
   const isLive = liveStatus === "open";
   const pathname = useRouterState({
     select: (routerState) => routerState.location.pathname,

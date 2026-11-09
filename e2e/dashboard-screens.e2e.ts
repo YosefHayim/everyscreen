@@ -39,6 +39,28 @@ const SCREEN_MESSAGE = {
   imageBase64: SHOT_PNG.toString("base64"),
 };
 
+const BUSY_ESTIMATE_MESSAGE = {
+  kind: "estimate",
+  deviceId: "iphone-se",
+  deviceLoad: {
+    label: "est.",
+    fps: 59,
+    cpuPercent: 91,
+    memoryMegabytes: 120,
+    layoutShift: 0,
+  },
+};
+const CONSOLE_ERROR_MESSAGES = ["boom one", "boom two"].map((message) => ({
+  kind: "finding",
+  finding: {
+    kind: "console-error",
+    severity: "failed",
+    deviceId: "shop-kiosk",
+    selector: null,
+    message,
+  },
+}));
+
 const SAVED_RUN = {
   runId: "run-0001",
   origin: "flow",
@@ -211,6 +233,38 @@ test.describe("dashboard screens", () => {
     await expect(
       page.getByRole("heading", { name: "Open your app to fill the grid" }),
     ).toBeVisible();
+  });
+
+  test("a tile shows the stored run, not live estimates or findings", async ({
+    page,
+  }) => {
+    await page.routeWebSocket(isLiveSocketUrl, (liveSocket) => {
+      liveSocket.send(JSON.stringify(BUSY_ESTIMATE_MESSAGE));
+      for (const errorMessage of CONSOLE_ERROR_MESSAGES) {
+        liveSocket.send(JSON.stringify(errorMessage));
+      }
+    });
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.goto(dashboardUrl);
+
+    const failedTile = page
+      .getByRole("article")
+      .filter({ hasText: "iPhone SE" });
+    const liveErrorTile = page
+      .getByRole("article")
+      .filter({ hasText: "Shop kiosk" });
+    await expect(failedTile).toContainText("91% CPU est.");
+    await expect(failedTile).toContainText("Failed: 1 overflow");
+    await expect(failedTile.getByTitle("1 overflow")).toBeVisible();
+    await failedTile.getByTitle("1 overflow").focus();
+    await expect(failedTile.getByTitle("1 overflow")).toBeFocused();
+    await expect(liveErrorTile).toContainText("No findings");
+    await expect(liveErrorTile.getByTitle("2 console errors")).toHaveCount(0);
+    if (SHOT_FOLDER_FOR_PICTURES !== null) {
+      await page.screenshot({
+        path: `${SHOT_FOLDER_FOR_PICTURES}/tile-status.png`,
+      });
+    }
   });
 
   test("the focus screen shows one device and the others", async ({ page }) => {

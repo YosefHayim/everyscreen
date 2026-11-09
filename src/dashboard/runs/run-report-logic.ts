@@ -1,4 +1,5 @@
 import { countRunFindings } from "@/dashboard/runs/runs-list-logic";
+import { countDeviceStatuses } from "@/runs/device-status-logic";
 import type { Run, RunStep, StepProof } from "@/runs/runs-logic";
 
 export type CellStatus = "ok" | "warn" | "failed" | "none";
@@ -29,6 +30,7 @@ export interface RunTotals {
   deviceCount: number;
   findingCount: number;
   okDeviceCount: number;
+  warnDeviceCount: number;
   failedDeviceCount: number;
 }
 
@@ -77,16 +79,15 @@ export const createMatrix = (run: Run): MatrixRoute[] =>
 
 export const pickRunTotals = (run: Run): RunTotals => {
   const matrix = createMatrix(run);
-  const failedRoutes = matrix.filter(
-    (matrixRoute) => matrixRoute.failedCount > 0,
-  );
   const findingCount = countRunFindings(run);
+  const { okCount, warnCount, failedCount } = countDeviceStatuses(run.steps);
   return {
     stepCount: run.steps.length,
     deviceCount: matrix.length,
     findingCount,
-    okDeviceCount: matrix.length - failedRoutes.length,
-    failedDeviceCount: failedRoutes.length,
+    okDeviceCount: okCount,
+    warnDeviceCount: warnCount,
+    failedDeviceCount: failedCount,
   };
 };
 

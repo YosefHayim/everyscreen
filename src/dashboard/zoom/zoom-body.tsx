@@ -91,7 +91,7 @@ export const ZoomBody = ({
       </div>
       <footer className="border-t border-line px-4 py-2 font-mono text-[11px] leading-4 text-ink-2">
         <TileTest deviceId={deviceId} />
-        <TileEstimate deviceLoad={deviceLoad} />
+        <TileEstimate deviceLoad={deviceLoad} browserName={browserName} />
       </footer>
     </div>
   );

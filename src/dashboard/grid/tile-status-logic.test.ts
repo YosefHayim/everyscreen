@@ -1,75 +1,51 @@
 import { describe, expect, test } from "vitest";
 import type { Finding } from "@/checks/checks-logic";
-import { pickTileStatus } from "@/dashboard/grid/tile-status-logic";
-import type { DeviceLoad } from "@/estimates/estimates-logic";
+import { listTileReasons } from "@/dashboard/grid/tile-status-logic";
+import type { RunStep } from "@/runs/runs-logic";
 
 const createFinding = (
   deviceId: string,
-  severity: Finding["severity"],
+  kind: Finding["kind"] = "overflow",
 ): Finding => ({
-  kind: "overflow",
-  severity,
+  kind,
+  severity: "warn",
   deviceId,
   selector: null,
   message: "Wider than the screen",
 });
 
-const createDeviceLoad = (status: DeviceLoad["status"]): DeviceLoad => ({
-  label: "est.",
-  fps: 60,
-  cpuPercent: 20,
-  memoryMegabytes: 100,
-  layoutShift: 0,
-  status,
+const createRunStep = (findings: Finding[]): RunStep => ({
+  stepId: "step-1",
+  title: "open https://shop.example",
+  startedAt: 0,
+  deviceAnswers: [],
+  findings,
+  proof: null,
 });
 
-describe("pickTileStatus", () => {
-  test("is ok with no findings and no device load", () => {
-    const tileStatus = pickTileStatus("iphone-se", [], null);
+describe("listTileReasons", () => {
+  test("returns no reasons when the device has no finding", () => {
+    const runSteps = [createRunStep([createFinding("pixel-8")])];
 
-    expect(tileStatus).toBe("ok");
+    const tileReasons = listTileReasons("iphone-se", runSteps);
+
+    expect(tileReasons).toEqual([]);
   });
 
-  test("is ok when only other devices have findings", () => {
-    const findings = [createFinding("pixel-8", "failed")];
-
-    const tileStatus = pickTileStatus("iphone-se", findings, null);
-
-    expect(tileStatus).toBe("ok");
-  });
-
-  test("is warn when the device has a warn finding", () => {
-    const findings = [createFinding("iphone-se", "warn")];
-
-    const tileStatus = pickTileStatus("iphone-se", findings, null);
-
-    expect(tileStatus).toBe("warn");
-  });
-
-  test("is failed when the device has a failed finding next to a warn one", () => {
-    const findings = [
-      createFinding("iphone-se", "warn"),
-      createFinding("iphone-se", "failed"),
+  test("counts the findings of each kind for the device across steps", () => {
+    const runSteps = [
+      createRunStep([
+        createFinding("pixel-8", "overflow"),
+        createFinding("pixel-8", "console-error"),
+      ]),
+      createRunStep([createFinding("pixel-8", "overflow")]),
     ];
 
-    const tileStatus = pickTileStatus("iphone-se", findings, null);
+    const tileReasons = listTileReasons("pixel-8", runSteps);
 
-    expect(tileStatus).toBe("failed");
-  });
-
-  test("is warn when the device load is warn", () => {
-    const tileStatus = pickTileStatus(
-      "iphone-se",
-      [],
-      createDeviceLoad("warn"),
-    );
-
-    expect(tileStatus).toBe("warn");
-  });
-
-  test("is ok when the device load is ok", () => {
-    const tileStatus = pickTileStatus("iphone-se", [], createDeviceLoad("ok"));
-
-    expect(tileStatus).toBe("ok");
+    expect(tileReasons).toEqual([
+      { findingKind: "overflow", findingCount: 2 },
+      { findingKind: "console-error", findingCount: 1 },
+    ]);
   });
 });

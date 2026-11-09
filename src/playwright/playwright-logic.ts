@@ -16,6 +16,7 @@ import type {
   StepEvent,
   TestEvent,
 } from "@/live/live-test-schema";
+import { countDeviceStatuses } from "@/runs/device-status-logic";
 import type { RunStep } from "@/runs/runs-logic";
 
 export interface HubDevice {
@@ -191,16 +192,14 @@ export const createSuiteReplyLine = (
   runSteps: RunStep[],
   runId: string,
 ): string => {
-  const deviceAnswers = runSteps.flatMap((runStep) => runStep.deviceAnswers);
-  const deviceIds = [...new Set(deviceAnswers.map(({ deviceId }) => deviceId))];
-  const failedDeviceIds = new Set(
-    deviceAnswers
-      .filter(({ status }) => status === "failed")
-      .map(({ deviceId }) => deviceId),
-  );
-  const failedCount = failedDeviceIds.size;
-  const okCount = deviceIds.length - failedCount;
-  return createReplyLine({ unit: "device", okCount, failedCount, runId });
+  const { okCount, warnCount, failedCount } = countDeviceStatuses(runSteps);
+  return createReplyLine({
+    unit: "device",
+    okCount,
+    warnCount,
+    failedCount,
+    runId,
+  });
 };
 
 export const pickLiveTestStatus = (testStatus: TestStatus): "ok" | "failed" => {

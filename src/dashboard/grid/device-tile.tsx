@@ -3,7 +3,7 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeviceLoad } from "@/dashboard/device-feed/use-device-load";
 import { useDeviceTest } from "@/dashboard/device-feed/use-device-test";
-import { useFindings } from "@/dashboard/device-feed/use-findings";
+import { useLatestRunSteps } from "@/dashboard/device-feed/use-latest-run-steps";
 import { useScreenImage } from "@/dashboard/device-feed/use-screen-image";
 import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import { DeviceFrame } from "@/dashboard/frames/device-frame";
@@ -15,11 +15,12 @@ import {
 } from "@/dashboard/grid/grid-view-logic";
 import { pickScreenUpdate } from "@/dashboard/grid/screen-update-logic";
 import { TileEstimate } from "@/dashboard/grid/tile-estimate";
-import { pickTileStatus } from "@/dashboard/grid/tile-status-logic";
+import { TileStatusChip } from "@/dashboard/grid/tile-status-chip";
 import { TileTest } from "@/dashboard/grid/tile-test";
 import { cn } from "@/dashboard/ui/cn";
 import { Icon } from "@/dashboard/ui/icon";
-import { type ChipStatus, StatusChip } from "@/dashboard/ui/status-chip";
+import type { ChipStatus } from "@/dashboard/ui/status-chip";
+import { pickDeviceStatus } from "@/runs/device-status-logic";
 
 // The waiting text stays this many screen px tall whatever the frame scale.
 const WAITING_FONT_PX = 11;
@@ -48,8 +49,8 @@ export const DeviceTile = ({
   const deviceLoad = useDeviceLoad(deviceId);
   const deviceTest = useDeviceTest(deviceId);
   const isTestFailed = deviceTest?.status === "failed";
-  const findings = useFindings();
-  const status = pickTileStatus(deviceId, findings, deviceLoad);
+  const latestRunSteps = useLatestRunSteps();
+  const status = pickDeviceStatus(deviceId, latestRunSteps);
   const hasScreenImage = screenImageUrl !== null;
   const screenUpdate = pickScreenUpdate(browserName);
   const isLiveWithScreenImage = screenUpdate === "live" && hasScreenImage;
@@ -84,11 +85,7 @@ export const DeviceTile = ({
               {name}
             </Link>
           </h3>
-          <StatusChip
-            status={status}
-            label={t(`tile.status.${status}`)}
-            isLabelHidden
-          />
+          <TileStatusChip deviceId={deviceId} isLabelHidden />
           <button
             type="button"
             onClick={onZoom}
@@ -136,7 +133,7 @@ export const DeviceTile = ({
       </div>
       <footer className="px-3 pt-2 pb-[9px] font-mono text-[10px] leading-[14px] text-ink-2">
         <TileTest deviceId={deviceId} />
-        <TileEstimate deviceLoad={deviceLoad} />
+        <TileEstimate deviceLoad={deviceLoad} browserName={browserName} />
       </footer>
     </article>
   );

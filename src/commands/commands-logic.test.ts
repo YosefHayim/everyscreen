@@ -19,6 +19,7 @@ import {
 } from "@/commands/commands-logic";
 import type { DevicePage } from "@/devices/device-browsers";
 import { type DevicePreset, findCatalogPreset } from "@/devices/devices-logic";
+import type { RunStep } from "@/runs/runs-logic";
 
 const findPreset = (deviceId: string): DevicePreset => {
   return findCatalogPreset(deviceId, "full-screen");
@@ -47,11 +48,24 @@ const createFailedAnswer = (deviceId: string): DeviceAnswer => ({
   shotPath: null,
 });
 
+const createStepWith = (
+  deviceAnswers: DeviceAnswer[],
+  findings: Finding[] = [],
+): RunStep => ({
+  stepId: "step-1",
+  title: "open https://shop.example",
+  startedAt: 0,
+  deviceAnswers,
+  findings,
+  proof: null,
+});
+
 describe("createReplyLine", () => {
   test("counts devices and ok answers with the report", () => {
     const replyTally = {
       unit: "device",
       okCount: 5,
+      warnCount: 0,
       failedCount: 0,
       runId: "run-0412",
     } as const;
@@ -65,6 +79,7 @@ describe("createReplyLine", () => {
     const replyTally = {
       unit: "device",
       okCount: 4,
+      warnCount: 0,
       failedCount: 1,
       runId: "run-0412",
     } as const;
@@ -78,6 +93,7 @@ describe("createReplyLine", () => {
     const replyTally = {
       unit: "device",
       okCount: 1,
+      warnCount: 0,
       failedCount: 0,
       runId: null,
     } as const;
@@ -89,6 +105,7 @@ describe("createReplyLine", () => {
     const replyTally = {
       unit: "flow",
       okCount: 2,
+      warnCount: 0,
       failedCount: 1,
       runId: null,
     } as const;
@@ -100,6 +117,7 @@ describe("createReplyLine", () => {
     const replyTally = {
       unit: "device",
       okCount: 0,
+      warnCount: 0,
       failedCount: 0,
       runId: "run-0412",
     } as const;
@@ -109,13 +127,25 @@ describe("createReplyLine", () => {
 });
 
 describe("summarizeCommand", () => {
+  test("counts a device with only a warn finding as warn and keeps the status ok", () => {
+    const runStep = createStepWith(
+      [createOkAnswer("iphone-se"), createOkAnswer("pixel-8")],
+      [createFinding("warn")],
+    );
+
+    const reply = summarizeCommand(runStep, "run-0412");
+
+    expect(reply.status).toBe("ok");
+    expect(reply.line).toBe("2 devices · 1 ok · 1 warn · report run-0412");
+  });
+
   test("returns ok with no failures when every device passes", () => {
     const deviceAnswers = [
       createOkAnswer("iphone-se"),
       createOkAnswer("pixel-8"),
     ];
 
-    const reply = summarizeCommand(deviceAnswers, "run-0412");
+    const reply = summarizeCommand(createStepWith(deviceAnswers), "run-0412");
 
     expect(reply.status).toBe("ok");
     expect(reply.failures).toEqual([]);
@@ -127,7 +157,7 @@ describe("summarizeCommand", () => {
     const okAnswers = ["pixel-8", "ipad-mini"].map(createOkAnswer);
     const deviceAnswers = [...okAnswers, createFailedAnswer("iphone-se")];
 
-    const reply = summarizeCommand(deviceAnswers, null);
+    const reply = summarizeCommand(createStepWith(deviceAnswers), null);
 
     expect(reply.status).toBe("failed");
     expect(reply.line).toBe("3 devices · 2 ok · 1 failed");
@@ -137,7 +167,7 @@ describe("summarizeCommand", () => {
   });
 
   test("returns failed when no device answered", () => {
-    const reply = summarizeCommand([], null);
+    const reply = summarizeCommand(createStepWith([]), null);
 
     expect(reply.status).toBe("failed");
     expect(reply.line).toBe("0 devices · no device answered");

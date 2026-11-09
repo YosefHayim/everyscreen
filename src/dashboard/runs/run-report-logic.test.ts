@@ -127,6 +127,7 @@ describe("pickRunTotals", () => {
       deviceCount: 2,
       findingCount: 1,
       okDeviceCount: 1,
+      warnDeviceCount: 0,
       failedDeviceCount: 1,
     });
   });

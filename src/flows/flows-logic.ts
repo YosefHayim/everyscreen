@@ -75,6 +75,7 @@ export const summarizeFlows = (flowAnswers: FlowAnswer[]): CommandReply => {
   const summaryLine = createReplyLine({
     unit: "flow",
     okCount,
+    warnCount: 0,
     failedCount,
     runId,
   });

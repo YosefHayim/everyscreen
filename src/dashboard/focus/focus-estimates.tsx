@@ -1,24 +1,34 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeviceLoad } from "@/dashboard/device-feed/use-device-load";
+import type { BrowserName } from "@/devices/devices-logic";
 
 interface FocusEstimatesProps {
   deviceId: string;
+  browserName: BrowserName;
 }
 
 export const FocusEstimates = ({
   deviceId,
+  browserName,
 }: FocusEstimatesProps): ReactElement => {
   const { t } = useTranslation();
   const deviceLoad = useDeviceLoad(deviceId);
   const hasNoDeviceLoad = deviceLoad === null;
+  const hasEstimateEngine = browserName === "chromium";
   if (hasNoDeviceLoad) {
+    const engineLabel = t(`tile.engines.${browserName}`);
+    const waitingText = t("focus.noEstimates");
+    const noEngineText = t("focus.noEstimatesOnEngine", {
+      engine: engineLabel,
+    });
+    const noEstimateText = hasEstimateEngine ? waitingText : noEngineText;
     return (
       <section className="flex flex-col gap-3">
         <h2 className="m-0 text-base font-medium">
           {t("focus.estimatesTitle")}
         </h2>
-        <p className="m-0 text-sm text-ink-2">{t("focus.noEstimates")}</p>
+        <p className="m-0 text-sm text-ink-2">{noEstimateText}</p>
       </section>
     );
   }

@@ -1,24 +1,25 @@
-import type { Finding } from "@/checks/checks-logic";
-import type { ChipStatus } from "@/dashboard/ui/status-chip";
-import type { DeviceLoad } from "@/estimates/estimates-logic";
+import type { FindingKind } from "@/checks/checks-logic";
+import type { RunStep } from "@/runs/runs-logic";
 
-export const pickTileStatus = (
+export interface TileReason {
+  findingKind: FindingKind;
+  findingCount: number;
+}
+
+export const listTileReasons = (
   deviceId: string,
-  findings: Finding[],
-  deviceLoad: DeviceLoad | null,
-): ChipStatus => {
-  const deviceFindings = findings.filter(
-    (finding) => finding.deviceId === deviceId,
-  );
-  const hasFailedFinding = deviceFindings.some(
-    (finding) => finding.severity === "failed",
-  );
-  if (hasFailedFinding) return "failed";
-
-  const hasWarnFinding = deviceFindings.length > 0;
-  const isLoadWarn = deviceLoad?.status === "warn";
-  const isTileWarn = hasWarnFinding || isLoadWarn;
-  if (isTileWarn) return "warn";
-
-  return "ok";
+  runSteps: RunStep[],
+): TileReason[] => {
+  const deviceFindings = runSteps
+    .flatMap((runStep) => runStep.findings)
+    .filter((finding) => finding.deviceId === deviceId);
+  const findingKinds = [
+    ...new Set(deviceFindings.map((finding) => finding.kind)),
+  ];
+  return findingKinds.map((findingKind) => ({
+    findingKind,
+    findingCount: deviceFindings.filter(
+      (finding) => finding.kind === findingKind,
+    ).length,
+  }));
 };

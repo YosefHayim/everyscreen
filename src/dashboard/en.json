@@ -94,10 +94,25 @@
     },
     "estimate": "{{fps}} fps · {{cpuPercent}}% CPU est.",
     "noEstimate": "No estimate yet",
+    "noEstimateOnEngine": "No estimate on {{engine}}",
     "status": {
       "ok": "No findings",
       "warn": "Has findings",
       "failed": "Failed"
+    },
+    "reasons": {
+      "overflow_one": "{{count}} overflow",
+      "overflow_other": "{{count}} overflows",
+      "clipped-text_one": "{{count}} clipped text",
+      "clipped-text_other": "{{count}} clipped texts",
+      "safe-area_one": "{{count}} under the notch or home bar",
+      "safe-area_other": "{{count}} under the notch or home bar",
+      "tap-target_one": "{{count}} small tap target",
+      "tap-target_other": "{{count}} small tap targets",
+      "console-error_one": "{{count}} console error",
+      "console-error_other": "{{count}} console errors",
+      "failed-request_one": "{{count}} failed request",
+      "failed-request_other": "{{count}} failed requests"
     },
     "engines": {
       "chromium": "Chromium",
@@ -148,6 +163,7 @@
     "selector": "Selector",
     "estimatesTitle": "Estimates",
     "noEstimates": "No estimate yet",
+    "noEstimatesOnEngine": "No estimate on {{engine}}",
     "waiting": "Waiting for the first screen image",
     "figures": {
       "fps": "Frame rate",
@@ -201,6 +217,7 @@
       },
       "okDevices": "{{count}} ok",
       "failedDevices": "{{count}} failed",
+      "warnDevices": "{{count}} with findings",
       "matrixTitle": "Every step, on every screen",
       "matrixDevice": "Device",
       "matrixVerdict": "Result",

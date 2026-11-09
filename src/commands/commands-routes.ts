@@ -53,7 +53,7 @@ const runCommand = async (
     startedAt,
     deviceSteps,
   });
-  const { deviceAnswers, findings } = runStep;
+  const { findings } = runStep;
   await saveRunEvent(rootFolder, run.runId, {
     kind: "step-end",
     step: runStep,
@@ -61,7 +61,7 @@ const runCommand = async (
 
   for (const finding of findings) broadcast({ kind: "finding", finding });
   broadcast({ kind: "run", runId: run.runId });
-  return summarizeCommand(deviceAnswers, run.runId);
+  return summarizeCommand(runStep, run.runId);
 };
 
 export const createCommandsRoutes = (
