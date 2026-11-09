@@ -1,8 +1,8 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { CommandReply } from "@/commands/commands-logic";
+import { useOpenAppUrl } from "@/dashboard/app-url/use-open-app-url";
 import { hubApi } from "@/dashboard/hub-api";
-import { appUrlQueries } from "@/dashboard/sweep/app-url-queries";
 
 export interface RunSweep {
   appUrl: string | null;
@@ -26,8 +26,7 @@ const sendSweepCommand = async (appUrl: string): Promise<CommandReply> => {
 };
 
 export const useRunSweep = (): RunSweep => {
-  const appUrlQuery = useQuery(appUrlQueries.open());
-  const appUrl = appUrlQuery.data ?? null;
+  const appUrl = useOpenAppUrl();
   const navigate = useNavigate();
   const sweepMutation = useMutation({
     mutationFn: sendSweepCommand,

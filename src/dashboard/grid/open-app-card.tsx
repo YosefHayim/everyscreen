@@ -1,7 +1,7 @@
 import { type FormEvent, type ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CommandLine } from "@/dashboard/grid/command-line";
-import { DEFAULT_APP_URL, useOpenApp } from "@/dashboard/grid/use-open-app";
+import { useOpenApp } from "@/dashboard/grid/use-open-app";
 import { Button } from "@/dashboard/ui/button";
 import { Icon } from "@/dashboard/ui/icon";
 import { HUB_URL } from "@/environment";
@@ -11,8 +11,10 @@ const SKILL_INSTALL_COMMAND = "npx everyscreen skill install";
 export const OpenAppCard = (): ReactElement => {
   const { t } = useTranslation();
   const openApp = useOpenApp();
-  const [appUrl, setAppUrl] = useState(DEFAULT_APP_URL);
-  const openCommand = `everyscreen open --url ${appUrl}`;
+  const [appUrl, setAppUrl] = useState("");
+  const isUrlEmpty = appUrl === "";
+  const shownCommandUrl = isUrlEmpty ? t("grid.empty.urlPlaceholder") : appUrl;
+  const openCommand = `everyscreen open --url ${shownCommandUrl}`;
   const hasOpenFailed = openApp.isError;
 
   const openTypedUrl = (submitEvent: FormEvent<HTMLFormElement>) => {
@@ -42,6 +44,7 @@ export const OpenAppCard = (): ReactElement => {
             required
             value={appUrl}
             onChange={(changeEvent) => setAppUrl(changeEvent.target.value)}
+            placeholder={t("grid.empty.urlPlaceholder")}
             aria-label={t("grid.empty.urlLabel")}
             className="min-w-0 flex-1 border-0 bg-transparent font-mono text-sm text-ink outline-offset-4"
           />
