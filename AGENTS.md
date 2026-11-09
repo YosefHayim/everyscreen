@@ -3,37 +3,40 @@
 ## Commands
 
 - Setup: `pnpm install`, then `pnpm exec playwright install --with-deps chromium webkit`.
-- `pnpm dev`: the hub with reload, plus the dashboard on Vite with the hub's API and live socket proxied to it.
-- `pnpm dev:site`: the landing page on Vite.
-- `pnpm check`: lint (Biome and knip), typecheck, unit tests, e2e, `pnpm build` and `pnpm build:site`. Run it before every pull request.
-- `pnpm test` fails below 100% branches on `src/**/*-logic.ts` and `src/flows/flow-schema.ts`.
-- `pnpm test:e2e` runs `e2e/*.e2e.ts` one file at a time, because one hub owns one port.
-- Tests that start browsers or servers use port 0 on 127.0.0.1, never 4100.
+- `pnpm dev`: the hub with reload, plus the Vite dashboard with `/api` proxied to the hub.
+- `pnpm dev:site`: the site locally.
+- `pnpm build`: the package build (tsdown, then the Vite dashboard).
+- `pnpm lint` (Biome, then knip), `pnpm lint:fix`, `pnpm typecheck`.
+- `pnpm test`: Vitest once. It fails below 100% branches on `src/**/*-logic.ts` and `src/flows/flow-schema.ts`.
+- `pnpm test:e2e`: runs `e2e/*.e2e.ts` one at a time, because one hub listens on one port. Tests use port 0 on `127.0.0.1`.
+- `pnpm check`: lint, typecheck, test, test:e2e, build and build:site, through Turborepo.
 
 ## Recipes
 
 ### Add a catalog device
 
-1. Playwright's registry covers most devices (`src/devices/registry-devices.ts`). For one it lacks, add it to `src/devices/own-devices.ts` with a source comment for its size.
-2. Set its `frameShape` and `cpuSlowdown` from `CPU_TIERS`.
-3. To put it in the default grid, add its id to `src/devices/default-grid-ids.ts` (12 at most) and its row to the README Devices table.
+1. Add the device to `src/devices/registry-devices.ts` (or `src/devices/own-devices.ts` for devices we design ourselves).
+2. Take its `frameShape` and `cpuSlowdown` from `CPU_TIERS` in `src/environment.ts`.
+3. Only if it belongs in the default grid, add its id to `src/devices/default-grid-ids.ts`. The grid holds 12.
+4. Update the Devices section of `README.md` when the grid changes.
 
 ### Add a check
 
-1. Add the kind to `FindingKind` in `src/checks/checks-logic.ts`.
-2. Read what it needs in `measurePage` in `src/checks/check-probes.ts`.
-3. Add the rule to `listFindings`, with a test for every branch.
-4. Add its text to `src/dashboard/en.json` and its row to the README Checks table.
+1. Add the kind to `FindingKind` in `src/checks/checks-logic.ts`, with its `listFindings` rule.
+2. Measure the page in `measurePage` in `src/checks/check-probes.ts`.
+3. Add the dashboard label to `src/dashboard/en.json`.
+4. Update the Checks section of `README.md`.
 
 ### Add a command
 
-1. Add its schema to `src/commands/commands-schema.ts` and to `hubCommandSchema`.
-2. Run it on each device page in `src/commands/commands-routes.ts`.
-3. Add its name and help page to `CLI_COMMAND_NAMES` and `COMMAND_HELPS` in `src/cli/cli-help-pages.ts`, and its flags to `src/cli/cli-flags.ts` and `src/cli/cli-logic.ts`.
-4. Add it to `src/skill/SKILL.md` and the README Commands table.
+1. Add the request shape to `hubCommandSchema` in `src/commands/commands-schema.ts`, and the handler in `src/commands/commands-routes.ts`.
+2. Add the name to `CLI_COMMAND_NAMES` and the help text to `COMMAND_HELPS` in `src/cli/cli-help-pages.ts`.
+3. Add its flags in `src/cli/cli-flags.ts` and its plan in `src/cli/cli-logic.ts`.
+4. Update `src/skill/SKILL.md` and the Commands table in `README.md`.
 
 ## Release
 
-- Bump `version` in `package.json` in a pull request and merge it.
-- Push a tag: `git tag v0.1.0` then `git push origin v0.1.0`. `publish.yml` runs on the tag and publishes to npm with provenance.
-- The site deploys by hand from your machine: `pnpm deploy:site` builds it and runs `wrangler deploy`. There is no GitHub workflow for it.
+1. Bump `version` in `package.json` in a pull request.
+2. After it merges, tag the commit: `git tag v0.1.0` and `git push origin v0.1.0`.
+3. `.github/workflows/publish.yml` runs on tags `v*.*.*`. It sets the version from the tag, runs typecheck, test and build, then publishes with provenance.
+4. Deploy the site by hand with `pnpm deploy:site`. No workflow does it.

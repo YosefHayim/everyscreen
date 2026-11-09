@@ -2,154 +2,79 @@
 
 Every name in the code, the CLI, the dashboard and the docs uses these words. A variable holds what its term says, nothing wider.
 
-**Device**
-One screen size the app runs on, such as `iphone-se`: an id, a name, a viewport, a pixel ratio, touch, a frame shape and a CPU slowdown.
-_Avoid_: screen, target, emulator, profile
+**Hub**: the local process that `start` runs. It opens the browsers and answers every command.
+_Avoid_: server, daemon, backend
 
-**Device catalog**
-The 59 devices Everyscreen can run, from Playwright's registry and its own list. The grid starts 12 of them by default.
-_Avoid_: device list, device library, presets, built-in devices
+**Device**: one browser viewport with a width, height and pixel ratio, identified by a device id.
+_Avoid_: screen, phone, viewport
 
-**Custom device**
-A device the user adds in `everyscreen.yaml` or with `devices add`.
-_Avoid_: user device, extra device, own device
+**Catalog device**: one of the 60 devices the hub knows, built in or added by us.
+_Avoid_: model, built-in device
 
-**Frame**
-The outline drawn around a device's screen, picked by its frame shape: home button, dynamic island, punch hole, tablet, laptop, kiosk.
-_Avoid_: bezel, skin, shell, mockup
+**Grid**: the devices a command runs on when you do not name one. It is 12 by default, set in `everyscreen.yaml`.
+_Avoid_: default devices, device list
 
-**Screen image**
-The latest live picture of one device's screen, sent as a JPEG in the live feed.
-_Avoid_: frame (for the picture), snapshot, capture, image
+**Custom device**: a device you add to `everyscreen.yaml` with `devices add`.
+_Avoid_: own device, user device
 
-**Grid**
-The dashboard view that shows every device at once.
-_Avoid_: wall, board, matrix, gallery
+**Command**: one action sent to the hub, such as `open` or `tap`.
+_Avoid_: request, call
 
-**Tile**
-One device inside the grid: its frame, screen image, status chip and estimates.
-_Avoid_: card, cell, panel
+**Reply**: the one line, or the one JSON object, that a command returns.
+_Avoid_: response, output
 
-**Hub**
-The local server on 127.0.0.1:4100 that owns the device browsers, the API, the live feed and the dashboard.
-_Avoid_: server, daemon, backend, host
+**Step**: one action or check recorded in a run.
+_Avoid_: action, event
 
-**Device browser**
-The one browser the hub starts for one device. Every page in it belongs to that device.
-_Avoid_: instance, worker, session
+**Run**: the record of one sweep, flow or group of commands. It has an id like `run-0001`.
+_Avoid_: session, job
 
-**Hub file**
-`.everyscreen/hub.json`, where the hub writes each device browser's endpoints.
-_Avoid_: lock file, state file, registry
+**Check**: one of the six built-in measurements of a page: `overflow`, `clipped-text`, `safe-area`, `tap-target`, `console-error` and `failed-request`.
+_Avoid_: lint, audit
 
-**Command**
-One action the CLI or a flow sends to the hub: open, tap, fill, scroll, check, shot, expect.
-_Avoid_: action, operation, instruction, request
+**Finding**: one problem a check reports on a page for one device.
+_Avoid_: issue, warning, violation
 
-**Reply**
-What the CLI prints for one command: one line, or one JSON object with `--json`.
-_Avoid_: output, result, response, message
+**Failure**: a device that failed a command, with its message and shot path.
+_Avoid_: error, miss
 
-**Run**
-One agent session, one flow, or one Playwright suite run, saved as `.everyscreen/runs/run-0412.json`.
-_Avoid_: session, job, execution, test run
+**Shot**: one screenshot of one device, saved under `.everyscreen/shots/`.
+_Avoid_: snapshot, image
 
-**Step**
-One command inside a run, with one device answer per device.
-_Avoid_: action, event, stage
+**Flow**: a YAML file in `flows/` that lists steps and devices, played by `run`.
+_Avoid_: test, script, scenario
 
-**Device answer**
-How one device did on one step: ok or failed, and how long it took.
-_Avoid_: result, outcome, response, status (for the whole object)
+**Sweep**: the command that visits the routes of one url and shots every device on each route.
+_Avoid_: crawl, scan
 
-**Run event**
-What the Playwright reporter sends the hub: run start, step end, run end.
-_Avoid_: message, update, notification
+**Route**: a path of your app that a sweep visits, found from links or listed in `everyscreen.yaml`.
+_Avoid_: link, page
 
-**Check**
-One of the six page rules: past the screen edge, clipped text, under the notch or home bar, small tap target, console error, failed request.
-_Avoid_: rule, test, audit, lint, assertion
+**Skill**: the `SKILL.md` file that teaches a coding agent the commands.
+_Avoid_: plugin, prompt
 
-**Measurements**
-The plain boxes and sizes the check probes read from a page.
-_Avoid_: metrics, stats, snapshot, dump
+**Agent**: the coding tool a skill is installed for: `claude`, `codex` or `cursor`.
+_Avoid_: assistant, bot
 
-**Finding**
-One problem a check found on one device. It pops a toast and goes into the report.
-_Avoid_: issue, error, warning, violation, problem
-
-**Proof**
-What a failed step keeps: the shot, the error message and the failing code block.
-_Avoid_: evidence, artifact, attachment (outside Playwright's own API)
-
-**Shot**
-One device's screenshot, saved under `.everyscreen/shots/`.
-_Avoid_: screenshot (in names), capture, picture
-
-**Report**
-The page and the file that show one run: steps, device answers, findings and proof.
-_Avoid_: summary, results page, log
-
-**Sample**
-One reading of a page's performance counters.
-_Avoid_: metric, tick, measurement
-
-**Estimate**
-The fps, CPU, memory and layout shift of a device, made from samples and always labeled "est.".
-_Avoid_: metric, benchmark, score, performance
-
-**Device load**
-One device's estimate at one moment, with an ok or warn status.
-_Avoid_: stats, perf, health
-
-**Status**
-How something went, in one word set: ok, warn or failed. Device answers, device loads, findings and tile chips all use it.
-_Avoid_: pass, fail, success, error
-
-**Route**
-One path of the app under test, such as `/pricing`, that a sweep visits.
-_Avoid_: page, url, screen, view
-
-**Sweep**
-One run that visits every route of the app on every chosen device and saves a shot of each.
-_Avoid_: crawl, scan, audit
-
-**Flow**
-A YAML file of steps that runs on a list of devices.
-_Avoid_: scenario, script, spec, journey, test
-
-**Suite**
-The user's own Playwright tests, run through Everyscreen without changes.
-_Avoid_: spec set, test files, project (Playwright's own word for one device)
-
-**Live feed**
-The WebSocket stream from the hub to the dashboard: screen images, findings, estimates and run updates.
-_Avoid_: stream, socket, events, channel
-
-**Skill**
-The agent instruction file that `everyscreen skill install` writes.
-_Avoid_: plugin, prompt, rules file
-
-**Agent**
-A coding agent (Claude Code, Codex, Cursor) that drives Everyscreen from the CLI.
-_Avoid_: bot, AI, assistant, LLM
+**Dashboard**: the web pages the hub serves at its address, with the grid, runs and devices.
+_Avoid_: UI, frontend, admin
 
 ## Swaps
 
-| Avoid                     | Use                           |
-| ------------------------- | ----------------------------- |
-| result, outcome, response | device answer, reply          |
-| issue, violation, warning | finding                       |
-| scenario, script, journey | flow                          |
-| session, job, test run    | run                           |
-| screenshot, capture       | shot                          |
-| metric, stats, perf       | sample, estimate, device load |
-| bezel, skin               | frame                         |
-| frame (the picture)       | screen image                  |
-| server, daemon            | hub                           |
-| card, cell                | tile                          |
-| action, request           | command                       |
-| output                    | reply                         |
-| pass, fail, success       | ok, failed                    |
-| crawl, scan               | sweep                         |
-| page, url (of the app)    | route                         |
+| Avoid                        | Use       |
+| ---------------------------- | --------- |
+| server, daemon               | hub       |
+| screen, phone, viewport      | device    |
+| default devices, device list | grid      |
+| request, call                | command   |
+| response, output             | reply     |
+| session, job                 | run       |
+| issue, warning, violation    | finding   |
+| error, miss                  | failure   |
+| snapshot, image              | shot      |
+| test, script, scenario       | flow      |
+| crawl, scan                  | sweep     |
+| link, page                   | route     |
+| plugin, prompt               | skill     |
+| assistant, bot               | agent     |
+| UI, frontend                 | dashboard |

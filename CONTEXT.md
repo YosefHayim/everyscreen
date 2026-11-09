@@ -1,41 +1,32 @@
 # Context
 
-Everyscreen is a local dev tool in one npm package: a CLI, a hub and a dashboard. The hub runs a web app in one browser per device, streams every screen to a grid, runs six checks, and answers each command with one line.
+Everyscreen is one npm package with three parts: a CLI, a hub and a dashboard. It runs a web app in one browser per device, so a coding agent can act on every screen size at once.
 
 ## Actors
 
-- **Developer**: starts the hub, watches the grid, adds devices, reads reports.
-- **Agent**: drives the hub through the CLI after `everyscreen skill install`, reads reply lines, opens a shot only when a step fails.
-- **Suite**: the user's Playwright tests, one Playwright project per device, each connected to that device's browser.
-- **App under test**: any web app on a URL, usually the dev server. Nothing is installed in it.
+- **Coding agent**: runs the CLI commands, reads each one-line reply, and uses the skill.
+- **Developer**: starts the hub, adds custom devices, writes flows, and reads the dashboard.
+- **Your app**: the web app under test, served on its own port, for example `localhost:3000`.
+- **Device browsers**: one Chromium or WebKit browser per device, started by the hub.
 
 ## Shape
 
-```
-CLI ── hc<HubApp> over HTTP ──► Hub (Hono, 127.0.0.1:4100)
-                                 ├─ device browsers: one per device, WebKit for iPhone and iPad, Chromium for the rest (launchServer)
-                                 │   └─ page watchers: screencast, estimates and console errors over CDP on Chromium;
-                                 │      one screen image per step on WebKit
-                                 ├─ runs store: .everyscreen/runs, .everyscreen/shots
-                                 ├─ live feed ── WebSocket /api/live ──► Dashboard (React, served by the hub)
-                                 └─ hub file: .everyscreen/hub.json
-playwright.config.ts ── listDevices() reads the hub file ──► device browsers
-everyscreen/test fixture ── screen images ──► Hub (live feed)
-Playwright reporter ── test and step events ──► Hub (live feed, runs store)
-everyscreen sweep ── one fresh page per route and device ──► shots in the runs store
-```
+- `src/cli/`: the `everyscreen` command. It reads the flags, sends one request to the hub, and prints one line or one JSON object.
+- `src/commands/`: the command schema and the hub routes that act on every device.
+- `src/devices/`: the catalog, the grid, custom devices and the device browsers.
+- `src/checks/`: the built-in checks that measure each page after a command acts.
+- `src/sweep/` and `src/flows/`: the runs that visit many routes or follow many steps.
+- `src/dashboard/`: the web pages the hub serves: the grid, runs and devices.
+- `src/playwright/`: the device list and reporter for your own Playwright tests.
+- `src/skill/`: the skill file and the installer for each coding agent.
 
 ## One command
 
-1. `everyscreen tap --role button --name Apply` posts one command to `/api/commands`.
-2. The hub runs it on each chosen device's page, one command at a time.
-3. Each device gives a device answer, and the checks add findings.
-4. The hub saves the step into the run and sends back the reply.
-5. The CLI prints the line (or one JSON object) and sets the exit code.
+`everyscreen open --url <url>` reaches the CLI, which sends the command to the hub. The hub opens the url on every device, runs the checks on each page, records the step in the current run, and sends back one reply. The CLI prints that reply and sets the exit code.
 
-## Files
+## Files in your app
 
-- `everyscreen.yaml`: the user's custom devices, grid list, viewport modes and sweep routes, committed in their repo.
-- `.everyscreen/`: the hub file, runs and shots, git-ignored.
-- `src/skill/SKILL.md`: what `everyscreen skill install` writes for agents.
-- `src/site/`: the landing page on everyscreen.jtslabs.dev, built from the dashboard's UI kit.
+- `.everyscreen/`: the hub state (`hub.json`, `hub.log`, `runs/`, `shots/`).
+- `everyscreen.yaml`: custom devices, routes and the grid.
+- `flows/*.yaml`: the flows that `run` plays.
+- `.claude/`, `.agents/` or `.cursor/` `skills/everyscreen/SKILL.md`: the skill, after `skill install`.
