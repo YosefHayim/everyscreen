@@ -369,6 +369,9 @@ test.describe("device grid", () => {
   test("the iPhone island is drawn on top of the page and the desktop window bars show the app URL", async ({
     page,
   }) => {
+    await page.route("**/api/commands/app", (route) =>
+      route.fulfill({ json: { appUrl: SHOP_URL } }),
+    );
     await page.goto(dashboardUrl);
     const phoneCutout = page
       .locator('[data-frame-family="phone-island"] [data-frame-cutout]')
@@ -384,7 +387,6 @@ test.describe("device grid", () => {
       );
       return topElement === cutoutElement;
     });
-    await page.getByRole("textbox", { name: "App URL" }).fill(SHOP_URL);
 
     expect(isCutoutOnTop).toBe(true);
     for (const windowFamily of WINDOW_FAMILIES) {

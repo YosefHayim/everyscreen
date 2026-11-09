@@ -1,17 +1,32 @@
-import type { FormEvent, ReactElement } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type ReactElement,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
-import { useAppUrl } from "@/dashboard/app-url/use-app-url";
+import { useOpenAppUrl } from "@/dashboard/app-url/use-open-app-url";
 import { useOpenApp } from "@/dashboard/grid/use-open-app";
 import { Icon } from "@/dashboard/ui/icon";
 
 export const AppUrlBar = (): ReactElement => {
   const { t } = useTranslation();
   const openApp = useOpenApp();
-  const { appUrl, changeAppUrl } = useAppUrl();
+  const openAppUrl = useOpenAppUrl();
+  // Null until the user types, so the bar shows the url the devices have open.
+  const [typedUrl, setTypedUrl] = useState<string | null>(null);
+  const shownAppUrl = typedUrl ?? openAppUrl;
 
   const openTypedUrl = (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
-    openApp.mutate(appUrl);
+    const isThereNoUrlToOpen = shownAppUrl === null;
+    if (isThereNoUrlToOpen) return;
+
+    openApp.mutate(shownAppUrl, { onSuccess: () => setTypedUrl(null) });
+  };
+
+  const handleUrlChange = (changeEvent: ChangeEvent<HTMLInputElement>) => {
+    setTypedUrl(changeEvent.target.value);
   };
 
   return (
@@ -25,8 +40,9 @@ export const AppUrlBar = (): ReactElement => {
           name="url"
           type="url"
           required
-          value={appUrl}
-          onChange={(changeEvent) => changeAppUrl(changeEvent.target.value)}
+          value={shownAppUrl ?? ""}
+          onChange={handleUrlChange}
+          placeholder={t("shell.urlPlaceholder")}
           aria-label={t("shell.urlLabel")}
           aria-invalid={openApp.isError}
           className="min-w-0 flex-1 border-0 bg-transparent font-mono text-xs text-ink outline-offset-4"
