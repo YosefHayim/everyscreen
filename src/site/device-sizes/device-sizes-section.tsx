@@ -9,7 +9,7 @@ import { SizeStrip } from "./size-strip";
 const CLI_CODE_LINES = [
   '$ everyscreen devices add --name "Lobby kiosk" \\',
   "    --width 1080 --height 1920 --touch",
-  "device added · lobby-kiosk · restart the hub to apply",
+  "device added · lobby-kiosk",
 ];
 const YAML_CODE_LINES = [
   "# everyscreen.yaml",

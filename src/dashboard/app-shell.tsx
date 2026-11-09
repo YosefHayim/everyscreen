@@ -3,10 +3,12 @@ import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { type ReactElement, useEffect, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  getDeviceListVersion,
   getLastRunMessage,
   subscribe,
 } from "@/dashboard/device-feed/live-store";
 import { useLiveStatus } from "@/dashboard/device-feed/use-live-status";
+import { deviceQueries } from "@/dashboard/devices/devices-queries";
 import { AppUrlBar } from "@/dashboard/grid/app-url-bar";
 import { DeviceSearchInput } from "@/dashboard/grid/device-search-input";
 import { AddDeviceButton } from "@/dashboard/picker/add-device-button";
@@ -27,6 +29,10 @@ export const AppShell = (): ReactElement => {
   const liveStatus = useLiveStatus();
   const queryClient = useQueryClient();
   const lastRunMessage = useSyncExternalStore(subscribe, getLastRunMessage);
+  const deviceListVersion = useSyncExternalStore(
+    subscribe,
+    getDeviceListVersion,
+  );
 
   // Each live run message reloads the saved runs, so the tile statuses follow the latest step.
   useEffect(() => {
@@ -37,6 +43,17 @@ export const AppShell = (): ReactElement => {
       queryKey: runQueries.list().queryKey,
     });
   }, [lastRunMessage, queryClient]);
+
+  // Each device list change from the hub reloads the devices, so a started or stopped device shows without a reload.
+  useEffect(() => {
+    const isThereNoDeviceListChange = deviceListVersion === 0;
+    if (isThereNoDeviceListChange) return;
+
+    void queryClient.invalidateQueries({
+      queryKey: deviceQueries.list().queryKey,
+    });
+  }, [deviceListVersion, queryClient]);
+
   const isLive = liveStatus === "open";
   const pathname = useRouterState({
     select: (routerState) => routerState.location.pathname,

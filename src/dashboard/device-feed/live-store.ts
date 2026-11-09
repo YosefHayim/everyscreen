@@ -45,6 +45,7 @@ interface LiveFeed {
   findings: Finding[];
   commandNotices: CommandNotice[];
   lastRunMessage: LastRunNotice | null;
+  deviceListVersion: number;
 }
 
 const connection: Connection = {
@@ -65,6 +66,7 @@ const liveFeed: LiveFeed = {
   findings: [],
   commandNotices: [],
   lastRunMessage: null,
+  deviceListVersion: 0,
 };
 
 const listeners = new Set<() => void>();
@@ -176,6 +178,9 @@ const applyLiveMessage = (liveMessage: LiveMessage): void => {
     case "run":
       liveFeed.lastRunMessage = { runId: liveMessage.runId };
       return;
+    case "device-list":
+      liveFeed.deviceListVersion += 1;
+      return;
   }
 };
 
@@ -250,6 +255,9 @@ export const getScreenImageUrl = (deviceId: string): string | null =>
 
 export const getLastRunMessage = (): LastRunNotice | null =>
   liveFeed.lastRunMessage;
+
+// Counts the hub's device list changes, so the dashboard knows to reload its devices.
+export const getDeviceListVersion = (): number => liveFeed.deviceListVersion;
 
 export const getDeviceLoad = (deviceId: string): DeviceLoad | null =>
   liveFeed.deviceLoads.get(deviceId) ?? null;

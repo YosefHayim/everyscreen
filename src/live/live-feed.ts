@@ -17,6 +17,7 @@ export type LiveMessage =
   | ({ kind: "run-totals" } & RunTotals)
   | { kind: "finding"; finding: Finding }
   | { kind: "run"; runId: string }
+  | { kind: "device-list" }
   | { kind: "command"; commandNotice: CommandNotice };
 
 const MAX_REPLAYED_COMMANDS = 8;
@@ -110,6 +111,7 @@ export const broadcast = (
     case "estimate":
     case "finding":
     case "run":
+    case "device-list":
       break;
   }
   for (const listener of listeners) listener(message);

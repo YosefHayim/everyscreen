@@ -299,7 +299,7 @@
     "agent": {
       "title": "Or let your agent add it",
       "subtitle": "The same device from the CLI, or in everyscreen.yaml so the whole team gets it.",
-      "reply": "device added · lobby-kiosk · restart the hub to apply"
+      "reply": "device added · lobby-kiosk"
     }
   },
   "estimates": {

@@ -5,6 +5,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { WebSocketServer } from "ws";
+import { pickOpenApp } from "@/commands/commands-logic";
 import {
   type DeviceBrowser,
   type DevicePage,
@@ -23,7 +24,7 @@ import type { HubFile } from "@/hub/hub-file";
 import { writeProblem } from "@/hub/problem-reply";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import { writeStoredFile } from "@/hub/stored-files";
-import { forgetDeviceScreen } from "@/live/live-feed";
+import { broadcast, forgetDeviceScreen } from "@/live/live-feed";
 import { liveRoutes } from "@/live/live-routes";
 import { closeInteractiveRun } from "@/runs/interactive-run";
 import { closeLeftOpenRuns } from "@/runs/runs-store";
@@ -68,6 +69,30 @@ const startGridDevice = async (device: DevicePreset): Promise<GridDevice> => {
     await deviceBrowser.stop();
     throw error;
   }
+};
+
+const openAppUrlOnDevice = async (
+  { device, devicePage }: GridDevice,
+  appUrl: string,
+): Promise<void> => {
+  try {
+    await devicePage.page.goto(appUrl);
+  } catch (error) {
+    console.error({ deviceId: device.id, error });
+  }
+};
+
+const openAppUrlOnDevices = async (
+  gridDevices: GridDevice[],
+  appUrl: string | null,
+): Promise<void> => {
+  const isThereNoAppUrl = appUrl === null;
+  if (isThereNoAppUrl) return;
+
+  const openingDevices = gridDevices.map((gridDevice) =>
+    openAppUrlOnDevice(gridDevice, appUrl),
+  );
+  await Promise.all(openingDevices);
 };
 
 const stopGridDevices = async (gridDevices: GridDevice[]): Promise<void> => {
@@ -139,6 +164,8 @@ const createGridSync =
   ): GridSync =>
   (nextDevices) =>
     runOneAtATime(GRID_SYNC_QUEUE_KEY, async () => {
+      const pageUrls = devicePages.map(({ page }) => page.url());
+      const { appUrl } = pickOpenApp(pageUrls);
       const runningDeviceIds = gridDevices.map(({ device }) => device.id);
       const gridChanges = pickGridChanges(runningDeviceIds, nextDevices);
       const { addDevices, removeDeviceIds } = gridChanges;
@@ -158,7 +185,9 @@ const createGridSync =
       const startedDevices = await startGridDevices(addDevices);
       gridDevices.push(...startedDevices);
       devicePages.push(...startedDevices.map(({ devicePage }) => devicePage));
+      await openAppUrlOnDevices(startedDevices, appUrl);
       await writeCurrentHubFile();
+      broadcast({ kind: "device-list" });
     });
 
 const createHubServerApp = (

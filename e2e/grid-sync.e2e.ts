@@ -77,4 +77,41 @@ test.describe("grid changes on a running hub", () => {
     expect(removeReply.status).toBe(200);
     expect(await readHubDeviceIds(rootFolder)).toEqual(["pixel-10"]);
   });
+
+  test("a custom device added through the devices route starts, and a removed one stops, with a device list change sent", async () => {
+    const addReply = await fetch(`${runningHub.url}/api/devices`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Lobby kiosk",
+        width: 1080,
+        height: 1920,
+        hasTouch: true,
+      }),
+    });
+
+    expect(addReply.status).toBe(201);
+    await expect
+      .poll(() =>
+        liveMessages.some(
+          (liveMessage) =>
+            liveMessage.kind === "screen" &&
+            liveMessage.deviceId === "lobby-kiosk",
+        ),
+      )
+      .toBe(true);
+    expect(liveMessages.some(({ kind }) => kind === "device-list")).toBe(true);
+    expect(await readHubDeviceIds(rootFolder)).toEqual([
+      "pixel-10",
+      "lobby-kiosk",
+    ]);
+
+    const removeReply = await fetch(
+      `${runningHub.url}/api/devices/lobby-kiosk`,
+      { method: "DELETE" },
+    );
+
+    expect(removeReply.status).toBe(200);
+    expect(await readHubDeviceIds(rootFolder)).toEqual(["pixel-10"]);
+  });
 });

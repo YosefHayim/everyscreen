@@ -396,13 +396,11 @@ test.describe("the everyscreen command line", () => {
       "--yes",
     ]);
 
-    expect(addRun.commandReply.line).toContain("device added · tiny-phone");
+    expect(addRun.commandReply.line).toBe("device added · tiny-phone");
     expect(listRun.commandReply.line).toMatch(/^13 devices · .*tiny-phone$/);
     expect(removeWithoutYesRun.exitCode).toBe(2);
     expect(removeWithoutYesRun.commandReply.line).toContain("--yes");
-    expect(removeRun.commandReply.line).toContain(
-      "device removed · tiny-phone",
-    );
+    expect(removeRun.commandReply.line).toBe("device removed · tiny-phone");
     expect(removeAgainRun.exitCode).toBe(2);
     expect(removeAgainRun.commandReply.line).toContain(
       "no custom device tiny-phone · there are no custom devices",
