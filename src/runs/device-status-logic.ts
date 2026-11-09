@@ -31,8 +31,9 @@ export const pickDeviceStatus = (
   deviceId: string,
   runSteps: RunStep[],
 ): DeviceStatus | null => {
-  const isDeviceInRun = listDeviceIds(runSteps).includes(deviceId);
-  if (!isDeviceInRun) return null;
+  const runDeviceIds = listDeviceIds(runSteps);
+  const isDeviceMissingFromRun = !runDeviceIds.includes(deviceId);
+  if (isDeviceMissingFromRun) return null;
 
   const hasFailedAnswer = runSteps.some((runStep) =>
     runStep.deviceAnswers.some(

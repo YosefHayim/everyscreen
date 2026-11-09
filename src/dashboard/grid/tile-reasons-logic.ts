@@ -10,19 +10,18 @@ const listAnswerReasons = (
   deviceId: string,
   runSteps: RunStep[],
 ): TileReason[] =>
-  runSteps.flatMap((runStep) =>
-    runStep.deviceAnswers.flatMap((deviceAnswer) => {
-      const isFailedAnswerOfDevice =
-        deviceAnswer.deviceId === deviceId && deviceAnswer.status === "failed";
-      if (!isFailedAnswerOfDevice) return [];
-
-      const answerReason: TileReason = {
+  runSteps
+    .flatMap((runStep) => runStep.deviceAnswers)
+    .filter(
+      (deviceAnswer) =>
+        deviceAnswer.deviceId === deviceId && deviceAnswer.status === "failed",
+    )
+    .map(
+      (deviceAnswer): TileReason => ({
         kind: "answer",
         message: deviceAnswer.message,
-      };
-      return [answerReason];
-    }),
-  );
+      }),
+    );
 
 const listFindingReasons = (
   deviceId: string,

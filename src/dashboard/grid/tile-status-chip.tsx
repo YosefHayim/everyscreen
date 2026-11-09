@@ -17,6 +17,7 @@ export const TileStatusChip = ({
   const { t } = useTranslation();
   const latestRunSteps = useLatestRunSteps();
   const status = pickDeviceStatus(deviceId, latestRunSteps);
+
   const isDeviceMissingFromRun = status === null;
   if (isDeviceMissingFromRun) return null;
 

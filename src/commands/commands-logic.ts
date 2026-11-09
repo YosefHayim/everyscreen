@@ -88,8 +88,8 @@ export const listDeviceFailures = (runStep: RunStep): DeviceFailure[] =>
         finding.deviceId === deviceAnswer.deviceId &&
         finding.severity === "failed",
     );
-    const hasFailedFinding = failedFinding !== undefined;
-    if (!hasFailedFinding) return [];
+    const isThereNoFailedFinding = failedFinding == null;
+    if (isThereNoFailedFinding) return [];
 
     return [
       {
