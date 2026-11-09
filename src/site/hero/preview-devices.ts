@@ -17,11 +17,11 @@ export interface PreviewDevice {
 
 export const PREVIEW_DEVICES: PreviewDevice[] = [
   {
-    id: "iphone-15",
+    id: "iphone-17",
     frameShape: "dynamic-island",
-    viewportWidth: 393,
-    viewportHeight: 852,
-    screenWidth: 141,
+    viewportWidth: 402,
+    viewportHeight: 874,
+    screenWidth: 145,
     frameRate: 60,
     cartTopInset: 24,
     badge: "passed",
@@ -41,11 +41,11 @@ export const PREVIEW_DEVICES: PreviewDevice[] = [
     isHiddenOnPhone: false,
   },
   {
-    id: "pixel-8",
+    id: "pixel-10",
     frameShape: "punch-hole",
-    viewportWidth: 412,
-    viewportHeight: 915,
-    screenWidth: 148,
+    viewportWidth: 360,
+    viewportHeight: 808,
+    screenWidth: 130,
     frameRate: 58,
     cartTopInset: 22,
     badge: "passed",

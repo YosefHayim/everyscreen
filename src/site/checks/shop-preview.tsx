@@ -12,11 +12,11 @@ const TOAST_IDS = ["notch", "tap", "clipped"];
 const FLAGGED_CLASS_NAME = "border border-dashed border-amber bg-amber/10";
 
 const SHOP_FRAME_SPEC = createDefaultFrameSpec("dynamic-island", {
-  width: 393,
-  height: 852,
+  width: 402,
+  height: 874,
 });
 const SHOP_FRAME_LAYOUT = pickFrameLayout(SHOP_FRAME_SPEC);
-const SHOP_FRAME_SCALE = 172 / 393;
+const SHOP_FRAME_SCALE = 172 / 402;
 
 export const ShopPreview = (): ReactElement => {
   const { t } = useTranslation();

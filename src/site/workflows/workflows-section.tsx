@@ -20,7 +20,7 @@ const WORKFLOW_CARDS: WorkflowCardEntry[] = [
     codeLines: [
       "# flows/checkout.yaml",
       "name: Checkout with a coupon",
-      "devices: [iphone-se, iphone-15, pixel-8]",
+      "devices: [iphone-se, iphone-17, pixel-10]",
       "steps:",
       "  - open: http://localhost:5173/cart",
       "  - fill: { role: textbox, name: Coupon, with: SPRING }",
@@ -36,7 +36,7 @@ const WORKFLOW_CARDS: WorkflowCardEntry[] = [
       'import { listDevices } from "everyscreen/playwright";',
       "",
       "export default defineConfig({",
-      '  projects: listDevices(["iphone-se", "pixel-8"]),',
+      '  projects: listDevices(["iphone-se", "pixel-10"]),',
       '  reporter: [["list"], ["everyscreen/reporter"]],',
       "});",
     ],
