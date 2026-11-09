@@ -39,17 +39,31 @@ const DEFAULT_PIXEL_RATIO = 1;
 const isOriginRelativeRoute = (route: string): boolean =>
   route.startsWith("/") && !route.startsWith("//");
 
+// Each message reads after "bad usage · devices add ", so it names the flag and what to pass.
+const createSizeSchema = (flagName: string) => {
+  const sizeMessage = `--${flagName} must be a whole number from ${MIN_DEVICE_SIZE} to ${MAX_DEVICE_SIZE}`;
+  return z
+    .number({ error: sizeMessage })
+    .int({ error: sizeMessage })
+    .min(MIN_DEVICE_SIZE, { error: sizeMessage })
+    .max(MAX_DEVICE_SIZE, { error: sizeMessage });
+};
+
+const PIXEL_RATIO_MESSAGE = `--pixel-ratio must be a number from ${MIN_PIXEL_RATIO} to ${MAX_PIXEL_RATIO}`;
+
 export const customDeviceSchema = z.object({
   name: z
-    .string()
-    .max(MAX_DEVICE_NAME_LENGTH)
-    .regex(DEVICE_NAME_PATTERN, "Use a letter or digit in the name"),
-  width: z.number().int().min(MIN_DEVICE_SIZE).max(MAX_DEVICE_SIZE),
-  height: z.number().int().min(MIN_DEVICE_SIZE).max(MAX_DEVICE_SIZE),
+    .string({ error: "needs --name <device name>" })
+    .max(MAX_DEVICE_NAME_LENGTH, {
+      error: `--name must be ${MAX_DEVICE_NAME_LENGTH} characters or less`,
+    })
+    .regex(DEVICE_NAME_PATTERN, "--name needs a letter or digit"),
+  width: createSizeSchema("width"),
+  height: createSizeSchema("height"),
   pixelRatio: z
-    .number()
-    .min(MIN_PIXEL_RATIO)
-    .max(MAX_PIXEL_RATIO)
+    .number({ error: PIXEL_RATIO_MESSAGE })
+    .min(MIN_PIXEL_RATIO, { error: PIXEL_RATIO_MESSAGE })
+    .max(MAX_PIXEL_RATIO, { error: PIXEL_RATIO_MESSAGE })
     .default(DEFAULT_PIXEL_RATIO),
   hasTouch: z.boolean().default(false),
   frameShape: z.enum(FRAME_SHAPES).default("kiosk"),

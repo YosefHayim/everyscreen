@@ -4,6 +4,7 @@ import { DEVICE_CATALOG } from "@/devices/device-catalog";
 import type { CustomDevice, DevicesFile } from "@/devices/device-schema";
 import { FRAME_SHAPE_INSETS } from "@/devices/frame-shape-insets";
 import { CPU_TIERS } from "@/environment";
+import { BAD_REQUEST_STATUS } from "@/hub/problem-reply";
 
 export type BrowserName = "chromium" | "webkit" | "firefox";
 
@@ -103,8 +104,6 @@ export interface DevicePreset extends DeviceIdentity {
   use: BrowserContextOptions;
 }
 
-const DEVICE_ID_CLASH_STATUS = 409;
-const DEVICE_MISSING_STATUS = 404;
 const UNKNOWN_DEVICE_STATUS = 422;
 const NON_ID_CHARACTERS = /[^\p{L}\p{N}]+/gu;
 const EDGE_DASHES = /^-|-$/g;
@@ -317,12 +316,29 @@ export const checkNewDevice = (
     (takenDevice) => takenDevice.id === newDeviceId,
   );
   if (isIdTaken) {
-    throw new HTTPException(DEVICE_ID_CLASH_STATUS, {
-      message: `A device with id ${newDeviceId} already exists`,
+    throw new HTTPException(BAD_REQUEST_STATUS, {
+      message: `a device with id ${newDeviceId} already exists · use another name`,
     });
   }
 
   return customDevice;
+};
+
+// Names the custom devices that can be removed, so the caller can pass one of them.
+const createMissingCustomDeviceMessage = (
+  devicesFile: DevicesFile,
+  deviceId: string,
+): string => {
+  const customIds = devicesFile.devices.map((customDevice) =>
+    pickDeviceId(customDevice.name),
+  );
+
+  const isNoCustomDevice = customIds.length === 0;
+  if (isNoCustomDevice) {
+    return `no custom device ${deviceId} · there are no custom devices`;
+  }
+
+  return `no custom device ${deviceId} · custom devices: ${customIds.join(", ")}`;
 };
 
 export const checkDeviceRemoval = (
@@ -333,8 +349,8 @@ export const checkDeviceRemoval = (
     hasDeviceId(customDevice, deviceId),
   );
   if (isCustomDeviceMissing) {
-    throw new HTTPException(DEVICE_MISSING_STATUS, {
-      message: `No custom device with id ${deviceId}`,
+    throw new HTTPException(BAD_REQUEST_STATUS, {
+      message: createMissingCustomDeviceMessage(devicesFile, deviceId),
     });
   }
 

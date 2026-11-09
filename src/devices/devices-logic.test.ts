@@ -305,18 +305,30 @@ describe("checkDeviceRemoval", () => {
     expect(keptFile.grid).toEqual(DEFAULT_GRID_IDS);
   });
 
-  test("rejects an id that is not a custom device with 404", () => {
+  test("rejects an id that is not a custom device with 400 and lists the custom ids", () => {
     const devicesFile = createDevicesFile({ devices: [TOUCH_KIOSK] });
 
     const presetStatus = readStatus(() =>
       checkDeviceRemoval(devicesFile, "iphone-se"),
     );
-    const emptyStatus = readStatus(() =>
-      checkDeviceRemoval(createDevicesFile({}), "shop-kiosk"),
-    );
+    const presetCall = () => checkDeviceRemoval(devicesFile, "iphone-se");
 
-    expect(presetStatus).toBe(404);
-    expect(emptyStatus).toBe(404);
+    expect(presetStatus).toBe(400);
+    expect(presetCall).toThrow(
+      "no custom device iphone-se · custom devices: shop-kiosk",
+    );
+  });
+
+  test("says there are no custom devices when none can be removed", () => {
+    const emptyFile = createDevicesFile({});
+    const emptyCall = () => checkDeviceRemoval(emptyFile, "shop-kiosk");
+
+    const emptyStatus = readStatus(emptyCall);
+
+    expect(emptyStatus).toBe(400);
+    expect(emptyCall).toThrow(
+      "no custom device shop-kiosk · there are no custom devices",
+    );
   });
 });
 

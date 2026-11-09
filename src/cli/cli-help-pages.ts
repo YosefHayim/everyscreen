@@ -108,7 +108,7 @@ export const COMMAND_HELPS = {
     ],
   },
   check: {
-    summary: "Run the six layout checks on the current page",
+    summary: "Run the six checks on the current page",
     usage: "everyscreen check [--device <id>]",
     flagHelps: [DEVICE_FLAG_HELP],
   },

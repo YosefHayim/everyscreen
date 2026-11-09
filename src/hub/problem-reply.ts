@@ -5,7 +5,8 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 const PROBLEM_CONTENT_TYPE = "application/problem+json";
 const INTERNAL_ERROR_STATUS = 500;
-const BAD_REQUEST_STATUS = 400;
+// A 400 means the value the caller sent is wrong; the CLI shows it as bad usage (exit 2).
+export const BAD_REQUEST_STATUS = 400;
 
 interface Problem {
   type: "about:blank";

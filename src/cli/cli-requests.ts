@@ -1,8 +1,8 @@
+import { HTTPException } from "hono/http-exception";
 import {
   type CliRequest,
   createDeviceListLine,
   createHubDownReply,
-  createNeedsYesReply,
   createReply,
   createRunningLine,
 } from "@/cli/cli-logic";
@@ -22,6 +22,7 @@ import type { BeforeStep, SweepCommand } from "@/commands/commands-schema";
 import type { CustomDevice } from "@/devices/device-schema";
 import { listFlowPaths, readFlow, runFlows } from "@/flows/flow-runner";
 import { listFlowCommands, summarizeFlows } from "@/flows/flows-logic";
+import { BAD_REQUEST_STATUS } from "@/hub/problem-reply";
 import { readStoredFile } from "@/hub/stored-files";
 import type { SkillAgent } from "@/skill/skill-agents";
 import { installSkill, pickSkillFile } from "@/skill/skill-install";
@@ -74,14 +75,11 @@ const addDevice = (
     );
   });
 
-const removeDevice = async (
+const removeDevice = (
   rootFolder: string,
   deviceId: string,
-  isConfirmed: boolean,
-): Promise<CommandReply> => {
-  const isRefused = !isConfirmed;
-  if (isRefused) return createNeedsYesReply("devices remove");
-  return callHub(rootFolder, async (hubClient) => {
+): Promise<CommandReply> =>
+  callHub(rootFolder, async (hubClient) => {
     const removeReply = await hubClient.api.devices[":deviceId"].$delete({
       param: { deviceId },
     });
@@ -89,17 +87,23 @@ const removeDevice = async (
     if (isRemoveRefused) return readProblemReply(removeReply);
     return createReply("ok", `device removed · ${deviceId} · ${RESTART_HINT}`);
   });
-};
 
 const runFlowFiles = async (
   rootFolder: string,
   flowsGlob: string,
   parallel: number,
 ): Promise<CommandReply> => {
+  const flowPaths = await listFlowPaths(rootFolder, flowsGlob);
+  const isNoFlowFileMatched = flowPaths.length === 0;
+  if (isNoFlowFileMatched) {
+    throw new HTTPException(BAD_REQUEST_STATUS, {
+      message: `no flow file matches ${flowsGlob}`,
+    });
+  }
+
   const hubFile = await readHubFile(rootFolder);
   const isHubFileMissing = hubFile === null;
   if (isHubFileMissing) return createHubDownReply();
-  const flowPaths = await listFlowPaths(rootFolder, flowsGlob);
   const flowAnswers = await runFlows(rootFolder, flowPaths, parallel);
   return summarizeFlows(flowAnswers);
 };
@@ -142,7 +146,12 @@ const installAgentSkill = async (
   const oldSkill = await readStoredFile(skillFile);
   const isOverwrite = oldSkill !== null;
   const isRefused = isOverwrite && !isConfirmed;
-  if (isRefused) return createNeedsYesReply("skill install");
+  if (isRefused) {
+    throw new HTTPException(BAD_REQUEST_STATUS, {
+      message:
+        "skill install needs --yes to replace the skill already installed",
+    });
+  }
   const installedFile = await installSkill(agent, rootFolder);
   return createReply("ok", `skill installed · ${installedFile}`);
 };
@@ -170,11 +179,7 @@ export const runCliRequest = (
     case "add-device":
       return addDevice(rootFolder, cliRequest.customDevice);
     case "remove-device":
-      return removeDevice(
-        rootFolder,
-        cliRequest.deviceId,
-        cliRequest.isConfirmed,
-      );
+      return removeDevice(rootFolder, cliRequest.deviceId);
     case "run-flows":
       return runFlowFiles(
         rootFolder,

@@ -24,33 +24,40 @@ const ARIA_ROLES = [
 const DEFAULT_MAX_ROUTES = 50;
 const MAX_SWEEP_ROUTES = 500;
 
+// Each message reads after "bad usage · <command> ", so it names the flag and what to pass.
+const URL_MESSAGE = "needs --url <web address, like https://example.com>";
+const ROLE_MESSAGE = `needs --role <one of ${ARIA_ROLES.join(", ")}>`;
+const NAME_MESSAGE = "needs --name <text>";
+const MAX_ROUTES_MINIMUM_MESSAGE =
+  "--max-routes must be a whole number of 1 or more";
+
 // null means every device in the grid.
 const deviceIdsSchema = z.array(z.string()).nullable();
 
 export const openCommandSchema = z.object({
   commandName: z.literal("open"),
-  url: z.url(),
+  url: z.url({ error: URL_MESSAGE }),
   deviceIds: deviceIdsSchema,
 });
 
 export const tapCommandSchema = z.object({
   commandName: z.literal("tap"),
-  role: z.enum(ARIA_ROLES),
-  name: z.string(),
+  role: z.enum(ARIA_ROLES, { error: ROLE_MESSAGE }),
+  name: z.string({ error: NAME_MESSAGE }),
   deviceIds: deviceIdsSchema,
 });
 
 export const fillCommandSchema = z.object({
   commandName: z.literal("fill"),
-  role: z.enum(ARIA_ROLES),
-  name: z.string(),
-  with: z.string(),
+  role: z.enum(ARIA_ROLES, { error: ROLE_MESSAGE }),
+  name: z.string({ error: NAME_MESSAGE }),
+  with: z.string({ error: "needs --with <text>" }),
   deviceIds: deviceIdsSchema,
 });
 
 export const scrollCommandSchema = z.object({
   commandName: z.literal("scroll"),
-  to: z.enum(["top", "bottom"]),
+  to: z.enum(["top", "bottom"], { error: "needs --to top or bottom" }),
   deviceIds: deviceIdsSchema,
 });
 
@@ -66,7 +73,7 @@ const shotCommandSchema = z.object({
 
 export const expectCommandSchema = z.object({
   commandName: z.literal("expect"),
-  text: z.string(),
+  text: z.string({ error: "needs --text <text>" }),
   deviceIds: deviceIdsSchema,
 });
 
@@ -82,17 +89,22 @@ const beforeStepSchema = z.discriminatedUnion("commandName", [
 
 export const sweepCommandSchema = z.object({
   commandName: z.literal("sweep"),
-  url: z.url(),
+  url: z.url({ error: URL_MESSAGE }),
   // null means every device in the grid; "all" adds the catalog devices that are not on the grid.
   deviceIds: z
-    .union([z.literal("all"), z.array(z.string().min(1)).min(1)])
+    .union([z.literal("all"), z.array(z.string().min(1)).min(1)], {
+      error:
+        "--devices must be all or a list of device ids, like iphone-17,pixel-10",
+    })
     .nullable()
     .default(null),
   maxRoutes: z
-    .number()
-    .int()
-    .positive()
-    .max(MAX_SWEEP_ROUTES)
+    .number({ error: MAX_ROUTES_MINIMUM_MESSAGE })
+    .int({ error: MAX_ROUTES_MINIMUM_MESSAGE })
+    .positive({ error: MAX_ROUTES_MINIMUM_MESSAGE })
+    .max(MAX_SWEEP_ROUTES, {
+      error: `--max-routes must be ${MAX_SWEEP_ROUTES} or less`,
+    })
     .default(DEFAULT_MAX_ROUTES),
   // Steps that run once on each device before its routes, in the same browser context.
   beforeSteps: z.array(beforeStepSchema).nullable().default(null),

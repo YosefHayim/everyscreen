@@ -474,13 +474,13 @@ describe("pickSweepDevices", () => {
       pickSweepDevices(["pixel-8", "nokia-3310"], runningIds, catalogIds);
 
     expect(sweepWithUnknownId).toThrow(HTTPException);
-    expect(sweepWithUnknownId).toThrow("No device nokia-3310");
+    expect(sweepWithUnknownId).toThrow("no device nokia-3310 · devices:");
   });
 
   test("throws when the grid is empty and no devices are named", () => {
     const sweepWithoutGrid = () => pickSweepDevices(null, [], catalogIds);
 
-    expect(sweepWithoutGrid).toThrow("No device is running");
+    expect(sweepWithoutGrid).toThrow("no device is running");
   });
 });
 
