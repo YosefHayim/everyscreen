@@ -32,7 +32,7 @@
     "runName": "checkout.yaml",
     "runStep": "Step 4 of 7 · tap “Apply”",
     "okLabel": "ok",
-    "findingLabel": "finding",
+    "warnLabel": "warn",
     "addDevice": "Add device",
     "runsHeading": "Runs",
     "queueHeading": "Queue",

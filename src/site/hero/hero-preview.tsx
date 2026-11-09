@@ -36,7 +36,7 @@ export const HeroPreview = (): ReactElement => {
         <span className="flex h-7 items-center gap-1.5 rounded-full bg-warn-soft px-2.5 text-[12.5px] font-medium text-warn">
           <SiteIcon name="finding" size={13} strokeWidth={2.2} />
           <span className="count-find" />
-          {t("preview.findingLabel")}
+          {t("preview.warnLabel")}
         </span>
         <span className="hidden h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-[13px] md:inline-flex">
           <SiteIcon name="add-device" size={15} />
