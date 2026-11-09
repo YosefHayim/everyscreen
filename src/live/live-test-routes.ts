@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { rejectInvalidRequest } from "@/hub/problem-reply";
 import { broadcast, forgetTests } from "@/live/live-feed";
 import {
+  runSavedSchema,
   runTotalsSchema,
   stepEventSchema,
   testEventSchema,
@@ -49,6 +50,15 @@ export const createLiveTestRoutes = () =>
         const runTotals = c.req.valid("json");
         broadcast({ kind: "run-totals", ...runTotals });
         watchRun(runTotals);
+        return c.body(null, NO_CONTENT_STATUS);
+      },
+    )
+    .post(
+      "/run-saved",
+      zValidator("json", runSavedSchema, rejectInvalidRequest),
+      (c) => {
+        const { runId } = c.req.valid("json");
+        broadcast({ kind: "run", runId });
         return c.body(null, NO_CONTENT_STATUS);
       },
     )

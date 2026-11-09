@@ -5,6 +5,7 @@ import type { HubCommand } from "@/commands/commands-schema";
 import type { DevicePage } from "@/devices/device-browsers";
 import type { DevicePreset } from "@/devices/devices-logic";
 import { STORE_FOLDER } from "@/environment";
+import { countDeviceStatuses } from "@/runs/device-status-logic";
 import type { RunStep, StepProof } from "@/runs/runs-logic";
 
 const NO_DEVICE_STATUS = 404;
@@ -38,6 +39,7 @@ export interface CommandReply {
 export interface ReplyTally {
   unit: "device" | "flow";
   okCount: number;
+  warnCount: number;
   failedCount: number;
   runId: string | null;
 }
@@ -54,15 +56,19 @@ export const countUnits = (count: number, unit: CountedUnit): string => {
 };
 
 export const createReplyLine = (replyTally: ReplyTally): string => {
-  const { unit, okCount, failedCount, runId } = replyTally;
-  const totalCount = okCount + failedCount;
+  const { unit, okCount, warnCount, failedCount, runId } = replyTally;
+  const totalCount = okCount + warnCount + failedCount;
   const isNothingCounted = totalCount === 0;
   if (isNothingCounted) {
     return `${countUnits(0, unit)} · no ${unit} answered`;
   }
+  const hasWarning = warnCount > 0;
   const hasFailure = failedCount > 0;
   const hasRun = runId !== null;
   const lineParts = [countUnits(totalCount, unit), `${okCount} ok`];
+  if (hasWarning) {
+    lineParts.push(`${warnCount} warn`);
+  }
   if (hasFailure) {
     lineParts.push(`${failedCount} failed`);
   }
@@ -72,16 +78,45 @@ export const createReplyLine = (replyTally: ReplyTally): string => {
   return lineParts.join(" · ");
 };
 
+export const listDeviceFailures = (runStep: RunStep): DeviceFailure[] =>
+  runStep.deviceAnswers.flatMap((deviceAnswer): DeviceFailure[] => {
+    const isFailedAnswer = isFailure(deviceAnswer);
+    if (isFailedAnswer) return [deviceAnswer];
+
+    const failedFinding = runStep.findings.find(
+      (finding) =>
+        finding.deviceId === deviceAnswer.deviceId &&
+        finding.severity === "failed",
+    );
+    const isThereNoFailedFinding = failedFinding == null;
+    if (isThereNoFailedFinding) return [];
+
+    return [
+      {
+        status: "failed",
+        deviceId: deviceAnswer.deviceId,
+        durationMs: deviceAnswer.durationMs,
+        message: failedFinding.message,
+        shotPath: deviceAnswer.shotPath,
+      },
+    ];
+  });
+
 export const summarizeCommand = (
-  deviceAnswers: DeviceAnswer[],
+  runStep: RunStep,
   runId: string | null,
 ): CommandReply => {
-  const failures = deviceAnswers.filter(isFailure);
-  const failedCount = failures.length;
-  const okCount = deviceAnswers.length - failedCount;
-  const isEveryDeviceOk = failedCount === 0 && okCount > 0;
-  const status = isEveryDeviceOk ? "ok" : "failed";
-  const line = createReplyLine({ unit: "device", okCount, failedCount, runId });
+  const failures = listDeviceFailures(runStep);
+  const { okCount, warnCount, failedCount } = countDeviceStatuses([runStep]);
+  const isNoDeviceFailed = failedCount === 0 && okCount + warnCount > 0;
+  const status = isNoDeviceFailed ? "ok" : "failed";
+  const line = createReplyLine({
+    unit: "device",
+    okCount,
+    warnCount,
+    failedCount,
+    runId,
+  });
   return { status, line, runId, failures };
 };
 

@@ -1,7 +1,5 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { useDeviceLoad } from "@/dashboard/device-feed/use-device-load";
-import { useFindings } from "@/dashboard/device-feed/use-findings";
 import { useScreenImage } from "@/dashboard/device-feed/use-screen-image";
 import type { DeviceView } from "@/dashboard/devices/device-view-logic";
 import { FocusEstimates } from "@/dashboard/focus/focus-estimates";
@@ -12,8 +10,7 @@ import {
   pickFrameLayout,
 } from "@/dashboard/frames/frame-layout-logic";
 import { pickScreenUpdate } from "@/dashboard/grid/screen-update-logic";
-import { pickTileStatus } from "@/dashboard/grid/tile-status-logic";
-import { StatusChip } from "@/dashboard/ui/status-chip";
+import { TileStatusChip } from "@/dashboard/grid/tile-status-chip";
 
 const FOCUS_BOX = { width: 420, height: 720 };
 // The waiting text stays this many screen px tall whatever the frame scale.
@@ -27,9 +24,6 @@ export const FocusDevice = ({ device }: FocusDeviceProps): ReactElement => {
   const { t } = useTranslation();
   const { deviceId, name, browserName } = device;
   const screenImageUrl = useScreenImage(deviceId);
-  const deviceLoad = useDeviceLoad(deviceId);
-  const findings = useFindings();
-  const status = pickTileStatus(deviceId, findings, deviceLoad);
   const screenUpdate = pickScreenUpdate(browserName);
   const hasScreenImage = screenImageUrl !== null;
   const frameLayout = pickFrameLayout(device);
@@ -40,7 +34,7 @@ export const FocusDevice = ({ device }: FocusDeviceProps): ReactElement => {
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="m-0 text-2xl font-medium tracking-[-0.02em]">{name}</h1>
-        <StatusChip status={status} label={t(`tile.status.${status}`)} />
+        <TileStatusChip deviceId={deviceId} />
         <p className="m-0 font-mono text-xs text-ink-2">
           {t(`tile.engines.${browserName}`)} &middot;{" "}
           {t(`tile.${screenUpdate}`)} &middot;{" "}
@@ -59,7 +53,7 @@ export const FocusDevice = ({ device }: FocusDeviceProps): ReactElement => {
               className="m-0 grid size-full place-items-center px-4 text-center text-ink-2"
               style={{ fontSize: waitingFontSize }}
             >
-              {t("focus.waiting")}
+              {t("tile.waiting")}
             </p>
             {hasScreenImage && (
               <img
@@ -72,7 +66,7 @@ export const FocusDevice = ({ device }: FocusDeviceProps): ReactElement => {
         </div>
         <div className="flex min-w-0 flex-col gap-6">
           <FocusFindings deviceId={deviceId} />
-          <FocusEstimates deviceId={deviceId} />
+          <FocusEstimates deviceId={deviceId} browserName={browserName} />
         </div>
       </div>
     </div>

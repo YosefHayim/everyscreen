@@ -208,7 +208,7 @@ const createStep = (
   deviceAnswers,
   findings: Array.from({ length: findingCount }, () => ({
     kind: "overflow" as const,
-    severity: "failed" as const,
+    severity: "warn" as const,
     deviceId: "pixel-8",
     selector: "div.wide",
     message: "div.wide is 500px past the edge",
@@ -280,10 +280,10 @@ describe("summarizeSweep", () => {
       },
     ];
 
-    const reply = summarizeSweep(sweepSteps, "run-0007", []);
+    const reply = summarizeSweep(sweepSteps, [], "run-0007");
 
     expect(reply.line).toBe(
-      "2 routes · 2 devices · 4 shots · 1 finding · report run-0007",
+      "2 routes · 2 devices · 4 shots · 1 finding · 1 ok · 1 warn · report run-0007",
     );
     expect(reply.status).toBe("ok");
     expect(reply.failures).toEqual([]);
@@ -302,10 +302,10 @@ describe("summarizeSweep", () => {
       },
     ];
 
-    const reply = summarizeSweep(sweepSteps, "run-0008", []);
+    const reply = summarizeSweep(sweepSteps, [], "run-0008");
 
     expect(reply.line).toBe(
-      "1 route · 2 devices · 2 shots · 1 finding · 1 failed · report run-0008",
+      "1 route · 2 devices · 2 shots · 1 finding · 1 ok · 1 failed · report run-0008",
     );
     expect(reply.status).toBe("failed");
     expect(reply.failures).toHaveLength(1);
@@ -326,7 +326,7 @@ describe("summarizeSweep", () => {
       { route: "/", runStep: createStep("step-1", [answerWithoutShot], 0) },
     ];
 
-    const reply = summarizeSweep(sweepSteps, "run-0009", []);
+    const reply = summarizeSweep(sweepSteps, [], "run-0009");
 
     expect(reply.line).toContain("0 shots");
   });
@@ -343,15 +343,45 @@ describe("summarizeSweep", () => {
       "before flow failed: no login button",
     );
 
-    const reply = summarizeSweep(sweepSteps, "run-0010", [beforeFailure]);
+    const reply = summarizeSweep(
+      sweepSteps,
+      listBeforeRunSteps([beforeFailure], sweepSteps.length, 0),
+      "run-0010",
+    );
 
     expect(reply.line).toBe(
-      "1 route · 2 devices · 1 shot · 0 findings · 1 failed · report run-0010",
+      "1 route · 2 devices · 1 shot · 0 findings · 1 ok · 1 failed · report run-0010",
     );
     expect(reply.status).toBe("failed");
     expect(reply.failures[0].message).toBe(
       "before flow failed: no login button",
     );
+  });
+
+  test("fails the sweep when a device has a failed finding", () => {
+    const routeStep = createStep(
+      "step-1",
+      [createOkAnswer("pixel-8", "a.png")],
+      0,
+    );
+    const failedFinding = {
+      kind: "overflow" as const,
+      severity: "failed" as const,
+      deviceId: "pixel-8",
+      selector: "div.wide",
+      message: "div.wide is 500px past the edge",
+    };
+    const sweepSteps = [
+      { route: "/", runStep: { ...routeStep, findings: [failedFinding] } },
+    ];
+
+    const reply = summarizeSweep(sweepSteps, [], "run-0011");
+
+    expect(reply.status).toBe("failed");
+    expect(reply.line).toBe(
+      "1 route · 1 device · 1 shot · 1 finding · 0 ok · 1 failed · report run-0011",
+    );
+    expect(reply.failures[0].message).toBe("/ div.wide is 500px past the edge");
   });
 });
 

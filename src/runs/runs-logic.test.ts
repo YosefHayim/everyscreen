@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import type { Finding } from "@/checks/checks-logic";
 import type { DeviceAnswer } from "@/commands/commands-logic";
 import {
   checkRunEvent,
@@ -73,6 +74,19 @@ describe("pickRunStatus", () => {
       createStep([OK_ANSWER]),
       createStep([OK_ANSWER, FAILED_ANSWER]),
     ];
+
+    expect(pickRunStatus(steps)).toBe("failed");
+  });
+
+  test("returns failed when a device has a failed finding", () => {
+    const failedFinding: Finding = {
+      kind: "overflow",
+      severity: "failed",
+      deviceId: "iphone-se",
+      selector: null,
+      message: "Wider than the screen",
+    };
+    const steps = [{ ...createStep([OK_ANSWER]), findings: [failedFinding] }];
 
     expect(pickRunStatus(steps)).toBe("failed");
   });

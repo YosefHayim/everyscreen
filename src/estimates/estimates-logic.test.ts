@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   estimateDeviceLoad,
+  isEstimateEngine,
   pickSampleWindow,
   type Sample,
 } from "@/estimates/estimates-logic";
@@ -27,7 +28,6 @@ describe("estimateDeviceLoad", () => {
       cpuPercent: 0,
       memoryMegabytes: 0,
       layoutShift: 0,
-      status: "ok",
     });
   });
 
@@ -37,7 +37,6 @@ describe("estimateDeviceLoad", () => {
     const deviceLoad = estimateDeviceLoad(samples);
 
     expect(deviceLoad.fps).toBe(0);
-    expect(deviceLoad.status).toBe("ok");
   });
 
   test("returns an idle load when two samples share one time", () => {
@@ -71,41 +70,7 @@ describe("estimateDeviceLoad", () => {
       cpuPercent: 25,
       memoryMegabytes: 12,
       layoutShift: 0.05,
-      status: "ok",
     });
-  });
-
-  test("warns when fps is under the minimum", () => {
-    const samples = [
-      createSample({ takenAt: 0 }),
-      createSample({ takenAt: 1000, frames: 10 }),
-    ];
-
-    const deviceLoad = estimateDeviceLoad(samples);
-
-    expect(deviceLoad.status).toBe("warn");
-  });
-
-  test("warns when cpu is over the maximum", () => {
-    const samples = [
-      createSample({ takenAt: 0 }),
-      createSample({ takenAt: 1000, frames: 60, taskSeconds: 0.9 }),
-    ];
-
-    const deviceLoad = estimateDeviceLoad(samples);
-
-    expect(deviceLoad.status).toBe("warn");
-  });
-
-  test("warns when layout shift is over the maximum", () => {
-    const samples = [
-      createSample({ takenAt: 0 }),
-      createSample({ takenAt: 1000, frames: 60, layoutShift: 0.3 }),
-    ];
-
-    const deviceLoad = estimateDeviceLoad(samples);
-
-    expect(deviceLoad.status).toBe("warn");
   });
 
   test("caps cpu at one hundred percent", () => {
@@ -147,5 +112,13 @@ describe("pickSampleWindow", () => {
     const sampleWindow = pickSampleWindow(recentSamples, newSample, 5);
 
     expect(sampleWindow).toEqual([newSample]);
+  });
+});
+
+describe("isEstimateEngine", () => {
+  test("returns true for chromium", () => {
+    const isEstimate = isEstimateEngine("chromium");
+
+    expect(isEstimate).toBe(true);
   });
 });

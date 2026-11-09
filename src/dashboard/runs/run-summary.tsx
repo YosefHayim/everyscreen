@@ -22,7 +22,7 @@ export const RunSummary = ({ run }: RunSummaryProps): ReactElement => {
   const runTotals = pickRunTotals(run);
   const headline = pickRunHeadline(run) ?? t("runs.noSteps");
   const hasFailedDevice = runTotals.failedDeviceCount > 0;
-  const hasFindings = runTotals.findingCount > 0;
+  const hasWarnDevice = runTotals.warnDeviceCount > 0;
   const durationLabel = createDurationLabel(pickRunDurationMs(run));
   const startedLabel = createStartedLabel(run.startedAt);
   const stats = [
@@ -75,11 +75,11 @@ export const RunSummary = ({ run }: RunSummaryProps): ReactElement => {
                   })}
                 />
               )}
-              {hasFindings && (
+              {hasWarnDevice && (
                 <StatusChip
                   status="warn"
-                  label={t("runs.findingsCount", {
-                    count: runTotals.findingCount,
+                  label={t("runs.report.warnDevices", {
+                    count: runTotals.warnDeviceCount,
                   })}
                 />
               )}

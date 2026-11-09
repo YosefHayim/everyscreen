@@ -1,11 +1,17 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import type { ReactElement } from "react";
+import { type ReactElement, useEffect, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  getLastRunMessage,
+  subscribe,
+} from "@/dashboard/device-feed/live-store";
 import { useLiveStatus } from "@/dashboard/device-feed/use-live-status";
 import { AppUrlBar } from "@/dashboard/grid/app-url-bar";
 import { DeviceSearchInput } from "@/dashboard/grid/device-search-input";
 import { AddDeviceButton } from "@/dashboard/picker/add-device-button";
 import { RunBar } from "@/dashboard/run-bar/run-bar";
+import { runQueries } from "@/dashboard/runs/runs-queries";
 import { cn } from "@/dashboard/ui/cn";
 import { LogoMark } from "@/dashboard/ui/logo-mark";
 import { HUB_URL } from "@/environment";
@@ -19,6 +25,18 @@ const NAV_LINKS = [
 export const AppShell = (): ReactElement => {
   const { t } = useTranslation();
   const liveStatus = useLiveStatus();
+  const queryClient = useQueryClient();
+  const lastRunMessage = useSyncExternalStore(subscribe, getLastRunMessage);
+
+  // Each live run message reloads the saved runs, so the tile statuses follow the latest step.
+  useEffect(() => {
+    const isThereNoRunMessage = lastRunMessage === null;
+    if (isThereNoRunMessage) return;
+
+    void queryClient.invalidateQueries({
+      queryKey: runQueries.list().queryKey,
+    });
+  }, [lastRunMessage, queryClient]);
   const isLive = liveStatus === "open";
   const pathname = useRouterState({
     select: (routerState) => routerState.location.pathname,

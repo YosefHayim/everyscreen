@@ -14,6 +14,7 @@ import { STORE_FOLDER } from "@/environment";
 import { runOneAtATime } from "@/hub/run-one-at-a-time";
 import type {
   LiveTestStatus,
+  RunSaved,
   RunTotals,
   StepEvent,
   TestEvent,
@@ -50,6 +51,7 @@ const SHOTS_SUBFOLDER = "shots";
 const SCREENSHOT_ATTACHMENT_NAME = "screenshot";
 const TEST_EVENTS_QUEUE_KEY = "test-events";
 const HEARTBEAT_INTERVAL_MS = 5000;
+const RUN_SAVED_PATH = "/run-saved";
 // A title path starts with "", the project name and the file.
 const TITLE_PATH_PROJECT_PARTS = 2;
 
@@ -113,7 +115,7 @@ export default class EveryscreenReporter implements Reporter {
 
   postToLiveTests = (
     routePath: string,
-    message: TestEvent | StepEvent | RunTotals | TestsClear,
+    message: TestEvent | StepEvent | RunTotals | TestsClear | RunSaved,
   ) => {
     const { hubTarget, isHubGivenUp } = this;
     const isHubMissing = hubTarget === null;
@@ -227,6 +229,7 @@ export default class EveryscreenReporter implements Reporter {
       kind: "step-end",
       step: runStep,
     });
+    this.postToLiveTests(RUN_SAVED_PATH, { runId });
   };
 
   onBegin = (config: FullConfig, suite: Suite) => {
@@ -374,6 +377,8 @@ export default class EveryscreenReporter implements Reporter {
       kind: "run-end",
       status: runEndStatus,
     });
+    this.postToLiveTests(RUN_SAVED_PATH, { runId });
+    await waitForHubPosts(this.pendingHubPosts);
     const replyLine = createSuiteReplyLine(this.savedSteps, runId);
     console.log(replyLine);
   };

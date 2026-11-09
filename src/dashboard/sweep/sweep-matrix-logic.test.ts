@@ -131,9 +131,9 @@ describe("createSweepMatrix", () => {
 
     expect(cleanRoute.path).toBe("/");
     expect(cleanRoute.shotCount).toBe(1);
-    expect(cleanRoute.verdict).toBe("clean");
+    expect(cleanRoute.verdict).toBe("ok");
     expect(findingRoute.findingCount).toBe(2);
-    expect(findingRoute.verdict).toBe("findings");
+    expect(findingRoute.verdict).toBe("warn");
     expect(failedRoute.verdict).toBe("failed");
   });
 
@@ -224,7 +224,7 @@ describe("listRouteChips", () => {
     const [phoneCell, laptopCell] = routes[0].cells;
     const mixedRoute = {
       ...routes[0],
-      verdict: "findings" as const,
+      verdict: "warn" as const,
       cells: [
         { ...phoneCell, status: "warn" as const },
         { ...laptopCell, status: "failed" as const },
