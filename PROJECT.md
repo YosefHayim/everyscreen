@@ -34,5 +34,5 @@ Keep one local hub, one browser per device and one line per command. Add devices
 
 - Replies are short and plain, so an agent can read them without help.
 - Every command runs on every device unless the developer names one.
-- A finding fails the command that found it.
+- A `failed` finding fails the command that found it. A `warn` finding is counted in the reply and does not fail it.
 - Everything runs on the developer's machine.

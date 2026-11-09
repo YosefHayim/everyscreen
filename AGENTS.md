@@ -36,6 +36,8 @@
 
 ## Release
 
+The very first npm publish is manual: `npm publish --access public`, then `npm trust github everyscreen --file publish.yml --repository YosefHayim/everyscreen --allow-publish`. After that, tags publish through `publish.yml`.
+
 1. Bump `version` in `package.json` in a pull request.
 2. After it merges, tag the commit: `git tag v0.1.0` and `git push origin v0.1.0`.
 3. `.github/workflows/publish.yml` runs on tags `v*.*.*`. It sets the version from the tag, runs typecheck, test and build, then publishes with provenance.

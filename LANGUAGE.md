@@ -32,7 +32,7 @@ _Avoid_: session, job
 **Check**: one of the six built-in measurements of a page: `overflow`, `clipped-text`, `safe-area`, `tap-target`, `console-error` and `failed-request`.
 _Avoid_: lint, audit
 
-**Finding**: one problem a check reports on a page for one device.
+**Finding**: one problem a check reports on a page for one device, with severity `warn` or `failed`. Only a `failed` finding fails a command.
 _Avoid_: issue, warning, violation
 
 **Failure**: a device that failed a command, with its message and shot path.

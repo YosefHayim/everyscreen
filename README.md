@@ -36,14 +36,21 @@ npx everyscreen stop
 In a terminal, each command prints one line:
 
 ```text
-13 devices · 13 ok · report run-0001
+12 devices · 12 ok · report run-0001
 ```
 
-When a device fails, the line counts it and the next lines name it:
+A `warn` finding is counted in its own column and does not fail the device. A device that has a `failed` finding, or a step that times out, is counted as failed and its line names the device:
 
 ```text
-1 device · 0 ok · 1 failed · report run-0001
-iphone-se  failed  locator.waitFor: Timeout 10000ms exceeded.  10004 ms
+12 devices · 3 ok · 9 warn · report run-0001
+1 device · 0 ok · 1 failed · report run-0003
+iphone-17  failed  locator.waitFor: Timeout 10000ms exceeded.  10006 ms
+```
+
+A wrong or missing flag prints one `bad usage` line that names what to pass, and exits with code 2:
+
+```text
+bad usage · open needs --url <web address, like https://example.com>
 ```
 
 When you pipe the output or pass `--json`, the command prints one JSON object with `status`, `line`, `runId` and `failures`, and never asks a question. Exit codes: `0` ok, `1` failed, `2` bad usage.
@@ -71,7 +78,7 @@ Every command takes `--json` and `--help`. `--device <id>` runs a command on one
 | `everyscreen tap --role <role> --name <name>`                      | Tap an element by its ARIA role and accessible name          |
 | `everyscreen fill --role <role> --name <name> --with <text>`       | Type into a field                                            |
 | `everyscreen scroll --to top\|bottom`                              | Scroll to the top or the bottom of the page                  |
-| `everyscreen check`                                                | Run the built-in checks on the current page                  |
+| `everyscreen check`                                                | Run the six checks on the current page                       |
 | `everyscreen shot`                                                 | Save a screenshot of every device                            |
 | `everyscreen expect --text <text>`                                 | Check that some text shows on every device                   |
 | `everyscreen sweep --url <url>`                                    | Visit the routes of your app and save a shot on every device |
@@ -83,7 +90,7 @@ Every command takes `--json` and `--help`. `--device <id>` runs a command on one
 
 Role values for `tap` and `fill` are ARIA roles, for example `button`, `link`, `textbox`, `checkbox` or `tab`.
 
-Each command measures the page after it acts. A finding fails that command, so a page with horizontal overflow fails `open`, `tap`, `expect` and `shot` as well as `check`.
+Each command measures the page after it acts. A `failed` finding fails that command, so a page with horizontal overflow fails `open`, `tap`, `expect` and `shot` as well as `check`. A `warn` finding is counted in the reply and does not fail it.
 
 ## Flows
 
@@ -91,7 +98,7 @@ A flow is a YAML file in `flows/` that lists the steps and the devices to run th
 
 ```yaml
 name: Checkout with a coupon
-devices: [iphone-se, pixel-10]
+devices: [iphone-17, pixel-10]
 steps:
   - open: http://localhost:3000/checkout
   - fill: { role: textbox, name: Coupon, with: SPRING }
@@ -116,27 +123,27 @@ Each device a flow names must be running in the hub. Leave `devices` out, or set
 `sweep` starts at one url, follows the links it finds, and saves a screenshot on every device for each route, up to `--max-routes` (default 50, up to 500):
 
 ```sh
-npx everyscreen sweep --url http://localhost:3000 --devices iphone-se,pixel-10 --max-routes 10
+npx everyscreen sweep --url http://localhost:3000 --devices iphone-17,pixel-10 --max-routes 10
 ```
 
 ```text
-3 routes · 2 devices · 6 shots · 10 findings · 2 failed · report run-0002
+2 routes · 2 devices · 4 shots · 0 findings · 2 ok · report run-0002
 ```
 
-Use `--devices all` to sweep all 60 catalog devices. Use `--before <flow.yaml>` to run a flow first on each device, for example a login. Routes you list in `routes` in `everyscreen.yaml` are visited too. Screenshots go to `.everyscreen/shots/`.
+The line adds `warn` and `failed` counts when a route has findings of that kind. Use `--devices all` to sweep all 60 catalog devices. Use `--before <flow.yaml>` to run a flow first on each device, for example a login. Routes you list in `routes` in `everyscreen.yaml` are visited too. Screenshots go to `.everyscreen/shots/`.
 
 ## Checks
 
 Every command runs these checks on the page after it acts:
 
-- `overflow`: an element runs past the edge of the screen
-- `clipped-text`: text is cut off by its box
-- `safe-area`: an element sits under the notch or the home bar
-- `tap-target`: a tap target is smaller than the minimum tap size
-- `console-error`: the page writes an error to the browser console
-- `failed-request`: a network request fails
+- `overflow` (failed): an element runs past the edge of the screen
+- `clipped-text` (warn): text is cut off by its box
+- `safe-area` (warn): an element sits under the notch or the home bar
+- `tap-target` (warn): a tap target is smaller than the minimum tap size
+- `console-error` (failed): the page writes an error to the browser console
+- `failed-request` (failed): a network request fails
 
-Each finding names the device and the element, and a failed command keeps a screenshot path in its `failures`.
+Each finding names the device and the element. A device with a failed finding is listed in `failures` with its shot path.
 
 ## Devices
 
@@ -145,14 +152,24 @@ The grid shows 12 devices by default: `iphone-se`, `iphone-17`, `iphone-17-pro-m
 Add your own device to `everyscreen.yaml`:
 
 ```sh
-npx everyscreen devices add --name "Tablet test" --width 900 --height 1200 --pixel-ratio 2 --touch
+npx everyscreen devices add --name "Lobby kiosk" --width 900 --height 1200
 ```
 
 ```text
-device added · tablet-test · restart the hub to apply
+device added · lobby-kiosk
 ```
 
-Restart the hub after you add or remove a device. `devices remove` asks before it changes the file, and needs `--yes` when no terminal is attached.
+The new device joins the running grid at once, so `open --device lobby-kiosk` works right away. Remove it the same way:
+
+```sh
+npx everyscreen devices remove --device lobby-kiosk --yes
+```
+
+```text
+device removed · lobby-kiosk
+```
+
+`devices remove` asks before it changes the file, and needs `--yes` when no terminal is attached.
 
 The built-in catalog has Chromium and WebKit devices only. A custom device can set `browserName: firefox` in `everyscreen.yaml`, but Firefox is not tested here.
 
@@ -162,15 +179,13 @@ The built-in catalog has Chromium and WebKit devices only. A custom device can s
 
 ```yaml
 devices:
-  - name: Tablet test
+  - name: Lobby kiosk
     width: 900
     height: 1200
-    pixelRatio: 2
-    hasTouch: true
 routes:
   - /checkout
 grid:
-  - iphone-se
+  - iphone-17
   - pixel-10
 ```
 
