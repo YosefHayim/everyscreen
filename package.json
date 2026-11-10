@@ -10,7 +10,7 @@
   "homepage": "https://everyscreen.jtslabs.dev",
   "type": "module",
   "bin": {
-    "everyscreen": "./dist/cli.mjs"
+    "everyscreen": "dist/cli.mjs"
   },
   "exports": {
     "./playwright": {
